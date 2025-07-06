@@ -29,7 +29,7 @@ export default function Login() {
 
   // Redirect if already logged in
   if (user) {
-    navigate('/profile');
+    navigate('/dashboard');
     return null;
   }
 
@@ -56,7 +56,9 @@ export default function Login() {
     const { error } = await signIn(loginForm.email, loginForm.password);
     
     if (!error) {
-      navigate('/profile');
+      navigate('/dashboard');
+    } else {
+      setError(error.message || 'Anmeldung fehlgeschlagen');
     }
     
     setIsLoading(false);
@@ -80,7 +82,9 @@ export default function Login() {
     );
     
     if (!error) {
-      setSuccess("Registrierung erfolgreich! Bitte überprüfe deine E-Mails.");
+      setSuccess("Registrierung erfolgreich! Bitte überprüfe deine E-Mails zur Bestätigung.");
+    } else {
+      setError(error.message || 'Registrierung fehlgeschlagen');
     }
     
     setIsLoading(false);

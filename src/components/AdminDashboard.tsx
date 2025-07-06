@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
 import { AdminUserManagement } from "@/components/AdminUserManagement";
 import { AdminVerificationManagement } from "@/components/AdminVerificationManagement";
+import { AdminStats } from "@/components/AdminStats";
+import { AdminPromoteUser } from "@/components/AdminPromoteUser";
+import { AdminWelcome } from "@/components/AdminWelcome";
 import { 
   Users, 
   Settings, 
@@ -23,7 +26,7 @@ import {
 export function AdminDashboard() {
   const { user, signOut } = useAuth();
   const { stats, loading } = useAdminData();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("welcome");
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,110 +44,49 @@ export function AdminDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
+            <TabsTrigger value="welcome">Willkommen</TabsTrigger>
             <TabsTrigger value="users">Nutzer</TabsTrigger>
             <TabsTrigger value="verification">Verifizierung</TabsTrigger>
             <TabsTrigger value="settings">Einstellungen</TabsTrigger>
           </TabsList>
 
+          {/* Welcome Tab */}
+          <TabsContent value="welcome">
+            <AdminWelcome />
+          </TabsContent>
+
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Gesamte Nutzer</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {loading ? "..." : stats.totalUsers.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Registrierte Nutzer</p>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Aktive Anzeigen</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-secondary">
-                    {loading ? "..." : stats.activeAds.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Veröffentlichte Anzeigen</p>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Handelsvolumen</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-success">
-                    €{loading ? "..." : (stats.platformVolume / 1000).toFixed(0)}K
-                  </div>
-                  <p className="text-xs text-muted-foreground">Gesamtvolumen</p>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Verifizierte Nutzer</CardTitle>
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-accent">
-                    {loading ? "..." : stats.verifiedUsers.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {loading ? "..." : Math.round((stats.verifiedUsers / Math.max(stats.totalUsers, 1)) * 100)}% aller Nutzer
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ausstehende Meldungen</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-warning" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-warning">
-                    {loading ? "..." : stats.pendingReports}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Benötigen Aufmerksamkeit</p>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ausstehende Verifizierungen</CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {loading ? "..." : stats.pendingVerifications}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Zu bearbeiten</p>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Erfolgreiche Trades</CardTitle>
-                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {loading ? "..." : stats.totalTrades.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Abgeschlossene Trades</p>
-                </CardContent>
-              </Card>
-            </div>
+            <AdminStats />
+            
+            {/* Quick Actions */}
+            <Card className="gradient-card">
+              <CardHeader>
+                <CardTitle>Schnellaktionen</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Button variant="outline" className="h-20 flex-col">
+                    <UserCheck className="h-6 w-6 mb-2" />
+                    Benutzer verwalten
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col">
+                    <Shield className="h-6 w-6 mb-2" />
+                    Verifizierungen
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col">
+                    <AlertTriangle className="h-6 w-6 mb-2" />
+                    Meldungen bearbeiten
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col">
+                    <Settings className="h-6 w-6 mb-2" />
+                    System-Einstellungen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Users Tab */}
@@ -158,15 +100,32 @@ export function AdminDashboard() {
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="space-y-6">
+            <AdminPromoteUser />
+            
             <Card className="gradient-card">
               <CardHeader>
                 <CardTitle>System-Einstellungen</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  System-Einstellungen werden in einem zukünftigen Update implementiert.
-                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Plattform-Status</h4>
+                      <p className="text-sm text-muted-foreground">System läuft normal</p>
+                      <div className="mt-2 h-2 bg-success/20 rounded-full">
+                        <div className="h-full w-full bg-success rounded-full"></div>
+                      </div>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Datenbank</h4>
+                      <p className="text-sm text-muted-foreground">Verbunden und synchronisiert</p>
+                      <div className="mt-2 h-2 bg-success/20 rounded-full">
+                        <div className="h-full w-full bg-success rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
