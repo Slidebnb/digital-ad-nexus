@@ -56,9 +56,23 @@ export const useAuthProvider = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Fetch user role if authenticated
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        setUserRole(profile?.role || 'user');
+      } else {
+        setUserRole(null);
+      }
+      
       setLoading(false);
     });
 

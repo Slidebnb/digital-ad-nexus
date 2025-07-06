@@ -1061,6 +1061,14 @@ export type Database = {
         Args: Record<PropertyKey, never> | { ad_id: string }
         Returns: undefined
       }
+      is_admin: {
+        Args: { user_id?: string }
+        Returns: boolean
+      }
+      promote_to_admin: {
+        Args: { target_email: string }
+        Returns: boolean
+      }
       update_verification_status: {
         Args:
           | { p_request_id: string; p_status: string; p_admin_notes?: string }
