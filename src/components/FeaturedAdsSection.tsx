@@ -13,11 +13,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Mock data - wird später durch echte Anzeigen aus Supabase ersetzt
-const featuredAds = [
+// Keine Featured Ads bis Anzeigen-System implementiert ist
+const featuredAds: any[] = [];
+
+const placeholderAds = [
   {
     id: 1,
-    title: "MacBook Pro M3 16\" - Wie neu",
+    title: "Beispiel: MacBook Pro M3 16\" - Wie neu",
     price: 2499,
     currency: "EUR",
     cryptoPrices: [
