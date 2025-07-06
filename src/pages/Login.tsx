@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Eye, 
   EyeOff, 
@@ -17,14 +18,20 @@ import {
   CheckCircle,
   ArrowLeft
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { toast } = useToast();
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  if (user) {
+    navigate('/profile');
+    return null;
+  }
 
   // Login form state
   const [loginForm, setLoginForm] = useState({
@@ -46,24 +53,13 @@ export default function Login() {
     setIsLoading(true);
     setError("");
 
-    try {
-      // TODO: Implement Supabase authentication
-      console.log("Login attempt:", loginForm);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Anmeldung erfolgreich",
-        description: "Willkommen zurück!",
-      });
-      
-      // TODO: Redirect to dashboard or previous page
-    } catch (err) {
-      setError("Anmeldung fehlgeschlagen. Bitte überprüfe deine Eingaben.");
-    } finally {
-      setIsLoading(false);
+    const { error } = await signIn(loginForm.email, loginForm.password);
+    
+    if (!error) {
+      navigate('/profile');
     }
+    
+    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -71,32 +67,23 @@ export default function Login() {
     setIsLoading(true);
     setError("");
 
-    // Basic validation
     if (registerForm.password !== registerForm.confirmPassword) {
       setError("Passwörter stimmen nicht überein");
       setIsLoading(false);
       return;
     }
 
-    try {
-      // TODO: Implement Supabase registration
-      console.log("Registration attempt:", registerForm);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setSuccess("Registrierung erfolgreich! Bitte überprüfe deine E-Mails zur Bestätigung.");
-      
-      toast({
-        title: "Registrierung erfolgreich",
-        description: "Willkommen bei KryptoMarkt!",
-      });
-      
-    } catch (err) {
-      setError("Registrierung fehlgeschlagen. Bitte versuche es erneut.");
-    } finally {
-      setIsLoading(false);
+    const { error } = await signUp(
+      registerForm.email, 
+      registerForm.password, 
+      registerForm.displayName
+    );
+    
+    if (!error) {
+      setSuccess("Registrierung erfolgreich! Bitte überprüfe deine E-Mails.");
     }
+    
+    setIsLoading(false);
   };
 
   return (
