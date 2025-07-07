@@ -17,7 +17,7 @@ export function AdminWelcome() {
       <Alert className="border-primary/50 bg-primary/10">
         <Shield className="h-4 w-4" />
         <AlertDescription className="text-primary">
-          <strong>Willkommen im Admin-Dashboard!</strong> Sie haben vollständige Administratorrechte für die KryptoMarkt-Plattform.
+          <strong>Willkommen im Admin-Dashboard!</strong> Sie haben vollständige Administratorrechte für die KRYPTOANZEIGEN.DE-Plattform.
         </AlertDescription>
       </Alert>
 

@@ -128,7 +128,7 @@ export default function Login() {
           <Link to="/" className="inline-flex items-center space-x-2">
             <Coins className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              KryptoMarkt
+              KRYPTOANZEIGEN.DE
             </span>
           </Link>
         </div>

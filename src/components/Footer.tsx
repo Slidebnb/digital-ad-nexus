@@ -26,7 +26,7 @@ export function Footer() {
                 <div className="absolute inset-0 h-8 w-8 rounded-full bg-primary/20 blur-lg" />
               </div>
               <span className="text-xl font-bold text-gradient-primary">
-                KryptoMarkt
+                KRYPTOANZEIGEN.DE
               </span>
             </Link>
             <p className="text-muted-foreground text-sm mb-4 max-w-xs">
@@ -191,7 +191,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-border text-sm text-muted-foreground">
           <p>
-            © 2024 KryptoMarkt. Alle Rechte vorbehalten.
+            © 2024 KRYPTOANZEIGEN.DE. Alle Rechte vorbehalten.
           </p>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
             <span>Gebaut mit ❤️ in Deutschland</span>

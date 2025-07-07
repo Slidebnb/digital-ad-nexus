@@ -94,7 +94,7 @@ export default function LoginSimple() {
         <div className="text-center mb-6">
           <Link to="/" className="inline-flex items-center space-x-2">
             <Coins className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">KryptoMarkt</span>
+            <span className="text-2xl font-bold">KRYPTOANZEIGEN.DE</span>
           </Link>
         </div>
 

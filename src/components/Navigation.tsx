@@ -31,7 +31,7 @@ export function Navigation() {
               <div className="absolute inset-0 h-8 w-8 rounded-full bg-primary/20 blur-lg animate-float" />
             </div>
             <span className="text-xl font-bold text-gradient-primary">
-              KryptoMarkt
+              KRYPTOANZEIGEN.DE
             </span>
           </Link>
 

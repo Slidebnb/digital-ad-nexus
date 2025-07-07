@@ -64,7 +64,7 @@ interface SystemSettings {
 export function AdminAdvancedSettings() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SystemSettings>({
-    platform_name: "KryptoMarkt",
+    platform_name: "KRYPTOANZEIGEN.DE",
     maintenance_mode: false,
     registration_enabled: true,
     max_file_size_mb: 10,
@@ -197,7 +197,7 @@ export function AdminAdvancedSettings() {
   const resetToDefaults = () => {
     if (confirm("Sind Sie sicher, dass Sie alle Einstellungen auf die Standardwerte zurücksetzen möchten?")) {
       setSettings({
-        platform_name: "KryptoMarkt",
+        platform_name: "KRYPTOANZEIGEN.DE",
         maintenance_mode: false,
         registration_enabled: true,
         max_file_size_mb: 10,

@@ -105,7 +105,7 @@ export function AdminDashboard() {
               Admin Dashboard
             </h1>
             <p className="text-muted-foreground mt-2">
-              Vollständige Systemkontrolle und Verwaltung für KryptoMarkt
+              Vollständige Systemkontrolle und Verwaltung für KRYPTOANZEIGEN.DE
             </p>
             <div className="flex items-center gap-4 mt-4">
               <Badge variant="outline" className="flex items-center gap-1">
