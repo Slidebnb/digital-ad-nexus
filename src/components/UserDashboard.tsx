@@ -13,6 +13,10 @@ import { VerificationModal, VerificationBadge } from "@/components/VerificationM
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { UserAds } from "@/components/UserAds";
 import { UserMessages } from "@/components/UserMessages";
+import { FavoritesManager } from "@/components/FavoritesManager";
+import { PriceAlertsManager } from "@/components/PriceAlertsManager";
+import { MarketTrendsWidget } from "@/components/MarketTrendsWidget";
+import { ChatSystem } from "@/components/ChatSystem";
 import { 
   User, 
   Settings, 
@@ -23,7 +27,9 @@ import {
   Star,
   PlusCircle,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  Bell,
+  FileText
 } from "lucide-react";
 
 export function UserDashboard() {
@@ -105,11 +111,28 @@ export function UserDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
-            <TabsTrigger value="ads">Meine Anzeigen</TabsTrigger>
-            <TabsTrigger value="messages">Nachrichten</TabsTrigger>
-            <TabsTrigger value="settings">Einstellungen</TabsTrigger>
+            <TabsTrigger value="ads">
+              <FileText className="h-4 w-4 mr-2" />
+              Anzeigen
+            </TabsTrigger>
+            <TabsTrigger value="messages">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Nachrichten
+            </TabsTrigger>
+            <TabsTrigger value="favorites">
+              <Heart className="h-4 w-4 mr-2" />
+              Favoriten
+            </TabsTrigger>
+            <TabsTrigger value="alerts">
+              <Bell className="h-4 w-4 mr-2" />
+              Preisalarme
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="h-4 w-4 mr-2" />
+              Einstellungen
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
