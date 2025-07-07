@@ -156,6 +156,13 @@ export const useProfile = () => {
     if (!user?.id) return { error: 'No user' };
 
     try {
+      // Update profile with verification data to avoid duplicates
+      if (requestData.full_name && requestData.full_name !== profile?.full_name) {
+        await updateProfile({ 
+          full_name: requestData.full_name 
+        });
+      }
+
       const { data, error } = await supabase
         .from('verification_requests')
         .insert({

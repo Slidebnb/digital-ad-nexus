@@ -19,6 +19,7 @@ import {
   Award,
   Info
 } from "lucide-react";
+import { VerificationUploadForm } from './VerificationUploadForm';
 
 interface VerificationStatus {
   id?: string;
@@ -141,10 +142,18 @@ export function UserVerificationCenter() {
     }
   };
 
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
+
   const handleStartVerification = () => {
+    setShowVerificationForm(true);
+  };
+
+  const handleVerificationSuccess = () => {
+    setShowVerificationForm(false);
+    fetchVerificationStatus();
     toast({
-      title: "Verifizierung starten",
-      description: "Die Verifizierungsfunktion wird bald verfügbar sein.",
+      title: "✅ Verifizierung eingereicht",
+      description: "Ihre Unterlagen werden geprüft. Sie erhalten eine Benachrichtigung über das Ergebnis."
     });
   };
 
@@ -161,6 +170,28 @@ export function UserVerificationCenter() {
 
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
+
+  // Show verification form if requested
+  if (showVerificationForm) {
+    return (
+      <div className="space-y-6">
+        <Card className="gradient-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Identitätsverifizierung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VerificationUploadForm
+              onSuccess={handleVerificationSuccess}
+              onCancel={() => setShowVerificationForm(false)}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -312,17 +312,21 @@ export function AdminVerificationManagement() {
                                     {selectedRequest?.document_front_url && (
                                       <div className="space-y-2">
                                         <h4 className="font-medium text-sm">Dokument Vorderseite</h4>
-                                        <div className="relative group">
-                                          <img 
-                                            src={selectedRequest.document_front_url} 
-                                            alt="Dokument Vorderseite"
-                                            className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                            onClick={() => setImagePreview(selectedRequest.document_front_url)}
-                                          />
-                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
-                                            <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                          </div>
-                                        </div>
+                                         <div className="relative group">
+                                           <img 
+                                             src={selectedRequest.document_front_url} 
+                                             alt="Dokument Vorderseite"
+                                             className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                                             onClick={() => setImagePreview(selectedRequest.document_front_url)}
+                                             onError={(e) => {
+                                               e.currentTarget.src = '/placeholder.svg';
+                                               e.currentTarget.alt = 'Bild konnte nicht geladen werden';
+                                             }}
+                                           />
+                                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                                             <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                           </div>
+                                         </div>
                                         <Button variant="outline" size="sm" className="w-full" asChild>
                                           <a href={selectedRequest.document_front_url} download target="_blank">
                                             <Download className="h-4 w-4 mr-2" />
@@ -335,17 +339,21 @@ export function AdminVerificationManagement() {
                                     {selectedRequest?.document_back_url && (
                                       <div className="space-y-2">
                                         <h4 className="font-medium text-sm">Dokument Rückseite</h4>
-                                        <div className="relative group">
-                                          <img 
-                                            src={selectedRequest.document_back_url} 
-                                            alt="Dokument Rückseite"
-                                            className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                            onClick={() => setImagePreview(selectedRequest.document_back_url)}
-                                          />
-                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
-                                            <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                          </div>
-                                        </div>
+                                         <div className="relative group">
+                                           <img 
+                                             src={selectedRequest.document_back_url} 
+                                             alt="Dokument Rückseite"
+                                             className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                                             onClick={() => setImagePreview(selectedRequest.document_back_url)}
+                                             onError={(e) => {
+                                               e.currentTarget.src = '/placeholder.svg';
+                                               e.currentTarget.alt = 'Bild konnte nicht geladen werden';
+                                             }}
+                                           />
+                                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                                             <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                           </div>
+                                         </div>
                                         <Button variant="outline" size="sm" className="w-full" asChild>
                                           <a href={selectedRequest.document_back_url} download target="_blank">
                                             <Download className="h-4 w-4 mr-2" />
@@ -358,17 +366,21 @@ export function AdminVerificationManagement() {
                                     {selectedRequest?.selfie_url && (
                                       <div className="space-y-2">
                                         <h4 className="font-medium text-sm">Selfie mit Dokument</h4>
-                                        <div className="relative group">
-                                          <img 
-                                            src={selectedRequest.selfie_url} 
-                                            alt="Selfie mit Dokument"
-                                            className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                                            onClick={() => setImagePreview(selectedRequest.selfie_url)}
-                                          />
-                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
-                                            <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                          </div>
-                                        </div>
+                                         <div className="relative group">
+                                           <img 
+                                             src={selectedRequest.selfie_url} 
+                                             alt="Selfie mit Dokument"
+                                             className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                                             onClick={() => setImagePreview(selectedRequest.selfie_url)}
+                                             onError={(e) => {
+                                               e.currentTarget.src = '/placeholder.svg';
+                                               e.currentTarget.alt = 'Bild konnte nicht geladen werden';
+                                             }}
+                                           />
+                                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                                             <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                           </div>
+                                         </div>
                                         <Button variant="outline" size="sm" className="w-full" asChild>
                                           <a href={selectedRequest.selfie_url} download target="_blank">
                                             <Download className="h-4 w-4 mr-2" />
