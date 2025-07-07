@@ -62,19 +62,19 @@ export function UserDashboard() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8 gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            <Avatar className="h-12 w-12 md:h-16 md:w-16">
               <AvatarImage src={profile?.avatar_url || "/placeholder-avatar.jpg"} />
               <AvatarFallback>
                 {profile?.full_name?.[0] || user?.user_metadata?.display_name?.[0] || user?.email?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold">
+              <div className="flex items-center gap-2 md:gap-3 mb-1">
+                <h1 className="text-xl md:text-2xl font-bold">
                   Willkommen, {profile?.full_name || user?.user_metadata?.display_name || 'Nutzer'}!
                 </h1>
                 <VerificationBadge 
@@ -82,7 +82,7 @@ export function UserDashboard() {
                   verificationLevel={stats.verificationLevel} 
                 />
               </div>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm md:text-base">
                 Mitglied seit {new Date(user?.created_at || '').toLocaleDateString('de-DE')}
               </p>
               {profile?.city && (
@@ -90,7 +90,7 @@ export function UserDashboard() {
               )}
             </div>
           </div>
-          <Button variant="outline" onClick={signOut}>
+          <Button variant="outline" onClick={signOut} className="w-full md:w-auto text-sm">
             Abmelden
           </Button>
         </div>
@@ -114,38 +114,47 @@ export function UserDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Übersicht</TabsTrigger>
-            <TabsTrigger value="ads">
-              <FileText className="h-4 w-4 mr-2" />
-              Anzeigen
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1 p-1 h-auto">
+            <TabsTrigger value="overview" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <span className="md:hidden">📊</span>
+              <span className="hidden md:inline">Übersicht</span>
+              <span className="md:hidden">Übersicht</span>
             </TabsTrigger>
-            <TabsTrigger value="messages">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Nachrichten
+            <TabsTrigger value="ads" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <FileText className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">Anzeigen</span>
+              <span className="hidden md:inline">Anzeigen</span>
             </TabsTrigger>
-            <TabsTrigger value="favorites">
-              <Heart className="h-4 w-4 mr-2" />
-              Favoriten
+            <TabsTrigger value="messages" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <MessageCircle className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">Chat</span>
+              <span className="hidden md:inline">Nachrichten</span>
             </TabsTrigger>
-            <TabsTrigger value="alerts">
-              <Bell className="h-4 w-4 mr-2" />
-              Preisalarme
+            <TabsTrigger value="favorites" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <Heart className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">❤️</span>
+              <span className="hidden md:inline">Favoriten</span>
             </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings className="h-4 w-4 mr-2" />
-              Einstellungen
+            <TabsTrigger value="alerts" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <Bell className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">🔔</span>
+              <span className="hidden md:inline">Preisalarme</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <Settings className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">⚙️</span>
+              <span className="hidden md:inline">Einstellungen</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
               <Card className="gradient-card">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-primary">{stats.totalAds}</div>
-                  <div className="text-sm text-muted-foreground">Anzeigen gesamt</div>
+                <CardContent className="p-3 md:p-4 text-center">
+                  <div className="text-lg md:text-2xl font-bold text-primary">{stats.totalAds}</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Anzeigen gesamt</div>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
@@ -188,7 +197,7 @@ export function UserDashboard() {
                 <CardTitle>Schnellaktionen</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   <Button 
                     variant={canCreateAds ? "gradient" : "outline"} 
                     className="h-20 flex-col relative"

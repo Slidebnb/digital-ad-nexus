@@ -123,8 +123,8 @@ export default function AdDetail() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Image Gallery */}
           <div className="lg:col-span-2">
             <Card className="gradient-card">
@@ -134,7 +134,7 @@ export default function AdDetail() {
                     <img 
                       src={ad.images[currentImageIndex]} 
                       alt={ad.title}
-                      className="w-full h-96 object-cover rounded-t-lg"
+                      className="w-full h-64 md:h-96 object-cover rounded-t-lg"
                     />
                     {ad.images.length > 1 && (
                       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">

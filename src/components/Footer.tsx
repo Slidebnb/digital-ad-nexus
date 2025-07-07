@@ -169,9 +169,9 @@ export function Footer() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-t border-border">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 py-4 md:py-6 border-t border-border">
           <div className="text-center">
-            <div className="text-xl font-bold text-primary">10,000+</div>
+            <div className="text-lg md:text-xl font-bold text-primary">10,000+</div>
             <div className="text-xs text-muted-foreground">Registrierte Nutzer</div>
           </div>
           <div className="text-center">
@@ -189,11 +189,11 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-border text-sm text-muted-foreground">
-          <p>
+        <div className="flex flex-col md:flex-row justify-between items-center pt-4 md:pt-6 border-t border-border text-xs md:text-sm text-muted-foreground">
+          <p className="text-center md:text-left">
             © 2024 KRYPTOANZEIGEN.DE. Alle Rechte vorbehalten.
           </p>
-          <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-4 mt-4 md:mt-0 text-xs md:text-sm">
             <span>Gebaut mit ❤️ in Deutschland</span>
             <div className="flex items-center gap-1">
               <span>Status:</span>

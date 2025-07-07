@@ -124,10 +124,10 @@ export default function Login() {
         </Link>
 
         {/* Simplified logo */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4 md:mb-6">
           <Link to="/" className="inline-flex items-center space-x-2">
-            <Coins className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <Coins className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               KRYPTOANZEIGEN.DE
             </span>
           </Link>

@@ -135,45 +135,45 @@ export default function Browse() {
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">
             <span className="text-gradient-primary">Durchsuche</span> Anzeigen
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             {filteredAds.length} Anzeigen gefunden
           </p>
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-6 md:mb-8 space-y-4">
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex gap-4">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 md:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Suche nach Produkten, Kategorien..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10 md:h-11"
               />
             </div>
-            <Button type="submit" variant="gradient">
+            <Button type="submit" variant="gradient" className="h-10 md:h-11 px-6">
               Suchen
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-10 md:h-11 px-4"
             >
               <Filter className="h-4 w-4" />
-              Filter
+              <span className="hidden sm:inline">Filter</span>
             </Button>
           </form>
 
           {/* Filters */}
           <div className={cn(
-            "grid grid-cols-1 md:grid-cols-4 gap-4 transition-all duration-300",
+            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 transition-all duration-300",
             showFilters ? "opacity-100 max-h-96" : "opacity-0 max-h-0 overflow-hidden"
           )}>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -209,7 +209,7 @@ export default function Browse() {
               </SelectContent>
             </Select>
 
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-1 sm:col-span-2 lg:col-span-1">
               <label className="text-sm font-medium">Preis: €{priceRange[0]} - €{priceRange[1]}</label>
               <Slider
                 value={priceRange}
@@ -225,11 +225,11 @@ export default function Browse() {
 
         {/* Loading State */}
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {[...Array(8)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <div className="aspect-[4/3] bg-muted"></div>
-                <CardContent className="p-4 space-y-2">
+                <CardContent className="p-3 md:p-4 space-y-2">
                   <div className="h-4 bg-muted rounded w-3/4"></div>
                   <div className="h-6 bg-muted rounded w-1/2"></div>
                   <div className="h-3 bg-muted rounded w-full"></div>
@@ -241,7 +241,7 @@ export default function Browse() {
 
         {/* Results Grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {filteredAds.map((ad) => (
               <Card 
                 key={ad.id} 
@@ -278,7 +278,7 @@ export default function Browse() {
                   </div>
                 </div>
 
-                <CardContent className="p-4">
+                <CardContent className="p-3 md:p-4">
                   {/* Title */}
                   <h3 className="font-semibold text-sm md:text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                     {ad.title}
