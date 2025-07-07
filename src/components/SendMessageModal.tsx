@@ -34,18 +34,19 @@ export function SendMessageModal({
 
     setSending(true);
     try {
-      // Erstelle oder finde Konversation
-      let conversationId;
-      
+      // Check if conversation already exists
       const { data: existingConversation } = await supabase
         .from('conversations')
         .select('id')
         .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
         .maybeSingle();
 
+      let conversationId;
+      
       if (existingConversation) {
         conversationId = existingConversation.id;
       } else {
+        // Create new conversation
         const { data: newConversation, error: convError } = await supabase
           .from('conversations')
           .insert({
@@ -61,19 +62,23 @@ export function SendMessageModal({
         conversationId = newConversation.id;
       }
 
-      // Sende Nachricht
+      // Send message with full content including subject
+      const fullMessage = subject !== `Interesse an: ${adTitle}` 
+        ? `**${subject}**\n\n${message}\n\n---\nBezogen auf Anzeige: ${adTitle}`
+        : `${message}\n\n---\nBezogen auf Anzeige: ${adTitle}`;
+
       const { error: messageError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: user.id,
-          content: `**${subject}**\n\n${message}\n\n---\nBezogen auf Anzeige: ${adTitle}`,
+          content: fullMessage,
           message_type: 'text'
         });
 
       if (messageError) throw messageError;
 
-      // Update Konversation
+      // Update conversation's last message
       await supabase
         .from('conversations')
         .update({
@@ -96,7 +101,7 @@ export function SendMessageModal({
       console.error('Error sending message:', error);
       toast({
         title: "Fehler beim Senden",
-        description: "Die Nachricht konnte nicht gesendet werden.",
+        description: "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
         variant: "destructive"
       });
     } finally {

@@ -5,9 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Send, Users, Clock } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { 
+  MessageCircle, 
+  Send, 
+  Users, 
+  Clock, 
+  Trash2, 
+  MoreVertical,
+  Check,
+  CheckCheck
+} from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function ChatSystem() {
   const { user } = useAuth();
@@ -15,10 +32,11 @@ export function ChatSystem() {
     conversations, 
     messages, 
     activeConversation, 
-    loading, 
+    loading,
+    sending,
     setActiveConversation, 
     sendMessage, 
-    markAsRead 
+    deleteConversation
   } = useChat();
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -27,23 +45,27 @@ export function ChatSystem() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (activeConversation) {
-      markAsRead(activeConversation);
-    }
-  }, [activeConversation, markAsRead]);
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeConversation) return;
+    if (!newMessage.trim() || !activeConversation || sending) return;
 
+    const messageToSend = newMessage;
+    setNewMessage(""); // Clear input immediately for better UX
+    
     try {
-      const result = await sendMessage(newMessage);
-      if (result && !result.error) {
-        setNewMessage("");
+      const result = await sendMessage(messageToSend);
+      if (result?.error) {
+        setNewMessage(messageToSend); // Restore message on error
       }
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
+      setNewMessage(messageToSend); // Restore message on error
+    }
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    if (window.confirm('Möchten Sie diese Konversation wirklich löschen?')) {
+      await deleteConversation(conversationId);
     }
   };
 
@@ -52,7 +74,9 @@ export function ChatSystem() {
     const now = new Date();
     const diffHours = Math.abs(now.getTime() - date.getTime()) / 36e5;
     
-    if (diffHours < 24) {
+    if (diffHours < 1) {
+      return 'Gerade eben';
+    } else if (diffHours < 24) {
       return date.toLocaleTimeString('de-DE', { 
         hour: '2-digit', 
         minute: '2-digit' 
@@ -60,10 +84,23 @@ export function ChatSystem() {
     } else {
       return date.toLocaleDateString('de-DE', { 
         day: '2-digit', 
-        month: '2-digit' 
+        month: '2-digit',
+        year: '2-digit'
       });
     }
   };
+
+  const getMessageStatus = (message: any) => {
+    if (message.sender_id !== user?.id) return null;
+    
+    if (message.read_at) {
+      return <CheckCheck className="h-3 w-3 text-blue-500" />;
+    } else {
+      return <Check className="h-3 w-3 text-muted-foreground" />;
+    }
+  };
+
+  const activeConversationData = conversations.find(conv => conv.id === activeConversation);
 
   if (loading) {
     return (
@@ -85,12 +122,29 @@ export function ChatSystem() {
 
   return (
     <Card className="h-[600px] flex flex-col">
-      <CardHeader className="flex-shrink-0">
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Nachrichten
-          {conversations.length > 0 && (
-            <Badge variant="secondary">{conversations.length}</Badge>
+      <CardHeader className="flex-shrink-0 pb-4">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Nachrichten
+            {conversations.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {conversations.reduce((acc, conv) => acc + (conv.unread_count || 0), 0)}
+              </Badge>
+            )}
+          </div>
+          {activeConversationData && (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={activeConversationData.other_user?.avatar_url || ''} />
+                <AvatarFallback>
+                  {activeConversationData.other_user?.full_name?.[0] || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">
+                {activeConversationData.other_user?.full_name || 'Unbekannter Nutzer'}
+              </span>
+            </div>
           )}
         </CardTitle>
       </CardHeader>
@@ -98,60 +152,107 @@ export function ChatSystem() {
       <CardContent className="flex-1 flex min-h-0 p-0">
         {/* Conversations List */}
         <div className="w-1/3 border-r bg-muted/20">
-          <div className="p-4 border-b">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="p-3 border-b bg-background/50">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <Users className="h-4 w-4" />
-              Unterhaltungen
+              Unterhaltungen ({conversations.length})
             </div>
           </div>
           
           <ScrollArea className="h-full">
             {conversations.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                <MessageCircle className="h-8 w-8 mx-auto mb-2" />
-                <p className="text-sm">Keine Unterhaltungen</p>
+              <div className="p-6 text-center text-muted-foreground">
+                <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm font-medium mb-1">Keine Unterhaltungen</p>
+                <p className="text-xs">Senden Sie eine Nachricht über eine Anzeige</p>
               </div>
             ) : (
               <div className="space-y-1 p-2">
                 {conversations.map((conv) => (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => setActiveConversation(conv.id)}
-                    className={`w-full p-3 text-left rounded-lg transition-colors ${
+                    className={cn(
+                      "group relative p-3 rounded-lg transition-all cursor-pointer border",
                       activeConversation === conv.id 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'hover:bg-muted'
-                    }`}
+                        ? 'bg-primary text-primary-foreground border-primary' 
+                        : 'hover:bg-muted border-transparent'
+                    )}
+                    onClick={() => setActiveConversation(conv.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={conv.other_user?.avatar_url} />
-                        <AvatarFallback>
-                          {conv.other_user?.full_name?.[0] || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                    <div className="flex items-start gap-3">
+                      <div className="relative">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={conv.other_user?.avatar_url || ''} />
+                          <AvatarFallback>
+                            {conv.other_user?.full_name?.[0] || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {(conv.unread_count || 0) > 0 && (
+                          <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+                            {conv.unread_count}
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm truncate">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={cn(
+                            "font-medium text-sm truncate",
+                            (conv.unread_count || 0) > 0 && activeConversation !== conv.id && "font-bold"
+                          )}>
                             {conv.other_user?.full_name || 'Unbekannter Nutzer'}
                           </span>
-                          {conv.unread_by_recipient && conv.recipient_id === user?.id && (
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                          )}
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className={cn(
+                                  "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
+                                  activeConversation === conv.id && "text-primary-foreground"
+                                )}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteConversation(conv.id);
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Löschen
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                         
-                        <p className="text-xs opacity-75 truncate">
+                        <p className={cn(
+                          "text-xs truncate mb-1",
+                          activeConversation === conv.id 
+                            ? 'text-primary-foreground/80' 
+                            : 'text-muted-foreground'
+                        )}>
                           {conv.last_message || 'Keine Nachrichten'}
                         </p>
                         
-                        <div className="flex items-center gap-1 text-xs opacity-60 mt-1">
+                        <div className={cn(
+                          "flex items-center gap-1 text-xs",
+                          activeConversation === conv.id 
+                            ? 'text-primary-foreground/60' 
+                            : 'text-muted-foreground'
+                        )}>
                           <Clock className="h-3 w-3" />
                           {formatTime(conv.last_message_at || conv.created_at || '')}
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -165,43 +266,101 @@ export function ChatSystem() {
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
-                  {messages.map((message) => {
-                    const isOwn = message.sender_id === user?.id;
-                    
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[70%] rounded-lg p-3 ${
-                            isOwn
-                              ? 'bg-primary text-primary-foreground ml-auto'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          <p className="text-sm">{message.content}</p>
-                          <div className={`text-xs mt-1 ${
-                            isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                          }`}>
-                            {formatTime(message.created_at || '')}
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Noch keine Nachrichten</p>
+                      <p className="text-xs">Schreiben Sie die erste Nachricht!</p>
+                    </div>
+                  ) : (
+                    messages.map((message, index) => {
+                      const isOwn = message.sender_id === user?.id;
+                      const showDate = index === 0 || 
+                        new Date(messages[index - 1].created_at || '').toDateString() !== 
+                        new Date(message.created_at || '').toDateString();
+                      
+                      return (
+                        <div key={message.id}>
+                          {showDate && (
+                            <div className="flex justify-center my-4">
+                              <Separator className="flex-1" />
+                              <span className="px-3 text-xs text-muted-foreground bg-background">
+                                {new Date(message.created_at || '').toLocaleDateString('de-DE', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                              <Separator className="flex-1" />
+                            </div>
+                          )}
+                          
+                          <div className={cn(
+                            "flex gap-3",
+                            isOwn ? 'justify-end' : 'justify-start'
+                          )}>
+                            {!isOwn && (
+                              <Avatar className="h-8 w-8 mt-1">
+                                <AvatarImage src={activeConversationData?.other_user?.avatar_url || ''} />
+                                <AvatarFallback>
+                                  {activeConversationData?.other_user?.full_name?.[0] || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+                            
+                            <div className={cn(
+                              "max-w-[70%] space-y-1",
+                              isOwn && "items-end"
+                            )}>
+                              <div
+                                className={cn(
+                                  "rounded-2xl px-4 py-2 break-words",
+                                  isOwn
+                                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                                    : 'bg-muted rounded-bl-md'
+                                )}
+                              >
+                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              </div>
+                              
+                              <div className={cn(
+                                "flex items-center gap-1 px-2",
+                                isOwn ? 'justify-end' : 'justify-start'
+                              )}>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatTime(message.created_at || '')}
+                                </span>
+                                {getMessageStatus(message)}
+                              </div>
+                            </div>
+                            
+                            {isOwn && (
+                              <Avatar className="h-8 w-8 mt-1">
+                                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                                <AvatarFallback>
+                                  {user?.user_metadata?.display_name?.[0] || user?.email?.[0] || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
 
               {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t">
-                <div className="flex gap-2">
+              <div className="p-4 border-t bg-background">
+                <form onSubmit={handleSendMessage} className="flex gap-3">
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Nachricht eingeben..."
                     className="flex-1"
+                    disabled={sending}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -212,23 +371,28 @@ export function ChatSystem() {
                   <Button 
                     type="submit" 
                     size="icon" 
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() || sending}
                     className="shrink-0"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
-                </div>
-              </form>
+                </form>
+                
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Drücken Sie Enter zum Senden • Shift+Enter für neue Zeile
+                </p>
+              </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-center p-8">
               <div>
-                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
+                <MessageCircle className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium mb-2">Willkommen bei den Nachrichten</h3>
+                <p className="text-muted-foreground mb-4">
                   Wählen Sie eine Unterhaltung aus, um zu chatten
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Ihre Nachrichten werden hier angezeigt
+                <p className="text-sm text-muted-foreground">
+                  Neue Unterhaltungen beginnen automatisch, wenn Sie über eine Anzeige Kontakt aufnehmen
                 </p>
               </div>
             </div>
