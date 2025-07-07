@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff, Mail, Lock, User, Coins, AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function LoginSimple() {
@@ -14,6 +14,7 @@ export default function LoginSimple() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const navigate = useNavigate();
+  const { signIn, signUp, user, loading } = useAuth();
 
   // Login form state
   const [loginForm, setLoginForm] = useState({
@@ -29,31 +30,25 @@ export default function LoginSimple() {
     displayName: ""
   });
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email,
-        password: loginForm.password,
-      });
-
-      if (error) {
-        setError(error.message);
-        setIsLoading(false);
-      } else {
-        // Successful login - redirect immediately
-        console.log('Login successful, redirecting...', data);
-        setIsLoading(false);
-        window.location.href = '/dashboard'; // Force navigation
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Ein unerwarteter Fehler ist aufgetreten');
-      setIsLoading(false);
+    const { error } = await signIn(loginForm.email, loginForm.password);
+    
+    if (error) {
+      setError(error.message);
     }
+    
+    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -67,29 +62,10 @@ export default function LoginSimple() {
       return;
     }
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: registerForm.email,
-        password: registerForm.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: {
-            display_name: registerForm.displayName
-          }
-        }
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setError('');
-        console.log('Registration successful:', data);
-        alert('Registrierung erfolgreich! Bitte überprüfe deine E-Mails.');
-        setActiveTab('login');
-      }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError('Ein unerwarteter Fehler ist aufgetreten');
+    const { error } = await signUp(registerForm.email, registerForm.password, registerForm.displayName);
+    
+    if (!error) {
+      setActiveTab('login');
     }
     
     setIsLoading(false);
