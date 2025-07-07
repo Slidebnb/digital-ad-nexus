@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useMessages } from "@/hooks/useMessages";
 import { VerificationModal, VerificationBadge } from "@/components/VerificationModal";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { UserAds } from "@/components/UserAds";
@@ -17,6 +18,7 @@ import { FavoritesManager } from "@/components/FavoritesManager";
 import { PriceAlertsManager } from "@/components/PriceAlertsManager";
 import { MarketTrendsWidget } from "@/components/MarketTrendsWidget";
 import { ChatSystem } from "@/components/ChatSystem";
+import { BoostAdModal } from "@/components/BoostAdModal";
 import { 
   User, 
   Settings, 
@@ -35,6 +37,7 @@ import {
 export function UserDashboard() {
   const { user, signOut } = useAuth();
   const { profile, loading, getUserStats } = useProfile();
+  const { unreadCount } = useMessages();
   const [activeTab, setActiveTab] = useState("overview");
   
   const stats = getUserStats();
@@ -185,10 +188,10 @@ export function UserDashboard() {
                 <CardTitle>Schnellaktionen</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Button 
                     variant={canCreateAds ? "gradient" : "outline"} 
-                    className="h-20 flex-col"
+                    className="h-20 flex-col relative"
                     disabled={!canCreateAds}
                     onClick={() => {
                       if (!canCreateAds) return;
@@ -203,13 +206,47 @@ export function UserDashboard() {
                       </span>
                     )}
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col">
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex-col relative"
+                    onClick={() => setActiveTab("messages")}
+                  >
                     <MessageCircle className="h-6 w-6 mb-2" />
-                    Nachrichten ({stats.totalMessages})
+                    Nachrichten
+                    <span className="text-xs text-muted-foreground">
+                      ({unreadCount > 0 ? unreadCount : stats.totalMessages})
+                    </span>
+                    {unreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    )}
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col">
-                    <TrendingUp className="h-6 w-6 mb-2" />
-                    Anzeige boosten
+
+                  <BoostAdModal>
+                    <Button variant="outline" className="h-20 flex-col">
+                      <TrendingUp className="h-6 w-6 mb-2" />
+                      Anzeige boosten
+                      <span className="text-xs text-muted-foreground">
+                        {stats.activeAds} verfügbar
+                      </span>
+                    </Button>
+                  </BoostAdModal>
+
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex-col"
+                    onClick={() => setActiveTab("favorites")}
+                  >
+                    <Heart className="h-6 w-6 mb-2" />
+                    Favoriten
+                    <span className="text-xs text-muted-foreground">
+                      Gespeicherte Anzeigen
+                    </span>
                   </Button>
                 </div>
               </CardContent>
