@@ -34,46 +34,67 @@ export const useAuthProvider = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         // Fetch user role if authenticated
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          setUserRole(profile?.role || 'user');
+          // Use setTimeout to prevent blocking the auth state change
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              console.log('Profile loaded:', profile);
+              setUserRole(profile?.role || 'user');
+              setLoading(false);
+            } catch (error) {
+              console.error('Profile loading error:', error);
+              setUserRole('user');
+              setLoading(false);
+            }
+          }, 0);
         } else {
           setUserRole(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
       // Fetch user role if authenticated
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        setUserRole(profile?.role || 'user');
+        (async () => {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            console.log('Initial profile loaded:', profile);
+            setUserRole(profile?.role || 'user');
+            setLoading(false);
+          } catch (error) {
+            console.error('Initial profile loading error:', error);
+            setUserRole('user');
+            setLoading(false);
+          }
+        })();
       } else {
         setUserRole(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

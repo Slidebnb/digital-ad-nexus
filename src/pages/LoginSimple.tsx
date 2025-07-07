@@ -16,6 +16,8 @@ export default function LoginSimple() {
   const navigate = useNavigate();
   const { signIn, signUp, user, loading } = useAuth();
 
+  console.log('LoginSimple render - user:', user?.id, 'loading:', loading);
+
   // Login form state
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -33,7 +35,8 @@ export default function LoginSimple() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      navigate('/dashboard');
+      console.log('User authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -42,10 +45,14 @@ export default function LoginSimple() {
     setIsLoading(true);
     setError("");
 
+    console.log('Attempting login...');
     const { error } = await signIn(loginForm.email, loginForm.password);
     
     if (error) {
+      console.error('Login error:', error);
       setError(error.message);
+    } else {
+      console.log('Login successful - waiting for auth state update');
     }
     
     setIsLoading(false);
