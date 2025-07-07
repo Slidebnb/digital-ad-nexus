@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Heart, MapPin, Clock, Shield, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SendMessageModal } from "@/components/SendMessageModal";
+import { ReportUserModal } from "@/components/ReportUserModal";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface Ad {
   id: string;
@@ -51,7 +54,7 @@ export default function AdDetail() {
           .from('ads')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
         if (adError) throw adError;
         setAd(adData);
@@ -61,7 +64,7 @@ export default function AdDetail() {
           .from('profiles')
           .select('*')
           .eq('user_id', adData.user_id)
-          .single();
+          .maybeSingle();
 
         if (profileError) throw profileError;
         setProfile(profileData);
@@ -233,17 +236,28 @@ export default function AdDetail() {
             {/* Action Buttons */}
             <Card className="gradient-card">
               <CardContent className="p-6 space-y-4">
-                <Button className="w-full" size="lg">
-                  <MessageCircle className="h-5 w-5 mr-2" />
-                  Nachricht senden
-                </Button>
-                <Button variant="outline" className="w-full" size="lg">
-                  <Heart className="h-5 w-5 mr-2" />
-                  Zu Favoriten hinzufügen
-                </Button>
-                <Button variant="secondary" className="w-full">
-                  Verkäufer melden
-                </Button>
+                <SendMessageModal
+                  recipientId={ad.user_id}
+                  recipientName={profile.full_name || 'Unbekannt'}
+                  adTitle={ad.title}
+                  adId={ad.id}
+                />
+                
+                <div className="w-full">
+                  <FavoriteButton 
+                    adId={ad.id} 
+                    className="w-full" 
+                    size="lg" 
+                    showText 
+                  />
+                </div>
+                
+                <ReportUserModal
+                  reportedUserId={ad.user_id}
+                  reportedUserName={profile.full_name || 'Unbekannt'}
+                  adId={ad.id}
+                  adTitle={ad.title}
+                />
               </CardContent>
             </Card>
 
