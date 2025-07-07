@@ -39,9 +39,11 @@ export const useAuthProvider = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Fetch user role if authenticated
+        // Always set loading to false immediately after auth state change
+        setLoading(false);
+        
+        // Fetch user role if authenticated (non-blocking)
         if (session?.user) {
-          // Use setTimeout to prevent blocking the auth state change
           setTimeout(async () => {
             try {
               const { data: profile } = await supabase
@@ -52,16 +54,13 @@ export const useAuthProvider = () => {
               
               console.log('Profile loaded:', profile);
               setUserRole(profile?.role || 'user');
-              setLoading(false);
             } catch (error) {
               console.error('Profile loading error:', error);
               setUserRole('user');
-              setLoading(false);
             }
           }, 0);
         } else {
           setUserRole(null);
-          setLoading(false);
         }
       }
     );
@@ -71,8 +70,9 @@ export const useAuthProvider = () => {
       console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false); // Set loading to false immediately
       
-      // Fetch user role if authenticated
+      // Fetch user role if authenticated (non-blocking)
       if (session?.user) {
         (async () => {
           try {
@@ -84,16 +84,13 @@ export const useAuthProvider = () => {
             
             console.log('Initial profile loaded:', profile);
             setUserRole(profile?.role || 'user');
-            setLoading(false);
           } catch (error) {
             console.error('Initial profile loading error:', error);
             setUserRole('user');
-            setLoading(false);
           }
         })();
       } else {
         setUserRole(null);
-        setLoading(false);
       }
     });
 
