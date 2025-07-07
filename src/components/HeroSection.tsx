@@ -63,8 +63,9 @@ export function HeroSection() {
         <div className="max-w-4xl mx-auto">
           {/* Main Heading */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
-            <span className="text-gradient-primary">KRYPTOANZEIGEN</span>
-            <span className="text-foreground">.DE</span>
+            <span className="text-gradient-primary">Krypto</span>
+            <span className="text-foreground"> trifft auf </span>
+            <span className="text-gradient-secondary">Kleinanzeigen</span>
           </h1>
 
           {/* Subheading */}
