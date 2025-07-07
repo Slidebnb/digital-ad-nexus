@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { AdvancedFilters, SearchFilters } from "@/components/AdvancedFilters";
 
 type Ad = Tables<'ads'> & {
   categories?: { name: string } | null;
@@ -52,6 +53,7 @@ export default function Browse() {
   const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [availableCategories, setAvailableCategories] = useState<string[]>(["Alle Kategorien"]);
+  const [advancedFilters, setAdvancedFilters] = useState<SearchFilters | null>(null);
 
   // Fetch ads and categories from Supabase
   useEffect(() => {
@@ -119,48 +121,151 @@ export default function Browse() {
     };
   }, []);
 
-  // Filter ads based on current filters
+  // Filter ads based on current filters and advanced filters
   useEffect(() => {
     let filtered = [...ads];
 
-    if (searchTerm) {
+    // Apply advanced filters if they exist
+    if (advancedFilters) {
+      if (advancedFilters.searchTerm) {
+        filtered = filtered.filter(ad => 
+          ad.title.toLowerCase().includes(advancedFilters.searchTerm.toLowerCase()) ||
+          ad.description.toLowerCase().includes(advancedFilters.searchTerm.toLowerCase()) ||
+          ad.category.toLowerCase().includes(advancedFilters.searchTerm.toLowerCase())
+        );
+      }
+
+      if (advancedFilters.category !== "Alle Kategorien") {
+        filtered = filtered.filter(ad => 
+          ad.categories?.name === advancedFilters.category || 
+          ad.category === advancedFilters.category
+        );
+      }
+
+      if (advancedFilters.location) {
+        filtered = filtered.filter(ad => 
+          ad.location?.toLowerCase().includes(advancedFilters.location.toLowerCase())
+        );
+      }
+
+      if (advancedFilters.condition.length > 0) {
+        filtered = filtered.filter(ad => 
+          advancedFilters.condition.includes(ad.condition || '')
+        );
+      }
+
+      if (advancedFilters.verifiedSellers) {
+        filtered = filtered.filter(ad => ad.profiles?.[0]?.verified);
+      }
+
+      if (advancedFilters.minRating > 0) {
+        filtered = filtered.filter(ad => 
+          (ad.profiles?.[0]?.rating || 0) >= advancedFilters.minRating
+        );
+      }
+
+      if (advancedFilters.acceptedCoins.length > 0) {
+        filtered = filtered.filter(ad => 
+          ad.accepted_coins.some(coin => advancedFilters.acceptedCoins.includes(coin))
+        );
+      }
+
+      if (advancedFilters.featuredOnly) {
+        filtered = filtered.filter(ad => ad.featured);
+      }
+
+      // Date range filter
+      if (advancedFilters.dateRange !== "all") {
+        const now = new Date();
+        const filterDate = new Date();
+        
+        switch (advancedFilters.dateRange) {
+          case "today":
+            filterDate.setHours(0, 0, 0, 0);
+            break;
+          case "week":
+            filterDate.setDate(now.getDate() - 7);
+            break;
+          case "month":
+            filterDate.setMonth(now.getMonth() - 1);
+            break;
+          case "3months":
+            filterDate.setMonth(now.getMonth() - 3);
+            break;
+        }
+        
+        filtered = filtered.filter(ad => 
+          new Date(ad.created_at || '') >= filterDate
+        );
+      }
+
+      // Price range filter
       filtered = filtered.filter(ad => 
-        ad.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ad.category.toLowerCase().includes(searchTerm.toLowerCase())
+        ad.price >= advancedFilters.priceRange[0] && 
+        ad.price <= advancedFilters.priceRange[1]
       );
-    }
 
-    if (selectedCategory !== "Alle Kategorien") {
-      // Filter by category name for URL compatibility
-      filtered = filtered.filter(ad => 
-        ad.categories?.name === selectedCategory || 
-        ad.category === selectedCategory
-      );
-    }
+      // Sort
+      switch (advancedFilters.sortBy) {
+        case "oldest":
+          filtered.sort((a, b) => new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime());
+          break;
+        case "price_low":
+          filtered.sort((a, b) => Number(a.price) - Number(b.price));
+          break;
+        case "price_high":
+          filtered.sort((a, b) => Number(b.price) - Number(a.price));
+          break;
+        case "rating":
+          filtered.sort((a, b) => (b.profiles?.[0]?.rating || 0) - (a.profiles?.[0]?.rating || 0));
+          break;
+        case "popular":
+          filtered.sort((a, b) => (b.favorites || 0) - (a.favorites || 0));
+          break;
+        default: // newest
+          filtered.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
+          break;
+      }
+    } else {
+      // Fallback to basic filters if no advanced filters
+      if (searchTerm) {
+        filtered = filtered.filter(ad => 
+          ad.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ad.category.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
 
-    if (selectedCondition !== "Alle") {
-      filtered = filtered.filter(ad => ad.condition === selectedCondition);
-    }
+      if (selectedCategory !== "Alle Kategorien") {
+        filtered = filtered.filter(ad => 
+          ad.categories?.name === selectedCategory || 
+          ad.category === selectedCategory
+        );
+      }
 
-    filtered = filtered.filter(ad => ad.price >= priceRange[0] && ad.price <= priceRange[1]);
+      if (selectedCondition !== "Alle") {
+        filtered = filtered.filter(ad => ad.condition === selectedCondition);
+      }
 
-    // Sort
-    switch (sortBy) {
-      case "Preis: Niedrig-Hoch":
-        filtered.sort((a, b) => Number(a.price) - Number(b.price));
-        break;
-      case "Preis: Hoch-Niedrig":
-        filtered.sort((a, b) => Number(b.price) - Number(a.price));
-        break;
-      case "Beliebtheit":
-        filtered.sort((a, b) => (b.favorites || 0) - (a.favorites || 0));
-        break;
-      default:
-        break;
+      filtered = filtered.filter(ad => ad.price >= priceRange[0] && ad.price <= priceRange[1]);
+
+      // Sort
+      switch (sortBy) {
+        case "Preis: Niedrig-Hoch":
+          filtered.sort((a, b) => Number(a.price) - Number(b.price));
+          break;
+        case "Preis: Hoch-Niedrig":
+          filtered.sort((a, b) => Number(b.price) - Number(a.price));
+          break;
+        case "Beliebtheit":
+          filtered.sort((a, b) => (b.favorites || 0) - (a.favorites || 0));
+          break;
+        default:
+          break;
+      }
     }
 
     setFilteredAds(filtered);
-  }, [searchTerm, selectedCategory, selectedCondition, sortBy, priceRange, ads]);
+  }, [searchTerm, selectedCategory, selectedCondition, sortBy, priceRange, ads, advancedFilters]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,6 +384,13 @@ export default function Browse() {
             ))}
           </div>
         )}
+
+        {/* Advanced Filters */}
+        <AdvancedFilters 
+          onFiltersChange={setAdvancedFilters}
+          availableCategories={availableCategories}
+          availableLocations={[...new Set(ads.map(ad => ad.location).filter(Boolean))]}
+        />
 
         {/* Results Grid */}
         {!loading && (

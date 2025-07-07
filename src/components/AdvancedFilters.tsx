@@ -7,314 +7,348 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Filter, X, MapPin, Euro, Star, Shield } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SlidersHorizontal, X, ChevronDown, ChevronUp, MapPin, Calendar, Star, Verified } from "lucide-react";
 
-interface FilterState {
-  priceRange: [number, number];
+export interface SearchFilters {
+  searchTerm: string;
+  category: string;
   location: string;
-  categories: string[];
-  coins: string[];
-  verified: boolean;
-  minRating: number;
-  sortBy: string;
+  priceRange: [number, number];
   condition: string[];
+  verifiedSellers: boolean;
+  minRating: number;
+  dateRange: string;
+  acceptedCoins: string[];
+  featuredOnly: boolean;
+  sortBy: string;
 }
 
 interface AdvancedFiltersProps {
-  onFiltersChange: (filters: FilterState) => void;
-  className?: string;
+  onFiltersChange: (filters: SearchFilters) => void;
+  availableCategories: string[];
+  availableLocations: string[];
 }
 
-const CATEGORIES = [
-  'Hardware Wallets', 'Mining Equipment', 'Trading Bots', 
-  'NFTs', 'DeFi Services', 'Staking Services'
+const CONDITIONS = ["neu", "wie neu", "sehr gut", "gut", "gebraucht"];
+const CRYPTO_COINS = ["BTC", "ETH", "ADA", "SOL", "DOT", "MATIC", "LINK", "UNI", "LTC", "XRP"];
+const DATE_RANGES = [
+  { value: "all", label: "Alle Zeiten" },
+  { value: "today", label: "Heute" },
+  { value: "week", label: "Diese Woche" },
+  { value: "month", label: "Dieser Monat" },
+  { value: "3months", label: "Letzte 3 Monate" }
 ];
 
-const COINS = [
-  'BTC', 'ETH', 'ADA', 'SOL', 'DOT', 'MATIC', 'LINK', 'UNI', 'LTC', 'XRP'
+const SORT_OPTIONS = [
+  { value: "newest", label: "Neueste zuerst" },
+  { value: "oldest", label: "Älteste zuerst" },
+  { value: "price_low", label: "Preis: Niedrig → Hoch" },
+  { value: "price_high", label: "Preis: Hoch → Niedrig" },
+  { value: "rating", label: "Beste Bewertung" },
+  { value: "popular", label: "Beliebteste" }
 ];
 
-const CONDITIONS = ['Neu', 'Wie neu', 'Sehr gut', 'Gut', 'Akzeptabel'];
-
-export function AdvancedFilters({ onFiltersChange, className }: AdvancedFiltersProps) {
+export function AdvancedFilters({ onFiltersChange, availableCategories, availableLocations }: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    priceRange: [0, 100000],
-    location: '',
-    categories: [],
-    coins: [],
-    verified: false,
+  const [filters, setFilters] = useState<SearchFilters>({
+    searchTerm: "",
+    category: "Alle Kategorien",
+    location: "",
+    priceRange: [0, 10000],
+    condition: [],
+    verifiedSellers: false,
     minRating: 0,
-    sortBy: 'newest',
-    condition: []
+    dateRange: "all",
+    acceptedCoins: [],
+    featuredOnly: false,
+    sortBy: "newest"
   });
 
-  const updateFilters = (updates: Partial<FilterState>) => {
-    const newFilters = { ...filters, ...updates };
-    setFilters(newFilters);
-    onFiltersChange(newFilters);
+  const updateFilters = (newFilters: Partial<SearchFilters>) => {
+    const updatedFilters = { ...filters, ...newFilters };
+    setFilters(updatedFilters);
+    onFiltersChange(updatedFilters);
   };
 
-  const clearFilters = () => {
-    const defaultFilters: FilterState = {
-      priceRange: [0, 100000],
-      location: '',
-      categories: [],
-      coins: [],
-      verified: false,
+  const clearAllFilters = () => {
+    const clearedFilters: SearchFilters = {
+      searchTerm: "",
+      category: "Alle Kategorien",
+      location: "",
+      priceRange: [0, 10000],
+      condition: [],
+      verifiedSellers: false,
       minRating: 0,
-      sortBy: 'newest',
-      condition: []
+      dateRange: "all",
+      acceptedCoins: [],
+      featuredOnly: false,
+      sortBy: "newest"
     };
-    setFilters(defaultFilters);
-    onFiltersChange(defaultFilters);
+    setFilters(clearedFilters);
+    onFiltersChange(clearedFilters);
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
+    if (filters.searchTerm) count++;
+    if (filters.category !== "Alle Kategorien") count++;
     if (filters.location) count++;
-    if (filters.categories.length > 0) count++;
-    if (filters.coins.length > 0) count++;
-    if (filters.verified) count++;
-    if (filters.minRating > 0) count++;
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 10000) count++;
     if (filters.condition.length > 0) count++;
-    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 100000) count++;
+    if (filters.verifiedSellers) count++;
+    if (filters.minRating > 0) count++;
+    if (filters.dateRange !== "all") count++;
+    if (filters.acceptedCoins.length > 0) count++;
+    if (filters.featuredOnly) count++;
     return count;
+  };
+
+  const handleConditionChange = (condition: string, checked: boolean) => {
+    const newConditions = checked 
+      ? [...filters.condition, condition]
+      : filters.condition.filter(c => c !== condition);
+    updateFilters({ condition: newConditions });
+  };
+
+  const handleCoinChange = (coin: string, checked: boolean) => {
+    const newCoins = checked 
+      ? [...filters.acceptedCoins, coin]
+      : filters.acceptedCoins.filter(c => c !== coin);
+    updateFilters({ acceptedCoins: newCoins });
   };
 
   const activeFiltersCount = getActiveFiltersCount();
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Erweiterte Filter
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary">{activeFiltersCount}</Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {activeFiltersCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" />
-                Zurücksetzen
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {isOpen ? 'Schließen' : 'Öffnen'}
-            </Button>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      
-      {isOpen && (
-        <CardContent className="space-y-6">
-          {/* Price Range */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              <Euro className="h-4 w-4" />
-              Preisbereich: {filters.priceRange[0]}€ - {filters.priceRange[1]}€
-            </Label>
-            <Slider
-              value={filters.priceRange}
-              onValueChange={(value) => updateFilters({ priceRange: value as [number, number] })}
-              max={100000}
-              step={100}
-              className="w-full"
-            />
-          </div>
+    <Card className="w-full mb-6">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-5 w-5" />
+                Erweiterte Filter
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </div>
+              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
 
-          {/* Location */}
-          <div className="space-y-2">
-            <Label htmlFor="location" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Standort
-            </Label>
-            <Input
-              id="location"
-              placeholder="Stadt oder PLZ eingeben..."
-              value={filters.location}
-              onChange={(e) => updateFilters({ location: e.target.value })}
-            />
-          </div>
-
-          {/* Categories */}
-          <div className="space-y-3">
-            <Label>Kategorien</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={filters.categories.includes(category)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        updateFilters({ categories: [...filters.categories, category] });
-                      } else {
-                        updateFilters({ 
-                          categories: filters.categories.filter(c => c !== category) 
-                        });
-                      }
-                    }}
-                  />
-                  <Label htmlFor={category} className="text-sm">
-                    {category}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Accepted Coins */}
-          <div className="space-y-3">
-            <Label>Akzeptierte Kryptowährungen</Label>
-            <div className="grid grid-cols-5 gap-2">
-              {COINS.map((coin) => (
-                <div key={coin} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={coin}
-                    checked={filters.coins.includes(coin)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        updateFilters({ coins: [...filters.coins, coin] });
-                      } else {
-                        updateFilters({ 
-                          coins: filters.coins.filter(c => c !== coin) 
-                        });
-                      }
-                    }}
-                  />
-                  <Label htmlFor={coin} className="text-sm font-mono">
-                    {coin}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Condition */}
-          <div className="space-y-3">
-            <Label>Zustand</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {CONDITIONS.map((condition) => (
-                <div key={condition} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={condition}
-                    checked={filters.condition.includes(condition)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        updateFilters({ condition: [...filters.condition, condition] });
-                      } else {
-                        updateFilters({ 
-                          condition: filters.condition.filter(c => c !== condition) 
-                        });
-                      }
-                    }}
-                  />
-                  <Label htmlFor={condition} className="text-sm">
-                    {condition}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Verification & Rating */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="verified"
-                checked={filters.verified}
-                onCheckedChange={(checked) => updateFilters({ verified: !!checked })}
-              />
-              <Label htmlFor="verified" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Nur verifizierte Verkäufer
-              </Label>
-            </div>
-
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {/* Search Term */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                Mindestbewertung: {filters.minRating}★
-              </Label>
+              <Label>Suchbegriff</Label>
+              <Input
+                placeholder="Suche nach Produkten, Beschreibungen..."
+                value={filters.searchTerm}
+                onChange={(e) => updateFilters({ searchTerm: e.target.value })}
+              />
+            </div>
+
+            {/* Category & Location */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Kategorie
+                </Label>
+                <Select value={filters.category} onValueChange={(value) => updateFilters({ category: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Standort
+                </Label>
+                <Select value={filters.location} onValueChange={(value) => updateFilters({ location: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Standort auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Alle Standorte</SelectItem>
+                    {availableLocations.map(location => (
+                      <SelectItem key={location} value={location}>{location}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Price Range */}
+            <div className="space-y-3">
+              <Label>Preisspanne: €{filters.priceRange[0].toLocaleString()} - €{filters.priceRange[1].toLocaleString()}</Label>
               <Slider
-                value={[filters.minRating]}
-                onValueChange={(value) => updateFilters({ minRating: value[0] })}
-                max={5}
-                step={0.5}
+                value={filters.priceRange}
+                onValueChange={(value) => updateFilters({ priceRange: value as [number, number] })}
+                max={10000}
+                min={0}
+                step={50}
                 className="w-full"
               />
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.priceRange[0]}
+                  onChange={(e) => updateFilters({ priceRange: [Number(e.target.value), filters.priceRange[1]] })}
+                  className="w-24"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.priceRange[1]}
+                  onChange={(e) => updateFilters({ priceRange: [filters.priceRange[0], Number(e.target.value)] })}
+                  className="w-24"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Sort By */}
-          <div className="space-y-2">
-            <Label htmlFor="sortBy">Sortieren nach</Label>
-            <Select 
-              value={filters.sortBy} 
-              onValueChange={(value) => updateFilters({ sortBy: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Neueste zuerst</SelectItem>
-                <SelectItem value="oldest">Älteste zuerst</SelectItem>
-                <SelectItem value="price_low">Preis: Niedrig → Hoch</SelectItem>
-                <SelectItem value="price_high">Preis: Hoch → Niedrig</SelectItem>
-                <SelectItem value="rating">Beste Bewertung</SelectItem>
-                <SelectItem value="popular">Beliebteste</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Active Filters Summary */}
-          {activeFiltersCount > 0 && (
-            <div className="pt-4 border-t">
-              <Label className="text-sm font-medium mb-2 block">
-                Aktive Filter ({activeFiltersCount})
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {filters.location && (
-                  <Badge variant="secondary">
-                    Standort: {filters.location}
-                  </Badge>
-                )}
-                {filters.categories.map(cat => (
-                  <Badge key={cat} variant="secondary">
-                    {cat}
-                  </Badge>
-                ))}
-                {filters.coins.map(coin => (
-                  <Badge key={coin} variant="secondary">
-                    {coin}
-                  </Badge>
-                ))}
-                {filters.verified && (
-                  <Badge variant="secondary">Verifiziert</Badge>
-                )}
-                {filters.minRating > 0 && (
-                  <Badge variant="secondary">
-                    Min. {filters.minRating}★
-                  </Badge>
-                )}
-                {filters.condition.map(cond => (
-                  <Badge key={cond} variant="secondary">
-                    {cond}
-                  </Badge>
+            {/* Condition */}
+            <div className="space-y-3">
+              <Label>Zustand</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {CONDITIONS.map(condition => (
+                  <div key={condition} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={condition}
+                      checked={filters.condition.includes(condition)}
+                      onCheckedChange={(checked) => handleConditionChange(condition, !!checked)}
+                    />
+                    <Label htmlFor={condition} className="text-sm capitalize">{condition}</Label>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
-        </CardContent>
-      )}
+
+            {/* Seller Verification & Rating */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="verified"
+                    checked={filters.verifiedSellers}
+                    onCheckedChange={(checked) => updateFilters({ verifiedSellers: !!checked })}
+                  />
+                  <Label htmlFor="verified" className="flex items-center gap-2">
+                    <Verified className="h-4 w-4" />
+                    Nur verifizierte Verkäufer
+                  </Label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Mindest-Bewertung: {filters.minRating > 0 ? `${filters.minRating} Sterne` : "Alle"}
+                </Label>
+                <Slider
+                  value={[filters.minRating]}
+                  onValueChange={(value) => updateFilters({ minRating: value[0] })}
+                  max={5}
+                  min={0}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Zeitraum
+              </Label>
+              <Select value={filters.dateRange} onValueChange={(value) => updateFilters({ dateRange: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_RANGES.map(range => (
+                    <SelectItem key={range.value} value={range.value}>{range.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Accepted Coins */}
+            <div className="space-y-3">
+              <Label>Akzeptierte Kryptowährungen</Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {CRYPTO_COINS.map(coin => (
+                  <div key={coin} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={coin}
+                      checked={filters.acceptedCoins.includes(coin)}
+                      onCheckedChange={(checked) => handleCoinChange(coin, !!checked)}
+                    />
+                    <Label htmlFor={coin} className="text-sm">{coin}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Featured Only */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="featured"
+                checked={filters.featuredOnly}
+                onCheckedChange={(checked) => updateFilters({ featuredOnly: !!checked })}
+              />
+              <Label htmlFor="featured">Nur beworbene Anzeigen</Label>
+            </div>
+
+            {/* Sort By */}
+            <div className="space-y-2">
+              <Label>Sortierung</Label>
+              <Select value={filters.sortBy} onValueChange={(value) => updateFilters({ sortBy: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={clearAllFilters}
+                className="flex items-center gap-2"
+                disabled={activeFiltersCount === 0}
+              >
+                <X className="h-4 w-4" />
+                Filter zurücksetzen
+              </Button>
+              <Button
+                onClick={() => setIsOpen(false)}
+                className="ml-auto"
+              >
+                Filter anwenden
+              </Button>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

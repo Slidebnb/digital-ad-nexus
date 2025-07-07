@@ -1,0 +1,71 @@
+{
+  "name": "KryptoAnzeigen.de",
+  "short_name": "KryptoAnzeigen",
+  "description": "Deutschlands führende Plattform für Krypto-Kleinanzeigen",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["finance", "business", "productivity"],
+  "lang": "de-DE",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Anzeige erstellen",
+      "short_name": "Erstellen",
+      "description": "Neue Krypto-Anzeige erstellen",
+      "url": "/create-ad",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Durchsuchen",
+      "short_name": "Suchen",
+      "description": "Anzeigen durchsuchen",
+      "url": "/browse",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Favoriten",
+      "short_name": "Favoriten",
+      "description": "Meine Favoriten anzeigen",
+      "url": "/favorites",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
