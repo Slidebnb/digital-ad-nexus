@@ -56,6 +56,7 @@ export const useAdminUsers = () => {
     setError(null);
 
     try {
+      // Fix the join to properly get profiles data
       let query = supabase
         .from('users')
         .select(`
@@ -68,7 +69,7 @@ export const useAdminUsers = () => {
           last_active,
           total_trades,
           total_trade_volume_eur,
-          profiles!users_id_fkey (
+          profiles (
             full_name,
             avatar_url,
             city,
@@ -106,10 +107,13 @@ export const useAdminUsers = () => {
 
       if (error) throw error;
 
-      setUsers((data as any)?.map((user: any) => ({
+      // Handle the profiles relationship correctly
+      const processedUsers = (data as any)?.map((user: any) => ({
         ...user,
-        profile: user.profiles?.[0] || null
-      })) || []);
+        profile: Array.isArray(user.profiles) ? user.profiles[0] : user.profiles
+      })) || [];
+      
+      setUsers(processedUsers);
       setTotalCount(count || 0);
 
     } catch (error) {
@@ -259,23 +263,37 @@ export const useAdminUsers = () => {
     fetchUsers();
   }, [isAdmin, filters, pagination]);
 
-  // Real-time updates
+  // Real-time updates with better performance
   useEffect(() => {
     if (!isAdmin) return;
 
     const channel = supabase
-      .channel('admin-users')
+      .channel('admin-users-realtime')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'users' 
-      }, () => {
-        fetchUsers();
+      }, (payload) => {
+        console.log('User update:', payload);
+        // Debounced refresh to avoid too many updates
+        setTimeout(() => fetchUsers(), 100);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'profiles' 
+      }, (payload) => {
+        console.log('Profile update:', payload);
+        setTimeout(() => fetchUsers(), 100);
       })
       .subscribe();
 
+    // Auto-refresh every 30 seconds for live data
+    const interval = setInterval(fetchUsers, 30000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [isAdmin]);
 

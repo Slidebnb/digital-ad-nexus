@@ -87,16 +87,16 @@ export const useAdminStats = () => {
         verificationsResult,
         conversationsResult
       ] = await Promise.all([
-        // Total users
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        // Total users - get from users table for accurate count
+        supabase.from('users').select('*', { count: 'exact', head: true }),
         
-        // Active users (last 24h)
-        supabase.from('profiles')
+        // Active users (last 24h) - use users table
+        supabase.from('users')
           .select('*', { count: 'exact', head: true })
           .gte('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
         
-        // New users today
-        supabase.from('profiles')
+        // New users today - use users table
+        supabase.from('users')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', today),
         
@@ -162,7 +162,7 @@ export const useAdminStats = () => {
         completedTrades,
         platformVolume,
         monthlyVolume,
-        verifiedUsers: 0, // Will be updated from profiles
+        verifiedUsers: totalUsersResult.data?.filter(user => user.verified).length || 0,
         pendingVerifications,
         totalConversations: conversationsData.length,
         activeConversations,

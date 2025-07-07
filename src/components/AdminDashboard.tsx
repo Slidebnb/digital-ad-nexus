@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { AdminRealTimeMonitor } from "@/components/AdminRealTimeMonitor";
-import { AdminAdvancedUserManagement } from "@/components/AdminAdvancedUserManagement";
+import { AdminUserManagementDashboard } from "@/components/AdminUserManagementDashboard";
 import { AdminAdvancedAdsManagement } from "@/components/AdminAdvancedAdsManagement";
 import { AdminVerificationManagement } from "@/components/AdminVerificationManagement";
 import { AdminStats } from "@/components/AdminStats";
@@ -284,7 +284,7 @@ export function AdminDashboard() {
 
           {/* Advanced User Management */}
           <TabsContent value="users">
-            <AdminAdvancedUserManagement />
+            <AdminUserManagementDashboard />
           </TabsContent>
 
           {/* Advanced Ads Management */}
