@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Shield, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SendMessageModalProps {
   recipientId: string;
@@ -26,8 +27,25 @@ export function SendMessageModal({
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState(`Interesse an: ${adTitle}`);
   const [sending, setSending] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ verified: boolean } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('verified')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      setUserProfile(data);
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const handleSendMessage = async () => {
     if (!user || !message.trim()) return;
@@ -115,6 +133,23 @@ export function SendMessageModal({
         <MessageCircle className="h-5 w-5 mr-2" />
         Anmelden um Nachricht zu senden
       </Button>
+    );
+  }
+
+  if (userProfile && !userProfile.verified) {
+    return (
+      <div className="space-y-3">
+        <Button className="w-full" size="lg" disabled>
+          <Shield className="h-5 w-5 mr-2" />
+          Verifizierung erforderlich
+        </Button>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Nur verifizierte Benutzer können Nachrichten senden. Verifizieren Sie Ihr Konto in den Profileinstellungen.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
