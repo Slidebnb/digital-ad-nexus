@@ -19,8 +19,7 @@ import {
   FileText,
   AlertTriangle,
   CheckCircle,
-  Download,
-  Eye
+  Download
 } from "lucide-react";
 
 export function AdminVerificationManagement() {
