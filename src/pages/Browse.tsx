@@ -67,8 +67,7 @@ export default function Browse() {
         .from('ads')
         .select(`
           *,
-          categories (name),
-          profiles!ads_user_id_fkey (full_name, rating, verified, avatar_url)
+          categories (name)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false });

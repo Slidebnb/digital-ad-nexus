@@ -294,7 +294,8 @@ export default function CreateAd() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="neu">Neu</SelectItem>
-                        <SelectItem value="sehr_gut">Sehr gut</SelectItem>
+                        <SelectItem value="wie neu">Wie neu</SelectItem>
+                        <SelectItem value="sehr gut">Sehr gut</SelectItem>
                         <SelectItem value="gut">Gut</SelectItem>
                         <SelectItem value="gebraucht">Gebraucht</SelectItem>
                       </SelectContent>
