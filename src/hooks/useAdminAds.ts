@@ -139,7 +139,7 @@ export const useAdminAds = () => {
 
       // Get reports count for each ad
       const adsWithReports = await Promise.all(
-        (data || []).map(async (ad) => {
+        (data || []).map(async (ad: any) => {
           const { count: reportsCount } = await supabase
             .from('reports')
             .select('*', { count: 'exact', head: true })
@@ -149,11 +149,11 @@ export const useAdminAds = () => {
             ...ad,
             user: Array.isArray(ad.users) ? ad.users[0] : ad.users,
             reports_count: reportsCount || 0
-          };
+          } as AdminAd;
         })
       );
 
-      setAds(adsWithReports as AdminAd[]);
+      setAds(adsWithReports);
       setTotalCount(count || 0);
 
     } catch (error) {
