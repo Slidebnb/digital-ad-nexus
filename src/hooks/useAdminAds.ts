@@ -85,11 +85,7 @@ export const useAdminAds = () => {
           contact_count,
           created_at,
           updated_at,
-          users!ads_user_id_fkey (
-            id,
-            email,
-            verified
-          )
+          user_id
         `, { count: 'exact' });
 
       // Apply filters
@@ -137,9 +133,17 @@ export const useAdminAds = () => {
 
       if (error) throw error;
 
-      // Get reports count for each ad
-      const adsWithReports = await Promise.all(
+      // Get user data and reports count for each ad
+      const adsWithUserData = await Promise.all(
         (data || []).map(async (ad: any) => {
+          // Get user data
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, email, verified')
+            .eq('id', ad.user_id)
+            .single();
+
+          // Get reports count
           const { count: reportsCount } = await supabase
             .from('reports')
             .select('*', { count: 'exact', head: true })
@@ -147,13 +151,13 @@ export const useAdminAds = () => {
 
           return {
             ...ad,
-            user: Array.isArray(ad.users) ? ad.users[0] : ad.users,
+            user: userData || { id: ad.user_id, email: 'Unbekannt', verified: false },
             reports_count: reportsCount || 0
           } as AdminAd;
         })
       );
 
-      setAds(adsWithReports);
+      setAds(adsWithUserData);
       setTotalCount(count || 0);
 
     } catch (error) {

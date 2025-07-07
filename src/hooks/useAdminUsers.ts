@@ -56,12 +56,8 @@ export const useAdminUsers = () => {
     setError(null);
 
     try {
-      // Apply pagination
-      const from = (pagination.page - 1) * pagination.limit;
-      const to = from + pagination.limit - 1;
-
-      // Separate queries since joins are not working
-      const { data: usersData, error: usersError, count } = await supabase
+      // Apply filters first
+      let usersQuery = supabase
         .from('users')
         .select(`
           id,
@@ -73,25 +69,55 @@ export const useAdminUsers = () => {
           last_active,
           total_trades,
           total_trade_volume_eur
-        `, { count: 'exact' })
-        .order(filters.sortBy, { ascending: filters.sortOrder === 'asc' })
-        .range(from, to);
+        `, { count: 'exact' });
+
+      // Apply filters
+      if (filters.search) {
+        usersQuery = usersQuery.ilike('email', `%${filters.search}%`);
+      }
+
+      if (filters.role !== 'all') {
+        usersQuery = usersQuery.eq('role', filters.role);
+      }
+
+      if (filters.status !== 'all') {
+        if (filters.status === 'banned') {
+          usersQuery = usersQuery.eq('banned', true);
+        } else if (filters.status === 'unverified') {
+          usersQuery = usersQuery.eq('verified', false);
+        } else if (filters.status === 'active') {
+          usersQuery = usersQuery.eq('banned', false).eq('verified', true);
+        }
+      }
+
+      // Apply sorting and pagination
+      usersQuery = usersQuery.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' });
+      
+      const from = (pagination.page - 1) * pagination.limit;
+      const to = from + pagination.limit - 1;
+      usersQuery = usersQuery.range(from, to);
+
+      const { data: usersData, error: usersError, count } = await usersQuery;
 
       if (usersError) throw usersError;
 
-      // Get profiles separately
-      const userIds = usersData?.map(user => user.id) || [];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select(`
-          user_id,
-          full_name,
-          avatar_url,
-          city,
-          verification_level,
-          trust_score
-        `)
-        .in('user_id', userIds);
+      // Get profiles separately if users exist
+      let profilesData = [];
+      if (usersData && usersData.length > 0) {
+        const userIds = usersData.map(user => user.id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select(`
+            user_id,
+            full_name,
+            avatar_url,
+            city,
+            verification_level,
+            trust_score
+          `)
+          .in('user_id', userIds);
+        profilesData = profiles || [];
+      }
 
       // Merge user data with profiles
       const processedUsers = usersData?.map((user: any) => {
