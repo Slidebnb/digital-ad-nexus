@@ -36,12 +36,7 @@ type Ad = Tables<'ads'> & {
   }[] | null;
 };
 
-const categories = [
-  "Alle Kategorien", "Elektronik", "Computer", "Smartphones", "Gaming", 
-  "Fahrzeuge", "Mode", "Immobilien", "Kunst"
-];
-
-const conditions = ["Alle", "Neu", "Wie neu", "Sehr gut", "Gut", "Gebraucht"];
+const conditions = ["Alle", "neu", "wie neu", "sehr gut", "gut", "gebraucht"];
 const sortOptions = ["Neueste", "Preis: Niedrig-Hoch", "Preis: Hoch-Niedrig", "Entfernung", "Beliebtheit"];
 
 export default function Browse() {
@@ -56,11 +51,30 @@ export default function Browse() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availableCategories, setAvailableCategories] = useState<string[]>(["Alle Kategorien"]);
 
-  // Fetch ads from Supabase
+  // Fetch ads and categories from Supabase
   useEffect(() => {
     fetchAds();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('active', true)
+        .order('name');
+
+      if (error) throw error;
+      
+      const categoryNames = ["Alle Kategorien", ...(data?.map(cat => cat.name) || [])];
+      setAvailableCategories(categoryNames);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchAds = async () => {
     try {
@@ -87,6 +101,24 @@ export default function Browse() {
     }
   };
 
+  // Real-time updates for ads
+  useEffect(() => {
+    const channel = supabase
+      .channel('browse-realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'ads' 
+      }, () => {
+        fetchAds();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Filter ads based on current filters
   useEffect(() => {
     let filtered = [...ads];
@@ -99,7 +131,11 @@ export default function Browse() {
     }
 
     if (selectedCategory !== "Alle Kategorien") {
-      filtered = filtered.filter(ad => ad.categories?.name === selectedCategory);
+      // Filter by category name for URL compatibility
+      filtered = filtered.filter(ad => 
+        ad.categories?.name === selectedCategory || 
+        ad.category === selectedCategory
+      );
     }
 
     if (selectedCondition !== "Alle") {
@@ -186,7 +222,7 @@ export default function Browse() {
                 <SelectValue placeholder="Kategorie" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(category => (
+                {availableCategories.map(category => (
                   <SelectItem key={category} value={category}>{category}</SelectItem>
                 ))}
               </SelectContent>

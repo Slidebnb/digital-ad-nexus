@@ -44,17 +44,17 @@ export const useCategoriesWithCounts = () => {
 
       if (categoriesError) throw categoriesError;
 
-      // Get ad counts per category
+      // Get ad counts per category using category_id
       const categoriesWithCounts = await Promise.all(
         (categoriesData || []).map(async (category, index) => {
           const { count } = await supabase
             .from('ads')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'active')
-            .eq('category', category.name);
+            .eq('category_id', category.id);
 
-          // Determine if trending (more than 50 ads)
-          const trending = (count || 0) > 50;
+          // Determine if trending (more than 10 ads for realistic numbers)
+          const trending = (count || 0) > 10;
 
           return {
             id: category.id,
@@ -69,10 +69,9 @@ export const useCategoriesWithCounts = () => {
         })
       );
 
-      // Sort by count descending and take top 8
+      // Sort by count descending
       const sortedCategories = categoriesWithCounts
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 8);
+        .sort((a, b) => b.count - a.count);
 
       setCategories(sortedCategories);
 

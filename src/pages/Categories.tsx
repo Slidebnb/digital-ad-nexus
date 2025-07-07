@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCategoriesWithCounts } from "@/hooks/useCategoriesWithCounts";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Search,
   Smartphone, 
@@ -22,144 +24,96 @@ import {
   Heart,
   TrendingUp,
   ArrowRight,
-  Grid3X3
+  Grid3X3,
+  Package,
+  Cpu,
+  Coins,
+  ShoppingCart,
+  Settings,
+  HelpCircle
 } from "lucide-react";
 
-// Mock categories data - später durch Supabase ersetzt
-const allCategories = [
-  {
-    id: 1,
-    name: "Elektronik",
-    icon: Smartphone,
-    count: 1234,
-    trending: true,
-    description: "Smartphones, Tablets, Wearables und mehr",
-    subcategories: ["Smartphones", "Tablets", "Smartwatches", "Kopfhörer", "Lautsprecher"],
-    gradient: "from-blue-500 to-purple-600"
-  },
-  {
-    id: 2,
-    name: "Computer",
-    icon: Laptop,
-    count: 856,
-    trending: true,
-    description: "Laptops, PCs, Komponenten und Zubehör",
-    subcategories: ["Laptops", "Desktop PCs", "Grafikkarten", "Prozessoren", "RAM"],
-    gradient: "from-green-500 to-teal-600"
-  },
-  {
-    id: 3,
-    name: "Gaming",
-    icon: Gamepad2,
-    count: 1067,
-    trending: true,
-    description: "Konsolen, Spiele, Gaming-Hardware",
-    subcategories: ["PlayStation", "Xbox", "Nintendo", "PC Gaming", "VR Headsets"],
-    gradient: "from-purple-500 to-indigo-600"
-  },
-  {
-    id: 4,
-    name: "Fahrzeuge",
-    icon: Car,
-    count: 432,
-    trending: false,
-    description: "Autos, Motorräder, E-Bikes und Zubehör",
-    subcategories: ["PKW", "Motorräder", "E-Bikes", "Fahrräder", "Autozubehör"],
-    gradient: "from-red-500 to-pink-600"
-  },
-  {
-    id: 5,
-    name: "Immobilien",
-    icon: Home,
-    count: 289,
-    trending: false,
-    description: "Wohnungen, Häuser, Grundstücke",
-    subcategories: ["Wohnungen", "Häuser", "WG-Zimmer", "Grundstücke", "Gewerbe"],
-    gradient: "from-yellow-500 to-orange-600"
-  },
-  {
-    id: 6,
-    name: "Mode & Beauty",
-    icon: Shirt,
-    count: 743,
-    trending: false,
-    description: "Kleidung, Schuhe, Accessoires, Kosmetik",
-    subcategories: ["Herrenmode", "Damenmode", "Schuhe", "Taschen", "Schmuck"],
-    gradient: "from-pink-500 to-rose-600"
-  },
-  {
-    id: 7,
-    name: "Foto & Video",
-    icon: Camera,
-    count: 345,
-    trending: false,
-    description: "Kameras, Objektive, Video-Equipment",
-    subcategories: ["DSLR Kameras", "Objektive", "Drohnen", "Camcorder", "Stative"],
-    gradient: "from-cyan-500 to-blue-600"
-  },
-  {
-    id: 8,
-    name: "Musik & Instrumente",
-    icon: Music,
-    count: 234,
-    trending: false,
-    description: "Musikinstrumente, Equipment, Vinyl",
-    subcategories: ["Gitarren", "Keyboards", "Schlagzeug", "DJ Equipment", "Vinyl"],
-    gradient: "from-emerald-500 to-green-600"
-  },
-  {
-    id: 9,
-    name: "Kunst & Sammlerobjekte",
-    icon: Palette,
-    count: 156,
-    trending: false,
-    description: "Kunstwerke, Sammlerstücke, Antiquitäten",
-    subcategories: ["Gemälde", "Skulpturen", "Sammelkarten", "Comics", "Antiquitäten"],
-    gradient: "from-violet-500 to-purple-600"
-  },
-  {
-    id: 10,
-    name: "Werkzeuge & Garten",
-    icon: Wrench,
-    count: 387,
-    trending: false,
-    description: "Werkzeuge, Gartengeräte, Baumarkt",
-    subcategories: ["Handwerkzeuge", "Elektrowerkzeuge", "Gartengeräte", "Baumaterial", "Möbel"],
-    gradient: "from-orange-500 to-red-600"
-  },
-  {
-    id: 11,
-    name: "Bücher & Medien",
-    icon: BookOpen,
-    count: 278,
-    trending: false,
-    description: "Bücher, E-Books, DVDs, Blu-rays",
-    subcategories: ["Romane", "Fachbücher", "Comics", "DVDs", "Blu-rays"],
-    gradient: "from-teal-500 to-cyan-600"
-  },
-  {
-    id: 12,
-    name: "Freizeit & Sport",
-    icon: Heart,
-    count: 445,
-    trending: false,
-    description: "Sportgeräte, Outdoor-Equipment, Hobbys",
-    subcategories: ["Fitness", "Outdoor", "Wassersport", "Wintersport", "Camping"],
-    gradient: "from-lime-500 to-green-600"
+// Icon mapping for categories
+const getIconForCategory = (categoryName: string) => {
+  const iconMap: Record<string, any> = {
+    'Elektronik': Smartphone,
+    'Computer': Laptop,
+    'Gaming': Gamepad2,
+    'Fahrzeuge': Car,
+    'Immobilien': Home,
+    'Mode': Shirt,
+    'Foto': Camera,
+    'Musik': Music,
+    'Kunst': Palette,
+    'Werkzeuge': Wrench,
+    'Bücher': BookOpen,
+    'Sport': Heart,
+    'Dienstleistungen': Settings,
+    'Sonstiges': Package
+  };
+  
+  // Find matching icon by partial name match
+  for (const [key, icon] of Object.entries(iconMap)) {
+    if (categoryName.toLowerCase().includes(key.toLowerCase())) {
+      return icon;
+    }
   }
-];
+  
+  return Package; // Default icon
+};
 
 export default function Categories() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { categories, loading, refetch } = useCategoriesWithCounts();
 
-  const filteredCategories = allCategories.filter(category =>
+  // Real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('categories-realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'ads' 
+      }, () => {
+        refetch();
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'categories' 
+      }, () => {
+        refetch();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
+
+  const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const trendingCategories = allCategories.filter(cat => cat.trending);
-  const totalAds = allCategories.reduce((sum, cat) => sum + cat.count, 0);
+  const trendingCategories = categories.filter(cat => cat.trending);
+  const totalAds = categories.reduce((sum, cat) => sum + cat.count, 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Lade Kategorien...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -169,10 +123,10 @@ export default function Categories() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            <span className="text-gradient-primary">Alle</span> Kategorien
+            <span className="text-gradient-primary">Krypto</span> Kategorien
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-            Entdecke über {totalAds.toLocaleString()} Anzeigen in {allCategories.length} verschiedenen Kategorien
+            Entdecke über {totalAds.toLocaleString()} aktive Krypto-Anzeigen in {categories.length} verschiedenen Kategorien
           </p>
 
           {/* Search */}
@@ -210,21 +164,24 @@ export default function Categories() {
         </div>
 
         {/* Trending Categories */}
-        {!searchTerm && (
+        {!searchTerm && trendingCategories.length > 0 && (
           <div className="mb-12">
             <div className="flex items-center gap-2 mb-6">
               <TrendingUp className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-bold">Trending Kategorien</h2>
+              <Badge variant="outline" className="text-primary">
+                {trendingCategories.length} aktive
+              </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {trendingCategories.map((category) => {
-                const IconComponent = category.icon;
+                const IconComponent = getIconForCategory(category.name);
                 return (
-                  <Link key={category.id} to={`/browse?category=${category.id}`}>
+                  <Link key={category.id} to={`/browse?category=${category.name}`}>
                     <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20">
                       <CardContent className="p-6">
                         <div className="flex items-start gap-4">
-                          <div className={`relative inline-flex items-center justify-center w-16 h-16 rounded-xl overflow-hidden`}>
+                          <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-xl overflow-hidden">
                             <div className={`absolute inset-0 bg-gradient-to-br ${category.gradient} opacity-10 group-hover:opacity-20 transition-opacity`} />
                             <IconComponent className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
                             <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
@@ -236,10 +193,10 @@ export default function Categories() {
                               {category.name}
                             </h3>
                             <p className="text-sm text-muted-foreground mb-2">
-                              {category.count.toLocaleString()} Anzeigen
+                              {category.count.toLocaleString()} aktive Anzeigen
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {category.description}
+                              {category.description || `Krypto-Handel in der Kategorie ${category.name}`}
                             </p>
                           </div>
                         </div>
@@ -261,9 +218,9 @@ export default function Categories() {
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredCategories.map((category) => {
-                const IconComponent = category.icon;
+                const IconComponent = getIconForCategory(category.name);
                 return (
-                  <Link key={category.id} to={`/browse?category=${category.id}`}>
+                  <Link key={category.id} to={`/browse?category=${category.name}`}>
                     <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20 h-full">
                       <CardContent className="p-6 text-center">
                         <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 overflow-hidden">
@@ -283,21 +240,13 @@ export default function Categories() {
                           {category.count.toLocaleString()} Anzeigen
                         </p>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          {category.description}
+                          {category.description || `Krypto-Handel und Trading in ${category.name}`}
                         </p>
 
-                        {/* Subcategories */}
-                        <div className="flex flex-wrap gap-1 mt-3 justify-center">
-                          {category.subcategories.slice(0, 3).map((sub, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {sub}
-                            </Badge>
-                          ))}
-                          {category.subcategories.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{category.subcategories.length - 3}
-                            </Badge>
-                          )}
+                        {/* Real-time indicator */}
+                        <div className="flex items-center justify-center gap-1 mt-3">
+                          <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                          <span className="text-xs text-muted-foreground">Live</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -308,9 +257,9 @@ export default function Categories() {
           ) : (
             <div className="space-y-4">
               {filteredCategories.map((category) => {
-                const IconComponent = category.icon;
+                const IconComponent = getIconForCategory(category.name);
                 return (
-                  <Link key={category.id} to={`/browse?category=${category.id}`}>
+                  <Link key={category.id} to={`/browse?category=${category.name}`}>
                     <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20">
                       <CardContent className="p-6">
                         <div className="flex items-center gap-6">
@@ -332,17 +281,14 @@ export default function Categories() {
                               {category.trending && (
                                 <Badge className="bg-success text-white text-xs">Trending</Badge>
                               )}
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                                <span className="text-xs text-muted-foreground">Live</span>
+                              </div>
                             </div>
                             <p className="text-sm text-muted-foreground mb-2">
-                              {category.count.toLocaleString()} Anzeigen • {category.description}
+                              {category.count.toLocaleString()} aktive Anzeigen • {category.description || `Krypto-Trading Kategorie`}
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                              {category.subcategories.map((sub, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {sub}
-                                </Badge>
-                              ))}
-                            </div>
                           </div>
 
                           <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
@@ -362,11 +308,22 @@ export default function Categories() {
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-semibold mb-2">Keine Kategorien gefunden</h3>
             <p className="text-muted-foreground mb-4">
-              Versuche andere Suchbegriffe
+              Versuche andere Suchbegriffe oder durchsuche alle verfügbaren Kategorien
             </p>
             <Button variant="outline" onClick={() => setSearchTerm("")}>
               Alle Kategorien anzeigen
             </Button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {categories.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Noch keine Kategorien</h3>
+            <p className="text-muted-foreground">
+              Kategorien werden automatisch erstellt, sobald Anzeigen hinzugefügt werden.
+            </p>
           </div>
         )}
       </div>
