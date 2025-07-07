@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useVerificationManagement } from "@/hooks/useVerificationManagement";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Shield, 
   Check, 
@@ -29,6 +30,57 @@ export function AdminVerificationManagement() {
   const [rejectReason, setRejectReason] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+  const downloadDocument = async (documentUrl: string, filename: string) => {
+    try {
+      console.log('Attempting to download:', documentUrl);
+      
+      if (!documentUrl) {
+        throw new Error('Keine URL verfügbar');
+      }
+
+      // Extrahiere den Pfad aus der URL falls es eine vollständige URL ist
+      let path = documentUrl;
+      if (documentUrl.includes('/storage/v1/object/')) {
+        path = documentUrl.split('/storage/v1/object/')[1];
+        if (path.startsWith('public/')) {
+          path = path.substring(7); // Entferne 'public/' prefix
+        }
+      }
+      
+      console.log('Downloading from path:', path);
+      
+      const { data, error } = await supabase.storage
+        .from('verification-documents')
+        .download(path);
+
+      if (error) {
+        console.error('Storage download error:', error);
+        throw error;
+      }
+
+      if (data) {
+        const url = URL.createObjectURL(data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "✅ Download erfolgreich",
+          description: "Das Dokument wurde heruntergeladen."
+        });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "❌ Download fehlgeschlagen",
+        description: error.message || "Dokument konnte nicht heruntergeladen werden",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleApprove = async (requestId: string) => {
     if (processing) return;
@@ -331,12 +383,7 @@ export function AdminVerificationManagement() {
                                            variant="outline" 
                                            size="sm" 
                                            className="w-full"
-                                           onClick={() => {
-                                             const link = document.createElement('a');
-                                             link.href = selectedRequest.document_front_url;
-                                             link.download = 'dokument-vorderseite.jpg';
-                                             link.click();
-                                           }}
+                                           onClick={() => downloadDocument(selectedRequest.document_front_url, 'dokument-vorderseite.jpg')}
                                          >
                                            <Download className="h-4 w-4 mr-2" />
                                            Herunterladen
@@ -366,12 +413,7 @@ export function AdminVerificationManagement() {
                                            variant="outline" 
                                            size="sm" 
                                            className="w-full"
-                                           onClick={() => {
-                                             const link = document.createElement('a');
-                                             link.href = selectedRequest.document_back_url;
-                                             link.download = 'dokument-rueckseite.jpg';
-                                             link.click();
-                                           }}
+                                           onClick={() => downloadDocument(selectedRequest.document_back_url, 'dokument-rueckseite.jpg')}
                                          >
                                            <Download className="h-4 w-4 mr-2" />
                                            Herunterladen
@@ -401,12 +443,7 @@ export function AdminVerificationManagement() {
                                            variant="outline" 
                                            size="sm" 
                                            className="w-full"
-                                           onClick={() => {
-                                             const link = document.createElement('a');
-                                             link.href = selectedRequest.selfie_url;
-                                             link.download = 'selfie-dokument.jpg';
-                                             link.click();
-                                           }}
+                                           onClick={() => downloadDocument(selectedRequest.selfie_url, 'selfie-dokument.jpg')}
                                          >
                                            <Download className="h-4 w-4 mr-2" />
                                            Herunterladen
