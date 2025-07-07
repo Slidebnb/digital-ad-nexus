@@ -199,9 +199,23 @@ export function UserDashboard() {
           </TabsContent>
 
           {/* Messages Tab */}
-          <TabsContent value="messages">
+        <TabsContent value="messages">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <UserMessages />
-          </TabsContent>
+            <ChatSystem />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="favorites">
+          <FavoritesManager />
+        </TabsContent>
+        
+        <TabsContent value="alerts">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PriceAlertsManager />
+            <MarketTrendsWidget />
+          </div>
+        </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings">

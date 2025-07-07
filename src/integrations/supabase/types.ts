@@ -256,6 +256,36 @@ export type Database = {
           },
         ]
       }
+      affiliate_referrals: {
+        Row: {
+          commission_rate: number | null
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          status: string | null
+          total_earned: number | null
+        }
+        Insert: {
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          status?: string | null
+          total_earned?: number | null
+        }
+        Update: {
+          commission_rate?: number | null
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          status?: string | null
+          total_earned?: number | null
+        }
+        Relationships: []
+      }
       boost_packages: {
         Row: {
           active: boolean | null
@@ -416,6 +446,35 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          ad_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          ad_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          ad_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fees: {
         Row: {
           active: boolean | null
@@ -440,6 +499,69 @@ export type Database = {
           created_at?: string | null
           id?: number
           listing_fee?: number | null
+        }
+        Relationships: []
+      }
+      market_data: {
+        Row: {
+          avg_price_eur: number
+          coin: string
+          date: string
+          id: string
+          max_price: number | null
+          min_price: number | null
+          total_volume: number | null
+          trade_count: number | null
+        }
+        Insert: {
+          avg_price_eur: number
+          coin: string
+          date?: string
+          id?: string
+          max_price?: number | null
+          min_price?: number | null
+          total_volume?: number | null
+          trade_count?: number | null
+        }
+        Update: {
+          avg_price_eur?: number
+          coin?: string
+          date?: string
+          id?: string
+          max_price?: number | null
+          min_price?: number | null
+          total_volume?: number | null
+          trade_count?: number | null
+        }
+        Relationships: []
+      }
+      message_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          title: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          title: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+          usage_count?: number | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -481,9 +603,100 @@ export type Database = {
           },
         ]
       }
+      notification_subscriptions: {
+        Row: {
+          categories: string[] | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          categories?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          categories?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          created_at: string
+          details: Json
+          id: string
+          is_verified: boolean | null
+          method_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details: Json
+          id?: string
+          is_verified?: boolean | null
+          method_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          id?: string
+          is_verified?: boolean | null
+          method_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      price_alerts: {
+        Row: {
+          coin: string
+          condition: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          target_price: number
+          triggered_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coin: string
+          condition: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          target_price: number
+          triggered_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coin?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          target_price?: number
+          triggered_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          backup_codes: string[] | null
           badges: string[] | null
           bio: string | null
           city: string | null
@@ -515,6 +728,8 @@ export type Database = {
           total_trades: number | null
           trade_volume_eur: number | null
           trust_score: number | null
+          two_factor_enabled: boolean | null
+          two_factor_secret: string | null
           updated_at: string | null
           user_id: string | null
           verification_level: string | null
@@ -524,6 +739,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          backup_codes?: string[] | null
           badges?: string[] | null
           bio?: string | null
           city?: string | null
@@ -555,6 +771,8 @@ export type Database = {
           total_trades?: number | null
           trade_volume_eur?: number | null
           trust_score?: number | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string | null
           user_id?: string | null
           verification_level?: string | null
@@ -564,6 +782,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          backup_codes?: string[] | null
           badges?: string[] | null
           bio?: string | null
           city?: string | null
@@ -595,6 +814,8 @@ export type Database = {
           total_trades?: number | null
           trade_volume_eur?: number | null
           trust_score?: number | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string | null
           user_id?: string | null
           verification_level?: string | null
@@ -768,6 +989,42 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          features: Json | null
+          id: string
+          plan_type: string
+          starts_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          features?: Json | null
+          id?: string
+          plan_type: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          features?: Json | null
+          id?: string
+          plan_type?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           ad_id: string
@@ -832,6 +1089,36 @@ export type Database = {
           },
         ]
       }
+      trading_stats: {
+        Row: {
+          avg_response_time_minutes: number | null
+          date: string
+          id: string
+          successful_trades: number | null
+          total_trades: number | null
+          total_volume_eur: number | null
+          user_id: string
+        }
+        Insert: {
+          avg_response_time_minutes?: number | null
+          date?: string
+          id?: string
+          successful_trades?: number | null
+          total_trades?: number | null
+          total_volume_eur?: number | null
+          user_id: string
+        }
+        Update: {
+          avg_response_time_minutes?: number | null
+          date?: string
+          id?: string
+          successful_trades?: number | null
+          total_trades?: number | null
+          total_volume_eur?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           ad_id: string | null
@@ -871,6 +1158,30 @@ export type Database = {
           resolved_by?: string | null
           seller_id?: string | null
           status?: string | null
+        }
+        Relationships: []
+      }
+      user_blacklist: {
+        Row: {
+          blacklisted_user_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          blacklisted_user_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          blacklisted_user_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1034,6 +1345,10 @@ export type Database = {
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_user_verification_level: {
+        Args: { user_uuid: string }
         Returns: string
       }
       get_user_verification_request: {
