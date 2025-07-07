@@ -1375,14 +1375,12 @@ export type Database = {
         Returns: boolean
       }
       update_verification_status: {
-        Args:
-          | { p_request_id: string; p_status: string; p_admin_notes?: string }
-          | {
-              p_request_id: string
-              p_status: string
-              p_admin_notes?: string
-              p_admin_id?: string
-            }
+        Args: {
+          p_request_id: string
+          p_status: string
+          p_admin_notes?: string
+          p_admin_id?: string
+        }
         Returns: boolean
       }
     }
