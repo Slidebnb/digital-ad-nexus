@@ -150,11 +150,24 @@ export const useAuthProvider = () => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Abmeldung erfolgreich",
-      description: "Bis bald!"
-    });
+    try {
+      await supabase.auth.signOut();
+      // Manually reset state to ensure immediate UI update
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+      toast({
+        title: "Abmeldung erfolgreich",
+        description: "Bis bald!"
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Abmeldung fehlgeschlagen",
+        description: "Bitte versuche es erneut.",
+        variant: "destructive"
+      });
+    }
   };
 
   const isAdmin = userRole === 'admin' || userRole === 'moderator';
