@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { AdminRealTimeMonitor } from "@/components/AdminRealTimeMonitor";
 import { AdminUserManagementDashboard } from "@/components/AdminUserManagementDashboard";
-import { AdminAdvancedAdsManagement } from "@/components/AdminAdvancedAdsManagement";
+import { AdminAdsManagementDashboard } from "@/components/AdminAdsManagementDashboard";
 import { AdminVerificationManagement } from "@/components/AdminVerificationManagement";
 import { AdminStats } from "@/components/AdminStats";
 import { AdminPromoteUser } from "@/components/AdminPromoteUser";
@@ -289,7 +289,7 @@ export function AdminDashboard() {
 
           {/* Advanced Ads Management */}
           <TabsContent value="ads">
-            <AdminAdvancedAdsManagement />
+            <AdminAdsManagementDashboard />
           </TabsContent>
 
           {/* Verification Management */}

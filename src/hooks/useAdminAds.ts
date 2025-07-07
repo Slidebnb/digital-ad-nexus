@@ -282,7 +282,7 @@ export const useAdminAds = () => {
       if (action !== 'delete') {
         const { error } = await supabase
           .from('ads')
-          .update(updateData)
+          .update({ ...updateData, updated_at: new Date().toISOString() })
           .in('id', adIds);
 
         if (error) throw error;

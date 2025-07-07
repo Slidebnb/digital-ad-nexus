@@ -56,8 +56,12 @@ export const useAdminUsers = () => {
     setError(null);
 
     try {
-      // Fix the join to properly get profiles data
-      let query = supabase
+      // Apply pagination
+      const from = (pagination.page - 1) * pagination.limit;
+      const to = from + pagination.limit - 1;
+
+      // Separate queries since joins are not working
+      const { data: usersData, error: usersError, count } = await supabase
         .from('users')
         .select(`
           id,
@@ -68,50 +72,35 @@ export const useAdminUsers = () => {
           banned,
           last_active,
           total_trades,
-          total_trade_volume_eur,
-          profiles (
-            full_name,
-            avatar_url,
-            city,
-            verification_level,
-            trust_score
-          )
-        `, { count: 'exact' });
+          total_trade_volume_eur
+        `, { count: 'exact' })
+        .order(filters.sortBy, { ascending: filters.sortOrder === 'asc' })
+        .range(from, to);
 
-      // Apply filters
-      if (filters.search) {
-        query = query.or(`email.ilike.%${filters.search}%,profiles.full_name.ilike.%${filters.search}%`);
-      }
+      if (usersError) throw usersError;
 
-      if (filters.role !== 'all') {
-        query = query.eq('role', filters.role);
-      }
+      // Get profiles separately
+      const userIds = usersData?.map(user => user.id) || [];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          full_name,
+          avatar_url,
+          city,
+          verification_level,
+          trust_score
+        `)
+        .in('user_id', userIds);
 
-      if (filters.status === 'banned') {
-        query = query.eq('banned', true);
-      } else if (filters.status === 'active') {
-        query = query.eq('banned', false);
-      } else if (filters.status === 'unverified') {
-        query = query.eq('verified', false);
-      }
-
-      // Apply sorting
-      query = query.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' });
-
-      // Apply pagination
-      const from = (pagination.page - 1) * pagination.limit;
-      const to = from + pagination.limit - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      // Handle the profiles relationship correctly
-      const processedUsers = (data as any)?.map((user: any) => ({
-        ...user,
-        profile: Array.isArray(user.profiles) ? user.profiles[0] : user.profiles
-      })) || [];
+      // Merge user data with profiles
+      const processedUsers = usersData?.map((user: any) => {
+        const profile = profilesData?.find(p => p.user_id === user.id);
+        return {
+          ...user,
+          profile: profile || null
+        };
+      }) || [];
       
       setUsers(processedUsers);
       setTotalCount(count || 0);
