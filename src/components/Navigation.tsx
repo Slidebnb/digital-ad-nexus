@@ -9,8 +9,10 @@ import {
   User, 
   MessageCircle,
   PlusCircle,
-  Coins
+  Coins,
+  Heart
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -66,6 +68,8 @@ export function Navigation() {
                 </Button>
               </Link>
             )}
+            
+            <ThemeToggle />
             
             {user ? (
               <>
