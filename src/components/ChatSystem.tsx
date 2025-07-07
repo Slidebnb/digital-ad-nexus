@@ -31,12 +31,10 @@ export function ChatSystem() {
   const { 
     conversations, 
     messages, 
-    activeConversation, 
     loading,
-    sending,
-    setActiveConversation, 
-    sendMessage, 
-    deleteConversation
+    activeConversationId,
+    setActiveConversationId,
+    sendMessage
   } = useChat();
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -47,27 +45,19 @@ export function ChatSystem() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeConversation || sending) return;
+    if (!newMessage.trim() || !activeConversationId) return;
 
     const messageToSend = newMessage;
     setNewMessage(""); // Clear input immediately for better UX
     
     try {
-      const result = await sendMessage(messageToSend);
-      if (result?.error) {
-        setNewMessage(messageToSend); // Restore message on error
-      }
+      await sendMessage(activeConversationId, messageToSend);
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
       setNewMessage(messageToSend); // Restore message on error
     }
   };
 
-  const handleDeleteConversation = async (conversationId: string) => {
-    if (window.confirm('Möchten Sie diese Konversation wirklich löschen?')) {
-      await deleteConversation(conversationId);
-    }
-  };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -100,7 +90,14 @@ export function ChatSystem() {
     }
   };
 
-  const activeConversationData = conversations.find(conv => conv.id === activeConversation);
+  const activeConversationData = conversations.find(conv => conv.id === activeConversationId);
+  
+  const getOtherUserId = (conversation: any) => {
+    if (!user) return null;
+    return conversation.sender_id === user.id 
+      ? conversation.recipient_id 
+      : conversation.sender_id;
+  };
 
   if (loading) {
     return (
@@ -129,20 +126,20 @@ export function ChatSystem() {
             Nachrichten
             {conversations.length > 0 && (
               <Badge variant="secondary" className="ml-2">
-                {conversations.reduce((acc, conv) => acc + (conv.unread_count || 0), 0)}
+                {conversations.filter(c => c.unread_by_recipient && c.recipient_id === user?.id).length}
               </Badge>
             )}
           </div>
           {activeConversationData && (
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={activeConversationData.other_user?.avatar_url || ''} />
+                <AvatarImage src="" />
                 <AvatarFallback>
-                  {activeConversationData.other_user?.full_name?.[0] || 'U'}
+                  U
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">
-                {activeConversationData.other_user?.full_name || 'Unbekannter Nutzer'}
+                Benutzer {getOtherUserId(activeConversationData)}
               </span>
             </div>
           )}
@@ -173,23 +170,23 @@ export function ChatSystem() {
                     key={conv.id}
                     className={cn(
                       "group relative p-3 rounded-lg transition-all cursor-pointer border",
-                      activeConversation === conv.id 
+                      activeConversationId === conv.id 
                         ? 'bg-primary text-primary-foreground border-primary' 
                         : 'hover:bg-muted border-transparent'
                     )}
-                    onClick={() => setActiveConversation(conv.id)}
+                    onClick={() => setActiveConversationId(conv.id)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="relative">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={conv.other_user?.avatar_url || ''} />
+                          <AvatarImage src="" />
                           <AvatarFallback>
-                            {conv.other_user?.full_name?.[0] || 'U'}
+                            U
                           </AvatarFallback>
                         </Avatar>
-                        {(conv.unread_count || 0) > 0 && (
+                        {conv.unread_by_recipient && conv.recipient_id === user?.id && (
                           <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
-                            {conv.unread_count}
+                            !
                           </div>
                         )}
                       </div>
@@ -198,43 +195,15 @@ export function ChatSystem() {
                         <div className="flex items-center justify-between mb-1">
                           <span className={cn(
                             "font-medium text-sm truncate",
-                            (conv.unread_count || 0) > 0 && activeConversation !== conv.id && "font-bold"
+                            conv.unread_by_recipient && conv.recipient_id === user?.id && activeConversationId !== conv.id && "font-bold"
                           )}>
-                            {conv.other_user?.full_name || 'Unbekannter Nutzer'}
+                            Benutzer {getOtherUserId(conv)}
                           </span>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className={cn(
-                                  "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
-                                  activeConversation === conv.id && "text-primary-foreground"
-                                )}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteConversation(conv.id);
-                                }}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Löschen
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </div>
                         
                         <p className={cn(
                           "text-xs truncate mb-1",
-                          activeConversation === conv.id 
+                          activeConversationId === conv.id 
                             ? 'text-primary-foreground/80' 
                             : 'text-muted-foreground'
                         )}>
@@ -243,7 +212,7 @@ export function ChatSystem() {
                         
                         <div className={cn(
                           "flex items-center gap-1 text-xs",
-                          activeConversation === conv.id 
+                          activeConversationId === conv.id 
                             ? 'text-primary-foreground/60' 
                             : 'text-muted-foreground'
                         )}>
@@ -261,7 +230,7 @@ export function ChatSystem() {
 
         {/* Chat Messages */}
         <div className="flex-1 flex flex-col">
-          {activeConversation ? (
+          {activeConversationId ? (
             <>
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
@@ -302,9 +271,9 @@ export function ChatSystem() {
                           )}>
                             {!isOwn && (
                               <Avatar className="h-8 w-8 mt-1">
-                                <AvatarImage src={activeConversationData?.other_user?.avatar_url || ''} />
+                                <AvatarImage src="" />
                                 <AvatarFallback>
-                                  {activeConversationData?.other_user?.full_name?.[0] || 'U'}
+                                  U
                                 </AvatarFallback>
                               </Avatar>
                             )}
@@ -360,7 +329,6 @@ export function ChatSystem() {
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Nachricht eingeben..."
                     className="flex-1"
-                    disabled={sending}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -371,7 +339,7 @@ export function ChatSystem() {
                   <Button 
                     type="submit" 
                     size="icon" 
-                    disabled={!newMessage.trim() || sending}
+                    disabled={!newMessage.trim()}
                     className="shrink-0"
                   >
                     <Send className="h-4 w-4" />

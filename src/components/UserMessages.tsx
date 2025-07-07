@@ -21,13 +21,19 @@ export function UserMessages() {
   const { 
     conversations, 
     loading, 
-    setActiveConversation, 
-    createConversation 
+    setActiveConversationId, 
+    startConversation 
   } = useChat();
   const [searchTerm, setSearchTerm] = useState("");
 
+  const getOtherUserId = (conversation: any) => {
+    if (!user) return null;
+    return conversation.sender_id === user.id 
+      ? conversation.recipient_id 
+      : conversation.sender_id;
+  };
+
   const filteredConversations = conversations.filter(conv =>
-    conv.other_user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.last_message?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -114,20 +120,20 @@ export function UserMessages() {
             <Card 
               key={conv.id} 
               className="p-4 hover:shadow-md transition-shadow cursor-pointer gradient-card"
-              onClick={() => setActiveConversation(conv.id)}
+              onClick={() => setActiveConversationId(conv.id)}
             >
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={conv.other_user?.avatar_url || ''} />
+                  <AvatarImage src="" />
                   <AvatarFallback>
-                    {conv.other_user?.full_name?.[0] || 'U'}
+                    U
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold truncate">
-                      {conv.other_user?.full_name || 'Unbekannter Nutzer'}
+                      Benutzer {getOtherUserId(conv)}
                     </h3>
                     <div className="flex items-center gap-2">
                       {conv.unread_by_recipient && conv.recipient_id === user?.id && (

@@ -1,269 +1,168 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
+import { useAuth } from './useAuth';
+import { useToast } from './use-toast';
 
-type Conversation = Tables<'conversations'> & {
-  other_user?: {
-    full_name: string | null;
-    avatar_url: string | null;
-    user_id: string;
-  };
-  unread_count?: number;
-};
+interface Conversation {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  last_message: string | null;
+  last_message_at: string;
+  unread_by_recipient: boolean;
+  created_at: string;
+}
 
-type Message = Tables<'messages'> & {
-  sender_profile?: {
-    full_name: string | null;
-    avatar_url: string | null;
-  };
-};
+interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  message_type: string;
+  read_at: string | null;
+  created_at: string;
+}
 
-export const useChat = () => {
+export function useChat() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [activeConversation, setActiveConversationState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchConversations();
-    } else {
-      setConversations([]);
-      setMessages([]);
-      setActiveConversationState(null);
-    }
-  }, [user?.id]);
+  // Fetch conversations
+  const fetchConversations = useCallback(async () => {
+    if (!user) return;
 
-  // Real-time subscription for conversations
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel('conversations-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-          filter: `or(sender_id.eq.${user.id},recipient_id.eq.${user.id})`
-        },
-        (payload) => {
-          console.log('Conversation change:', payload);
-          fetchConversations();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload) => {
-          console.log('Message change:', payload);
-          if (activeConversation) {
-            fetchMessages(activeConversation);
-          }
-          fetchConversations(); // Update last message
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, activeConversation]);
-
-  const fetchConversations = async () => {
-    if (!user?.id) return;
-    
     try {
-      // Get conversations
-      const { data: conversationsData, error: convError } = await supabase
+      setLoading(true);
+      const { data, error } = await supabase
         .from('conversations')
         .select('*')
         .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
-      if (convError) throw convError;
-
-      if (!conversationsData || conversationsData.length === 0) {
-        setConversations([]);
-        return;
-      }
-
-      // Get all unique user IDs
-      const userIds = [...new Set(
-        conversationsData.flatMap(conv => [conv.sender_id, conv.recipient_id])
-      )].filter(id => id !== user.id);
-
-      // Fetch profiles for other users
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url')
-        .in('user_id', userIds);
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError);
-      }
-
-      // Create profile map
-      const profileMap = new Map(
-        (profiles || []).map(p => [p.user_id, p])
-      );
-
-      // Get unread counts for each conversation
-      const conversationIds = conversationsData.map(conv => conv.id);
-      const { data: unreadData } = await supabase
-        .from('messages')
-        .select('conversation_id')
-        .in('conversation_id', conversationIds)
-        .neq('sender_id', user.id)
-        .is('read_at', null);
-
-      const unreadCounts = new Map<string, number>();
-      if (unreadData) {
-        unreadData.forEach(msg => {
-          const count = unreadCounts.get(msg.conversation_id) || 0;
-          unreadCounts.set(msg.conversation_id, count + 1);
-        });
-      }
-
-      // Enrich conversations with other user data and unread counts
-      const enrichedConversations = conversationsData.map(conv => {
-        const otherUserId = conv.sender_id === user.id ? conv.recipient_id : conv.sender_id;
-        const otherUserProfile = profileMap.get(otherUserId);
-        
-        return {
-          ...conv,
-          other_user: otherUserProfile ? {
-            ...otherUserProfile,
-            user_id: otherUserId
-          } : {
-            full_name: 'Unbekannter Nutzer',
-            avatar_url: null,
-            user_id: otherUserId
-          },
-          unread_count: unreadCounts.get(conv.id) || 0
-        };
-      });
-
-      setConversations(enrichedConversations);
+      if (error) throw error;
+      setConversations(data || []);
     } catch (error) {
       console.error('Error fetching conversations:', error);
       toast({
-        title: "Fehler beim Laden",
-        description: "Konversationen konnten nicht geladen werden.",
+        title: "Fehler",
+        description: "Unterhaltungen konnten nicht geladen werden.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [user, toast]);
 
-  const fetchMessages = async (conversationId: string) => {
-    if (!user?.id || !conversationId) return;
-    
+  // Fetch messages for conversation
+  const fetchMessages = useCallback(async (conversationId: string) => {
+    if (!user) return;
+
     try {
-      const { data: messagesData, error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(messagesData || []);
-
-      // Mark messages as read
-      await markAsRead(conversationId);
+      setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        title: "Fehler",
+        description: "Nachrichten konnten nicht geladen werden.",
+        variant: "destructive"
+      });
     }
-  };
+  }, [user, toast]);
 
-  const setActiveConversation = (conversationId: string | null) => {
-    setActiveConversationState(conversationId);
-    if (conversationId) {
-      fetchMessages(conversationId);
-    } else {
-      setMessages([]);
-    }
-  };
+  // Start or get conversation
+  const startConversation = useCallback(async (recipientId: string) => {
+    if (!user) return null;
 
-  const sendMessage = async (content: string) => {
-    if (!user?.id || !activeConversation || !content.trim()) {
-      return { error: 'Invalid parameters' };
-    }
-
-    setSending(true);
     try {
-      // Insert message
-      const { data: messageData, error: messageError } = await supabase
-        .from('messages')
+      // Check if conversation already exists
+      const { data: existingConversation } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
+        .single();
+
+      if (existingConversation) {
+        return existingConversation.id;
+      }
+
+      // Create new conversation
+      const { data, error } = await supabase
+        .from('conversations')
         .insert({
-          conversation_id: activeConversation,
           sender_id: user.id,
-          content: content.trim(),
-          message_type: 'text'
+          recipient_id: recipientId
         })
         .select()
         .single();
 
-      if (messageError) throw messageError;
-
-      // Update conversation
-      const { error: convUpdateError } = await supabase
-        .from('conversations')
-        .update({
-          last_message: content.substring(0, 100),
-          last_message_at: new Date().toISOString(),
-          unread_by_recipient: true
-        })
-        .eq('id', activeConversation);
-
-      if (convUpdateError) {
-        console.error('Error updating conversation:', convUpdateError);
-      }
-
-      // Add message to current messages immediately
-      setMessages(prev => [...prev, messageData]);
-
+      if (error) throw error;
+      
+      await fetchConversations();
+      return data.id;
+    } catch (error) {
+      console.error('Error starting conversation:', error);
       toast({
-        title: "Nachricht gesendet",
-        description: "Ihre Nachricht wurde erfolgreich gesendet."
+        title: "Fehler",
+        description: "Unterhaltung konnte nicht gestartet werden.",
+        variant: "destructive"
       });
+      return null;
+    }
+  }, [user, toast, fetchConversations]);
 
-      return { data: messageData };
+  // Send message
+  const sendMessage = useCallback(async (conversationId: string, content: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content: content.trim()
+        });
+
+      if (error) throw error;
+
+      // Mark conversation as unread for recipient
+      await supabase
+        .from('conversations')
+        .update({ unread_by_recipient: true })
+        .eq('id', conversationId);
+
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
-        title: "Fehler beim Senden",
-        description: "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+        title: "Fehler",
+        description: "Nachricht konnte nicht gesendet werden.",
         variant: "destructive"
       });
-      return { error };
-    } finally {
-      setSending(false);
     }
-  };
+  }, [user, toast]);
 
-  const markAsRead = async (conversationId: string) => {
-    if (!user?.id) return;
-    
+  // Mark messages as read
+  const markAsRead = useCallback(async (conversationId: string) => {
+    if (!user) return;
+
     try {
-      // Mark all unread messages in this conversation as read
       await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
         .eq('conversation_id', conversationId)
-        .neq('sender_id', user.id)
         .is('read_at', null);
 
-      // Update conversation unread status
       await supabase
         .from('conversations')
         .update({ unread_by_recipient: false })
@@ -273,124 +172,68 @@ export const useChat = () => {
     } catch (error) {
       console.error('Error marking as read:', error);
     }
-  };
+  }, [user]);
 
-  const createConversation = async (recipientId: string, initialMessage?: string) => {
-    if (!user?.id || user.id === recipientId) {
-      return { error: 'Invalid recipient' };
-    }
-    
-    try {
-      // Check if conversation already exists
-      const { data: existing } = await supabase
-        .from('conversations')
-        .select('id')
-        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
-        .maybeSingle();
+  // Real-time subscriptions
+  useEffect(() => {
+    if (!user) return;
 
-      if (existing) {
-        setActiveConversation(existing.id);
-        return { data: existing };
-      }
+    const conversationsChannel = supabase
+      .channel('conversations-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+        filter: `sender_id=eq.${user.id},recipient_id=eq.${user.id}`
+      }, () => {
+        fetchConversations();
+      })
+      .subscribe();
 
-      // Create new conversation
-      const { data: newConv, error: convError } = await supabase
-        .from('conversations')
-        .insert({
-          sender_id: user.id,
-          recipient_id: recipientId,
-          last_message: initialMessage?.substring(0, 100) || null,
-          last_message_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+    const messagesChannel = supabase
+      .channel('messages-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages'
+      }, (payload) => {
+        if (payload.new.conversation_id === activeConversationId) {
+          fetchMessages(activeConversationId);
+        }
+        fetchConversations();
+      })
+      .subscribe();
 
-      if (convError) throw convError;
+    return () => {
+      supabase.removeChannel(conversationsChannel);
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [user, activeConversationId, fetchConversations, fetchMessages]);
 
-      // Send initial message if provided
-      if (initialMessage) {
-        await supabase
-          .from('messages')
-          .insert({
-            conversation_id: newConv.id,
-            sender_id: user.id,
-            content: initialMessage,
-            message_type: 'text'
-          });
-      }
-
-      // Refresh conversations and set as active
-      await fetchConversations();
-      setActiveConversation(newConv.id);
-
-      return { data: newConv };
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      toast({
-        title: "Fehler",
-        description: "Konversation konnte nicht erstellt werden.",
-        variant: "destructive"
-      });
-      return { error };
-    }
-  };
-
-  const deleteConversation = async (conversationId: string) => {
-    if (!user?.id) return { error: 'Not authenticated' };
-    
-    try {
-      // Delete all messages in conversation
-      await supabase
-        .from('messages')
-        .delete()
-        .eq('conversation_id', conversationId);
-
-      // Delete conversation
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId)
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`);
-
-      if (error) throw error;
-
-      // Reset active conversation if it was deleted
-      if (activeConversation === conversationId) {
-        setActiveConversation(null);
-      }
-
-      // Refresh conversations
+  // Load conversations on mount
+  useEffect(() => {
+    if (user) {
       fetchConversations();
-
-      toast({
-        title: "Konversation gelöscht",
-        description: "Die Konversation wurde erfolgreich gelöscht."
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting conversation:', error);
-      toast({
-        title: "Fehler beim Löschen",
-        description: "Die Konversation konnte nicht gelöscht werden.",
-        variant: "destructive"
-      });
-      return { error };
     }
-  };
+  }, [user, fetchConversations]);
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (activeConversationId) {
+      fetchMessages(activeConversationId);
+      markAsRead(activeConversationId);
+    }
+  }, [activeConversationId, fetchMessages, markAsRead]);
 
   return {
     conversations,
     messages,
-    activeConversation,
     loading,
-    sending,
-    setActiveConversation,
+    activeConversationId,
+    setActiveConversationId,
+    startConversation,
     sendMessage,
     markAsRead,
-    createConversation,
-    deleteConversation,
-    fetchConversations,
-    fetchMessages
+    fetchConversations
   };
-};
+}

@@ -1,318 +1,115 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Shield, 
-  Check, 
-  X, 
-  Clock,
-  Upload,
-  CheckCircle,
-  AlertTriangle,
-  Star,
-  Award,
-  Info
-} from "lucide-react";
-import { VerificationUploadForm } from './VerificationUploadForm';
-
-interface VerificationStatus {
-  id?: string;
-  status: 'none' | 'pending' | 'approved' | 'rejected';
-  admin_notes?: string;
-  created_at?: string;
-  reviewed_at?: string;
-}
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, Upload, CheckCircle, FileText, Camera, Star } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export function UserVerificationCenter() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>({ status: 'none' });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [documentType, setDocumentType] = useState('id_card');
+  const [fullName, setFullName] = useState('');
 
-  const fetchVerificationStatus = async () => {
-    if (!user) return;
+  const submitVerificationRequest = async () => {
+    if (!user || !fullName.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Felder aus.",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('verification_requests')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setVerificationStatus({
-          id: data.id,
-          status: data.status as 'pending' | 'approved' | 'rejected',
-          admin_notes: data.admin_notes,
-          created_at: data.created_at,
-          reviewed_at: data.reviewed_at
+        .insert({
+          user_id: user.id,
+          document_type: documentType,
+          full_name: fullName.trim(),
+          status: 'pending'
         });
-      } else {
-        setVerificationStatus({ status: 'none' });
-      }
+
+      if (error) throw error;
+
+      toast({
+        title: "Antrag eingereicht",
+        description: "Ihr Verifizierungsantrag wurde erfolgreich eingereicht.",
+      });
     } catch (error) {
-      console.error('Error fetching verification status:', error);
-    }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await fetchVerificationStatus();
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Einreichen des Antrags.",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    };
-
-    loadData();
-
-    // Set up real-time updates
-    const channel = supabase
-      .channel('user-verification')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'verification_requests',
-        filter: `user_id=eq.${user?.id}` 
-      }, () => {
-        fetchVerificationStatus();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  const getStatusInfo = () => {
-    switch (verificationStatus.status) {
-      case 'none':
-        return {
-          title: 'Nicht verifiziert',
-          description: 'Starten Sie den Verifizierungsprozess um erweiterte Funktionen freizuschalten',
-          color: 'text-muted-foreground',
-          bgColor: 'bg-muted/20',
-          icon: Shield,
-          progress: 0
-        };
-      case 'pending':
-        return {
-          title: 'Überprüfung läuft',
-          description: 'Ihre Dokumente werden geprüft. Dies kann 24-48 Stunden dauern.',
-          color: 'text-warning',
-          bgColor: 'bg-warning/20',
-          icon: Clock,
-          progress: 50
-        };
-      case 'approved':
-        return {
-          title: 'Vollständig verifiziert',
-          description: 'Ihre Identität wurde bestätigt. Sie haben Zugang zu allen Funktionen.',
-          color: 'text-success',
-          bgColor: 'bg-success/20',
-          icon: CheckCircle,
-          progress: 100
-        };
-      case 'rejected':
-        return {
-          title: 'Verifizierung abgelehnt',
-          description: 'Ihre Dokumente konnten nicht bestätigt werden. Bitte versuchen Sie es erneut.',
-          color: 'text-destructive',
-          bgColor: 'bg-destructive/20',
-          icon: X,
-          progress: 25
-        };
-      default:
-        return {
-          title: 'Unbekannt',
-          description: 'Status konnte nicht ermittelt werden',
-          color: 'text-muted-foreground',
-          bgColor: 'bg-muted/20',
-          icon: AlertTriangle,
-          progress: 0
-        };
     }
   };
-
-  const [showVerificationForm, setShowVerificationForm] = useState(false);
-
-  const handleStartVerification = () => {
-    setShowVerificationForm(true);
-  };
-
-  const handleVerificationSuccess = () => {
-    setShowVerificationForm(false);
-    fetchVerificationStatus();
-    toast({
-      title: "✅ Verifizierung eingereicht",
-      description: "Ihre Unterlagen werden geprüft. Sie erhalten eine Benachrichtigung über das Ergebnis."
-    });
-  };
-
-  if (loading) {
-    return (
-      <Card className="gradient-card">
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Lade Verifizierungsstatus...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const statusInfo = getStatusInfo();
-  const StatusIcon = statusInfo.icon;
-
-  // Show verification form if requested
-  if (showVerificationForm) {
-    return (
-      <div className="space-y-6">
-        <Card className="gradient-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Identitätsverifizierung
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <VerificationUploadForm
-              onSuccess={handleVerificationSuccess}
-              onCancel={() => setShowVerificationForm(false)}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <Card className="gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Identitätsverifizierung
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Status Overview */}
-          <div className={`p-6 rounded-lg ${statusInfo.bgColor}`}>
-            <div className="flex items-center gap-4 mb-4">
-              <div className={`p-3 rounded-full bg-background ${statusInfo.color}`}>
-                <StatusIcon className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold">{statusInfo.title}</h3>
-                <p className="text-muted-foreground">{statusInfo.description}</p>
-              </div>
-              <Badge variant="outline" className={statusInfo.color}>
-                {verificationStatus.status === 'none' ? 'Nicht gestartet' : 
-                 verificationStatus.status === 'pending' ? 'In Bearbeitung' :
-                 verificationStatus.status === 'approved' ? 'Verifiziert' : 'Abgelehnt'}
-              </Badge>
-            </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Benutzer-Verifizierung
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          {[...Array(5)].map((_, i) => (
+            <Star key={i} className="h-4 w-4 text-gray-300" />
+          ))}
+          <Badge variant="secondary">Nicht verifiziert</Badge>
+        </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Verifizierungsfortschritt</span>
-                <span>{statusInfo.progress}%</span>
-              </div>
-              <Progress value={statusInfo.progress} className="h-2" />
-            </div>
+        <Alert>
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            Erhöhen Sie Ihr Vertrauen durch Verifizierung Ihrer Identität.
+          </AlertDescription>
+        </Alert>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Vollständiger Name</Label>
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Vor- und Nachname"
+            />
           </div>
 
-          {/* Status-specific Content */}
-          {verificationStatus.status === 'none' && (
-            <div className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Warum verifizieren?</strong> Verifizierte Nutzer erhalten erweiterte Handelsoptionen, 
-                  höhere Limits und das Vertrauen der Community.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
-                  <Star className="h-5 w-5 text-warning flex-shrink-0" />
-                  <div>
-                    <div className="font-medium text-sm">Erhöhtes Vertrauen</div>
-                    <div className="text-xs text-muted-foreground">Vertrauensabzeichen erhalten</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
-                  <Award className="h-5 w-5 text-success flex-shrink-0" />
-                  <div>
-                    <div className="font-medium text-sm">Höhere Limits</div>
-                    <div className="text-xs text-muted-foreground">Erweiterte Handelsoptionen</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
-                  <Shield className="h-5 w-5 text-primary flex-shrink-0" />
-                  <div>
-                    <div className="font-medium text-sm">Mehr Sicherheit</div>
-                    <div className="text-xs text-muted-foreground">Schutz vor Betrug</div>
-                  </div>
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label>Dokument-Typ</Label>
+            <Select value={documentType} onValueChange={setDocumentType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="id_card">Personalausweis</SelectItem>
+                <SelectItem value="passport">Reisepass</SelectItem>
+                <SelectItem value="drivers_license">Führerschein</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-              <Button onClick={handleStartVerification} className="w-full">
-                <Upload className="h-4 w-4 mr-2" />
-                Verifizierung starten
-              </Button>
-            </div>
-          )}
-
-          {verificationStatus.status === 'pending' && (
-            <Alert>
-              <Clock className="h-4 w-4" />
-              <AlertDescription>
-                Ihre Dokumente werden von unserem Team geprüft. Sie erhalten eine Benachrichtigung, 
-                sobald die Prüfung abgeschlossen ist. Dies kann bis zu 48 Stunden dauern.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {verificationStatus.status === 'rejected' && verificationStatus.admin_notes && (
-            <Alert className="border-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Grund der Ablehnung:</strong> {verificationStatus.admin_notes}
-                <br />
-                <br />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleStartVerification}
-                  className="mt-2"
-                >
-                  Erneut versuchen
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {verificationStatus.status === 'approved' && (
-            <Alert className="border-success">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Herzlichen Glückwunsch!</strong> Ihre Identität wurde erfolgreich verifiziert. 
-                Sie haben nun Zugang zu allen erweiterten Funktionen und genießen das volle Vertrauen der Community.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          <Button onClick={submitVerificationRequest} disabled={loading} className="w-full">
+            <Upload className="h-4 w-4 mr-2" />
+            Verifizierungsantrag einreichen
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
