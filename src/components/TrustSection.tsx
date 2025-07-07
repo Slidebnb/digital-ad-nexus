@@ -173,11 +173,11 @@ export function TrustSection() {
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold">Sichere Escrow-Services</h3>
+                <h3 className="text-lg font-semibold">Direkter P2P-Handel</h3>
               </div>
               <p className="text-muted-foreground text-sm">
-                Unsere Treuhand-Services sorgen für sichere Transaktionen zwischen Käufern und Verkäufern. 
-                Alle Trades werden überwacht und abgesichert.
+                Unsere Plattform ermöglicht direkten Peer-to-Peer-Handel zwischen Nutzern. 
+                Wir behalten kein Geld ein - alle Transaktionen laufen direkt zwischen den Handelspartnern.
               </p>
             </CardContent>
           </Card>
