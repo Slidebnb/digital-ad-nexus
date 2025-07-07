@@ -147,7 +147,7 @@ export const useAdminAds = () => {
 
           return {
             ...ad,
-            user: ad.users,
+            user: Array.isArray(ad.users) ? ad.users[0] : ad.users,
             reports_count: reportsCount || 0
           };
         })
