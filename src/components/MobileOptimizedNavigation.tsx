@@ -37,7 +37,7 @@ export function MobileOptimizedNavigation() {
               KRYPTOANZEIGEN.DE
             </span>
             <span className="text-sm font-bold text-gradient-primary xs:hidden">
-              KRYPTO
+              KRYPTOANZEIGEN
             </span>
           </Link>
 
