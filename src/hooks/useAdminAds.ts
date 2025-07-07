@@ -174,24 +174,38 @@ export const useAdminAds = () => {
     try {
       const { error } = await supabase
         .from('ads')
-        .update({ status })
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', adId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Status update error:', error);
+        throw error;
+      }
 
       // Log admin action
-      await supabase.from('admin_logs').insert({
-        action: 'ad_status_changed',
-        target_type: 'ad',
-        target_id: adId,
-        details: { new_status: status }
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: 'ad_status_changed',
+            target_type: 'ad',
+            target_id: adId,
+            details: { new_status: status }
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchAds();
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating ad status:', error);
-      return { error: error.message };
+      return { error: error.message || 'Failed to update status' };
     }
   };
 
@@ -201,23 +215,37 @@ export const useAdminAds = () => {
     try {
       const { error } = await supabase
         .from('ads')
-        .update({ featured })
+        .update({ 
+          featured,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', adId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Feature update error:', error);
+        throw error;
+      }
 
       // Log admin action
-      await supabase.from('admin_logs').insert({
-        action: featured ? 'ad_featured' : 'ad_unfeatured',
-        target_type: 'ad',
-        target_id: adId
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: featured ? 'ad_featured' : 'ad_unfeatured',
+            target_type: 'ad',
+            target_id: adId
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchAds();
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error featuring ad:', error);
-      return { error: error.message };
+      return { error: error.message || 'Failed to update feature status' };
     }
   };
 
@@ -230,21 +258,32 @@ export const useAdminAds = () => {
         .delete()
         .eq('id', adId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
       // Log admin action
-      await supabase.from('admin_logs').insert({
-        action: 'ad_deleted',
-        target_type: 'ad',
-        target_id: adId,
-        details: { reason }
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: 'ad_deleted',
+            target_type: 'ad',
+            target_id: adId,
+            details: { reason }
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchAds();
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting ad:', error);
-      return { error: error.message };
+      return { error: error.message || 'Failed to delete ad' };
     }
   };
 
@@ -293,18 +332,26 @@ export const useAdminAds = () => {
       }
 
       // Log bulk action
-      await supabase.from('admin_logs').insert({
-        action: logAction,
-        target_type: 'bulk_ads',
-        target_id: adIds[0],
-        details: { ad_count: adIds.length, ad_ids: adIds }
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: logAction,
+            target_type: 'bulk_ads',
+            target_id: adIds[0],
+            details: { ad_count: adIds.length, ad_ids: adIds }
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchAds();
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error performing bulk action:', error);
-      return { error: error.message };
+      return { error: error.message || 'Failed to perform bulk action' };
     }
   };
 

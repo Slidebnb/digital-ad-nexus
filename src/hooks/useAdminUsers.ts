@@ -169,12 +169,20 @@ export const useAdminUsers = () => {
       if (error) throw error;
 
       // Log admin action
-      await supabase.from('admin_logs').insert({
-        action: 'user_banned',
-        target_type: 'user',
-        target_id: userId,
-        details: { reason }
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: 'user_banned',
+            target_type: 'user',
+            target_id: userId,
+            details: { reason }
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchUsers();
       return { success: true };
@@ -196,11 +204,19 @@ export const useAdminUsers = () => {
       if (error) throw error;
 
       // Log admin action
-      await supabase.from('admin_logs').insert({
-        action: 'user_unbanned',
-        target_type: 'user',
-        target_id: userId
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: 'user_unbanned',
+            target_type: 'user',
+            target_id: userId
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchUsers();
       return { success: true };
@@ -259,12 +275,20 @@ export const useAdminUsers = () => {
       if (error) throw error;
 
       // Log bulk action
-      await supabase.from('admin_logs').insert({
-        action: logAction,
-        target_type: 'bulk_users',
-        target_id: userIds[0], // Reference first user
-        details: { user_count: userIds.length, user_ids: userIds }
-      });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('admin_logs').insert({
+            admin_id: user.id,
+            action: logAction,
+            target_type: 'bulk_users',
+            target_id: userIds[0], // Reference first user
+            details: { user_count: userIds.length, user_ids: userIds }
+          });
+        }
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
 
       await fetchUsers();
       return { success: true };
