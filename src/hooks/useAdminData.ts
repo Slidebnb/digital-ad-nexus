@@ -239,11 +239,19 @@ export const useAdminData = () => {
 
   useEffect(() => {
     if (isAdmin) {
+      // Set loading to false immediately for faster dashboard load
+      setLoading(false);
+      
+      // Fetch data in background
       Promise.all([
         fetchAdminStats(),
         fetchUsers(),
         fetchVerificationRequests()
-      ]).finally(() => setLoading(false));
+      ]).catch(error => {
+        console.error('Error loading admin data:', error);
+      });
+    } else {
+      setLoading(false);
     }
   }, [isAdmin]);
 

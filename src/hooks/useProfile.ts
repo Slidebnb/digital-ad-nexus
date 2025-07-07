@@ -15,6 +15,8 @@ export const useProfile = () => {
 
   useEffect(() => {
     if (user?.id) {
+      // Set loading to false immediately, then fetch data in background
+      setLoading(false);
       fetchProfile();
       fetchUserAds();
       fetchVerificationRequest();
@@ -113,9 +115,8 @@ export const useProfile = () => {
       setVerificationRequest(data);
     } catch (error) {
       console.error('Error in fetchVerificationRequest:', error);
-    } finally {
-      setLoading(false);
     }
+    // Remove setLoading(false) from here since we set it immediately in useEffect
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
