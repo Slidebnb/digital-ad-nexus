@@ -9,6 +9,7 @@ import Login from "./pages/LoginSimple";
 import Dashboard from "./pages/Dashboard";
 import Browse from "./pages/Browse";
 import Categories from "./pages/Categories";
+import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import CreateAd from "./pages/CreateAd";
 import AdDetail from "./pages/AdDetail";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/dashboard" element={<AuthGuard requireAuth><Dashboard /></AuthGuard>} />
             <Route path="/browse" element={<Browse />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/favorites" element={<AuthGuard requireAuth><Favorites /></AuthGuard>} />
             <Route path="/create-ad" element={<AuthGuard requireAuth><CreateAd /></AuthGuard>} />
             <Route path="/ad/:id" element={<AdDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

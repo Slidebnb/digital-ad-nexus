@@ -59,11 +59,13 @@ export function Navigation() {
                 Kategorien
               </Button>
             </Link>
-            <Link to="/how-it-works">
-              <Button variant="ghost" size="sm">
-                So funktioniert's
-              </Button>
-            </Link>
+            {user && (
+              <Link to="/favorites">
+                <Button variant="ghost" size="sm">
+                  Favoriten
+                </Button>
+              </Link>
+            )}
             
             {user ? (
               <>
@@ -148,11 +150,13 @@ export function Navigation() {
                 Kategorien
               </Button>
             </Link>
-            <Link to="/how-it-works" className="block">
-              <Button variant="ghost" className="w-full justify-start" onClick={toggleMenu}>
-                So funktioniert's
-              </Button>
-            </Link>
+            {user && (
+              <Link to="/favorites" className="block">
+                <Button variant="ghost" className="w-full justify-start" onClick={toggleMenu}>
+                  Favoriten
+                </Button>
+              </Link>
+            )}
             
             {user ? (
               <>
