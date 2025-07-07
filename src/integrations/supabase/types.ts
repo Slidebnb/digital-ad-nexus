@@ -399,6 +399,105 @@ export type Database = {
           },
         ]
       }
+      compliance_documents: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          document_type: string
+          effective_date: string | null
+          id: string
+          language: string | null
+          last_updated: string | null
+          metadata: Json | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          version: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          document_type: string
+          effective_date?: string | null
+          id?: string
+          language?: string | null
+          last_updated?: string | null
+          metadata?: Json | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          version: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          document_type?: string
+          effective_date?: string | null
+          id?: string
+          language?: string | null
+          last_updated?: string | null
+          metadata?: Json | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
+      compliance_stats: {
+        Row: {
+          analytics_consents: number | null
+          audit_events_count: number | null
+          compliance_score: number | null
+          created_at: string | null
+          date: string | null
+          essential_consents: number | null
+          functional_consents: number | null
+          gdpr_requests_completed: number | null
+          gdpr_requests_pending: number | null
+          id: string
+          marketing_consents: number | null
+          tax_reports_generated: number | null
+          total_cookie_consents: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          analytics_consents?: number | null
+          audit_events_count?: number | null
+          compliance_score?: number | null
+          created_at?: string | null
+          date?: string | null
+          essential_consents?: number | null
+          functional_consents?: number | null
+          gdpr_requests_completed?: number | null
+          gdpr_requests_pending?: number | null
+          id?: string
+          marketing_consents?: number | null
+          tax_reports_generated?: number | null
+          total_cookie_consents?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          analytics_consents?: number | null
+          audit_events_count?: number | null
+          compliance_score?: number | null
+          created_at?: string | null
+          date?: string | null
+          essential_consents?: number | null
+          functional_consents?: number | null
+          gdpr_requests_completed?: number | null
+          gdpr_requests_pending?: number | null
+          id?: string
+          marketing_consents?: number | null
+          tax_reports_generated?: number | null
+          total_cookie_consents?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string | null
@@ -426,6 +525,42 @@ export type Database = {
           recipient_id?: string
           sender_id?: string
           unread_by_recipient?: boolean | null
+        }
+        Relationships: []
+      }
+      cookie_consents: {
+        Row: {
+          consent_type: string
+          created_at: string | null
+          granted: boolean
+          id: string
+          ip_address: unknown | null
+          timestamp: string
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string | null
+          granted?: boolean
+          id?: string
+          ip_address?: unknown | null
+          timestamp?: string
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string | null
+          granted?: boolean
+          id?: string
+          ip_address?: unknown | null
+          timestamp?: string
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -482,6 +617,51 @@ export type Database = {
           created_at?: string | null
           id?: number
           listing_fee?: number | null
+        }
+        Relationships: []
+      }
+      gdpr_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          data_export_url: string | null
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          processed_by: string | null
+          request_type: string
+          requested_at: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          data_export_url?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type: string
+          requested_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          data_export_url?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type?: string
+          requested_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1033,6 +1213,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_reports: {
+        Row: {
+          created_at: string | null
+          file_url: string | null
+          generated_at: string | null
+          id: string
+          report_data: Json | null
+          report_type: string
+          report_year: number
+          status: string | null
+          tax_liability_eur: number | null
+          total_loss_eur: number | null
+          total_profit_eur: number | null
+          total_trades: number | null
+          total_volume_eur: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_url?: string | null
+          generated_at?: string | null
+          id?: string
+          report_data?: Json | null
+          report_type: string
+          report_year: number
+          status?: string | null
+          tax_liability_eur?: number | null
+          total_loss_eur?: number | null
+          total_profit_eur?: number | null
+          total_trades?: number | null
+          total_volume_eur?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string | null
+          generated_at?: string | null
+          id?: string
+          report_data?: Json | null
+          report_type?: string
+          report_year?: number
+          status?: string | null
+          tax_liability_eur?: number | null
+          total_loss_eur?: number | null
+          total_profit_eur?: number | null
+          total_trades?: number | null
+          total_volume_eur?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           ad_id: string
@@ -1305,6 +1539,10 @@ export type Database = {
       check_profile_completion: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      generate_tax_report: {
+        Args: { p_user_id: string; p_year?: number }
+        Returns: string
       }
       get_all_categories: {
         Args: Record<PropertyKey, never>

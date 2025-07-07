@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -18,7 +18,7 @@ import {
   Users
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useComplianceData } from '@/hooks/useComplianceData';
 import { useToast } from '@/hooks/use-toast';
 
 interface GDPRConsent {
@@ -41,60 +41,22 @@ interface DataExportRequest {
 export function GDPRComplianceCenter() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [consents, setConsents] = useState<GDPRConsent[]>([]);
-  const [exportRequest, setExportRequest] = useState<DataExportRequest | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Mock data für Demo-Zwecke
-  const mockConsents: GDPRConsent[] = [
-    {
-      id: '1',
-      consent_type: 'essential',
-      granted: true,
-      timestamp: new Date().toISOString(),
-      ip_address: '192.168.1.1',
-      user_agent: 'Mozilla/5.0...'
-    },
-    {
-      id: '2', 
-      consent_type: 'analytics',
-      granted: true,
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      ip_address: '192.168.1.1',
-      user_agent: 'Mozilla/5.0...'
-    },
-    {
-      id: '3',
-      consent_type: 'marketing',
-      granted: false,
-      timestamp: new Date(Date.now() - 172800000).toISOString(),
-      ip_address: '192.168.1.1',
-      user_agent: 'Mozilla/5.0...'
-    }
-  ];
-
-  useEffect(() => {
-    // In einer echten App würden wir hier die Daten von der API laden
-    setConsents(mockConsents);
-    setLoading(false);
-  }, []);
+  const {
+    cookieConsents,
+    gdprRequests,
+    complianceStats,
+    loading,
+    saveCookieConsent,
+    createGdprRequest
+  } = useComplianceData();
 
   const updateConsent = async (consentType: string, granted: boolean) => {
-    try {
-      // Hier würde normalerweise eine API-Anfrage stattfinden
-      setConsents(prev => 
-        prev.map(consent => 
-          consent.consent_type === consentType 
-            ? { ...consent, granted, timestamp: new Date().toISOString() }
-            : consent
-        )
-      );
-      
-      toast({
-        title: "Einverständnis aktualisiert",
-        description: `${consentType} Einverständnis wurde ${granted ? 'erteilt' : 'widerrufen'}.`,
-      });
-    } catch (error) {
+    const success = await saveCookieConsent(
+      consentType as 'essential' | 'functional' | 'analytics' | 'marketing',
+      granted
+    );
+    
+    if (!success) {
       toast({
         title: "Fehler",
         description: "Einverständnis konnte nicht aktualisiert werden.",
@@ -104,30 +66,9 @@ export function GDPRComplianceCenter() {
   };
 
   const requestDataExport = async () => {
-    try {
-      const newRequest: DataExportRequest = {
-        id: 'export_' + Date.now(),
-        status: 'pending',
-        requested_at: new Date().toISOString()
-      };
-      
-      setExportRequest(newRequest);
-      
-      // Simuliere Verarbeitung
-      setTimeout(() => {
-        setExportRequest(prev => prev ? { 
-          ...prev, 
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          download_url: '/exports/user-data.zip'
-        } : null);
-      }, 3000);
-      
-      toast({
-        title: "Datenexport angefordert",
-        description: "Ihre Anfrage wird bearbeitet. Sie erhalten eine E-Mail wenn der Export bereit ist.",
-      });
-    } catch (error) {
+    const success = await createGdprRequest('data_export');
+    
+    if (!success) {
       toast({
         title: "Fehler",
         description: "Datenexport konnte nicht angefordert werden.",
@@ -137,13 +78,9 @@ export function GDPRComplianceCenter() {
   };
 
   const requestDataDeletion = async () => {
-    try {
-      // Hier würde normalerweise ein Löschantrag gestellt werden
-      toast({
-        title: "Löschantrag eingereicht",
-        description: "Ihr Löschantrag wurde eingereicht und wird binnen 30 Tagen bearbeitet.",
-      });
-    } catch (error) {
+    const success = await createGdprRequest('data_deletion');
+    
+    if (!success) {
       toast({
         title: "Fehler", 
         description: "Löschantrag konnte nicht eingereicht werden.",
@@ -231,7 +168,7 @@ export function GDPRComplianceCenter() {
                   Verwalten Sie Ihre Einverständnisse für verschiedene Datenverarbeitungen.
                 </p>
                 
-                {consents.map((consent) => (
+                {cookieConsents.map((consent) => (
                   <div key={consent.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -264,35 +201,46 @@ export function GDPRComplianceCenter() {
                   Exportieren Sie alle Ihre persönlichen Daten in einem maschinenlesbaren Format.
                 </p>
                 
-                {exportRequest ? (
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">Export-Anfrage</h4>
-                      <Badge variant={
-                        exportRequest.status === 'completed' ? 'default' :
-                        exportRequest.status === 'failed' ? 'destructive' : 'secondary'
-                      }>
-                        {exportRequest.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
-                        {exportRequest.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {exportRequest.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                        {exportRequest.status}
-                      </Badge>
+                {gdprRequests.length > 0 ? (
+                  gdprRequests.slice(0, 3).map((request) => (
+                    <div key={request.id} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium">
+                          {request.request_type === 'data_export' ? 'Datenexport' :
+                           request.request_type === 'data_deletion' ? 'Datenlöschung' :
+                           request.request_type === 'rectification' ? 'Datenberichtigung' :
+                           request.request_type === 'portability' ? 'Datenübertragung' :
+                           request.request_type}
+                        </h4>
+                        <Badge variant={
+                          request.status === 'completed' ? 'default' :
+                          request.status === 'rejected' ? 'destructive' : 'secondary'
+                        }>
+                          {request.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                          {request.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
+                          {request.status === 'rejected' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                          {request.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Angefordert am: {new Date(request.requested_at).toLocaleString('de-DE')}
+                      </p>
+                      {request.status === 'completed' && request.data_export_url && (
+                        <Button size="sm" className="mt-2">
+                          <Download className="h-4 w-4 mr-2" />
+                          Herunterladen
+                        </Button>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Angefordert am: {new Date(exportRequest.requested_at).toLocaleString('de-DE')}
-                    </p>
-                    {exportRequest.status === 'completed' && exportRequest.download_url && (
-                      <Button size="sm" className="mt-2">
-                        <Download className="h-4 w-4 mr-2" />
-                        Herunterladen
-                      </Button>
-                    )}
-                  </div>
+                  ))
                 ) : (
-                  <Button onClick={requestDataExport}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Datenexport anfordern
-                  </Button>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Keine aktiven Anfragen</p>
+                    <Button onClick={requestDataExport} className="mt-4">
+                      <Download className="h-4 w-4 mr-2" />
+                      Datenexport anfordern
+                    </Button>
+                  </div>
                 )}
               </div>
             </TabsContent>
