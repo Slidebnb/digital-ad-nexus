@@ -73,7 +73,12 @@ export default function Browse() {
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching ads:', error);
+        throw error;
+      }
+      
+      console.log('Fetched ads:', data?.length, data?.map(ad => ({ id: ad.id, title: ad.title, category: ad.category })));
       setAds(data || []);
     } catch (error) {
       console.error('Error fetching ads:', error);
