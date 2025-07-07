@@ -800,6 +800,47 @@ export type Database = {
         }
         Relationships: []
       }
+      ratings: {
+        Row: {
+          ad_id: string | null
+          created_at: string
+          from_user_id: string
+          id: string
+          rating: number
+          review_text: string | null
+          to_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad_id?: string | null
+          created_at?: string
+          from_user_id: string
+          id?: string
+          rating: number
+          review_text?: string | null
+          to_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad_id?: string | null
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          rating?: number
+          review_text?: string | null
+          to_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           admin_notes: string | null
@@ -1257,6 +1298,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: number
       }
+      calculate_user_rating: {
+        Args: { user_uuid: string }
+        Returns: number
+      }
       check_profile_completion: {
         Args: { user_id: string }
         Returns: boolean
@@ -1313,6 +1358,10 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_user_rating_count: {
+        Args: { user_uuid: string }
+        Returns: number
       }
       get_user_verification_level: {
         Args: { user_uuid: string }
