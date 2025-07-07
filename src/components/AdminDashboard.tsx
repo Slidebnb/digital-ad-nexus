@@ -236,12 +236,13 @@ export function AdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7 mb-8">
+          <TabsList className="grid w-full grid-cols-8 mb-8">
             <TabsTrigger value="monitor">Monitor</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="users">Nutzer</TabsTrigger>
             <TabsTrigger value="ads">Anzeigen</TabsTrigger>
             <TabsTrigger value="verification">Verifizierung</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
             <TabsTrigger value="settings">Einstellungen</TabsTrigger>
             <TabsTrigger value="welcome">Willkommen</TabsTrigger>
           </TabsList>
@@ -295,6 +296,161 @@ export function AdminDashboard() {
           {/* Verification Management */}
           <TabsContent value="verification">
             <AdminVerificationManagement />
+          </TabsContent>
+
+          {/* GDPR & Compliance Management */}
+          <TabsContent value="compliance" className="space-y-6">
+            <Card className="gradient-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  DSGVO & Compliance Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <Card className="border-success/20">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-success">98%</div>
+                      <div className="text-sm text-muted-foreground">DSGVO Compliance</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-warning/20">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-warning">12</div>
+                      <div className="text-sm text-muted-foreground">Ausstehende Anfragen</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-primary/20">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-primary">847</div>
+                      <div className="text-sm text-muted-foreground">Cookie Consents</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-accent/20">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-accent">23</div>
+                      <div className="text-sm text-muted-foreground">Audit Logs heute</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">DSGVO Anfragen</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span>Datenexport-Anfragen</span>
+                        <Badge variant="outline">3 ausstehend</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Löschungsanträge</span>
+                        <Badge variant="outline">2 ausstehend</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Consent-Widerrufe</span>
+                        <Badge variant="outline">7 heute</Badge>
+                      </div>
+                      <Button className="w-full mt-4">Alle verwalten</Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Steuer-Compliance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span>Automatische Reports</span>
+                        <Badge variant="outline" className="text-success">Aktiv</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>KYC Compliance</span>
+                        <Badge variant="outline" className="text-success">100%</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Transaktions-Monitoring</span>
+                        <Badge variant="outline" className="text-success">Aktiv</Badge>
+                      </div>
+                      <Button className="w-full mt-4">Reports anzeigen</Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Cookie Management</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span>Notwendige Cookies:</span>
+                      <span>847 Nutzer</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Analytics Cookies:</span>
+                      <span>623 Nutzer</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Marketing Cookies:</span>
+                      <span>412 Nutzer</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full">Verwalten</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Audit Trail</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span>Logs heute:</span>
+                      <span>1,234</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kritische Events:</span>
+                      <span>0</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Compliance Checks:</span>
+                      <span>✅ Alle OK</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full">Logs anzeigen</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Rechtliche Dokumente</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span>Datenschutzerklärung:</span>
+                      <Badge variant="outline" className="text-success">Aktuell</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>AGB:</span>
+                      <Badge variant="outline" className="text-success">Aktuell</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Impressum:</span>
+                      <Badge variant="outline" className="text-success">Aktuell</Badge>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full">Bearbeiten</Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Settings */}

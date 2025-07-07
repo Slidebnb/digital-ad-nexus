@@ -115,7 +115,7 @@ export function UserDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1 p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 gap-1 p-1 h-auto">
             <TabsTrigger value="overview" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
               <span className="md:hidden">📊</span>
               <span className="hidden md:inline">Übersicht</span>
@@ -140,6 +140,11 @@ export function UserDashboard() {
               <Bell className="h-4 w-4 md:mr-2 md:mb-0" />
               <span className="md:hidden">🔔</span>
               <span className="hidden md:inline">Preisalarme</span>
+            </TabsTrigger>
+            <TabsTrigger value="compliance" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <Shield className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">🛡️</span>
+              <span className="hidden md:inline">Datenschutz</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
               <Settings className="h-4 w-4 md:mr-2 md:mb-0" />
@@ -286,6 +291,134 @@ export function UserDashboard() {
             <MarketTrendsWidget />
           </div>
         </TabsContent>
+
+          {/* GDPR & Compliance Tab */}
+          <TabsContent value="compliance" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="gradient-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    DSGVO Compliance Center
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Ihre Daten exportieren</h4>
+                        <p className="text-sm text-muted-foreground">Laden Sie alle Ihre gespeicherten Daten herunter</p>
+                      </div>
+                      <Button variant="outline" size="sm">Export anfordern</Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Daten löschen</h4>
+                        <p className="text-sm text-muted-foreground">Account und alle Daten permanent löschen</p>
+                      </div>
+                      <Button variant="outline" size="sm">Löschung beantragen</Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Einverständnisse verwalten</h4>
+                        <p className="text-sm text-muted-foreground">Cookie- und Datenverarbeitungseinstellungen</p>
+                      </div>
+                      <Button variant="outline" size="sm">Verwalten</Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="gradient-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Steuer-Compliance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Trading-Report 2024</h4>
+                        <p className="text-sm text-muted-foreground">Jahresübersicht für Steuererklärung</p>
+                      </div>
+                      <Button variant="outline" size="sm">Download PDF</Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Transaktionshistorie</h4>
+                        <p className="text-sm text-muted-foreground">Detaillierte Liste aller Transaktionen</p>
+                      </div>
+                      <Button variant="outline" size="sm">Download CSV</Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Automatische Reports</h4>
+                        <p className="text-sm text-muted-foreground">Monatliche Steuerberichte per E-Mail</p>
+                      </div>
+                      <Button variant="outline" size="sm">Aktivieren</Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="gradient-card">
+              <CardHeader>
+                <CardTitle>Ihre Datenschutz-Einstellungen</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Cookie-Einstellungen</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Notwendige Cookies:</span>
+                        <Badge variant="outline" className="text-success">Aktiv</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Analytics Cookies:</span>
+                        <Badge variant="outline">Zugestimmt</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Marketing Cookies:</span>
+                        <Badge variant="outline" className="text-muted-foreground">Abgelehnt</Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Datenverarbeitung</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Profildaten:</span>
+                        <Badge variant="outline" className="text-success">Zugestimmt</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Trading-Daten:</span>
+                        <Badge variant="outline" className="text-success">Zugestimmt</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Kommunikation:</span>
+                        <Badge variant="outline" className="text-success">Zugestimmt</Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">Ihre Rechte</h4>
+                    <div className="space-y-2 text-sm">
+                      <div>✅ Recht auf Auskunft</div>
+                      <div>✅ Recht auf Berichtigung</div>
+                      <div>✅ Recht auf Löschung</div>
+                      <div>✅ Recht auf Übertragbarkeit</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings">
