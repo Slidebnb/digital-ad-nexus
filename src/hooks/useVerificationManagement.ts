@@ -40,34 +40,45 @@ export const useVerificationManagement = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchVerificationRequests = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      console.log('User is not admin, skipping verification requests fetch');
+      return;
+    }
+
+    console.log('Fetching verification requests as admin...');
 
     try {
       setError(null);
       
-      // Fetch all verification requests with user data
-      const { data, error } = await supabase
+      // Fetch verification requests first
+      const { data: verificationData, error: verificationError } = await supabase
         .from('verification_requests')
-        .select(`
-          *,
-          users!verification_requests_user_id_fkey (
-            email,
-            profiles!users_id_fkey (
-              city,
-              full_name
-            )
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (verificationError) throw verificationError;
 
-      const formattedRequests = (data || []).map((req: any) => ({
-        ...req,
-        user_email: req.users?.email,
-        user_city: req.users?.profiles?.[0]?.city,
-        user_profile_name: req.users?.profiles?.[0]?.full_name
-      }));
+      // Then fetch user emails separately for each request
+      const formattedRequests = await Promise.all(
+        (verificationData || []).map(async (req: any) => {
+          // Get user email from profiles or users table  
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name, city')
+            .eq('user_id', req.user_id)
+            .single();
+            
+          // Try to get email from auth metadata or use a placeholder
+          const userEmail = req.user_email || `user-${req.user_id.slice(0, 8)}@platform.local`;
+          
+          return {
+            ...req,
+            user_email: userEmail,
+            user_city: profileData?.city || 'Nicht angegeben',
+            user_profile_name: profileData?.full_name || req.full_name
+          };
+        })
+      );
 
       setRequests(formattedRequests);
 
