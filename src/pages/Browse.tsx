@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ const sortOptions = ["Neueste", "Preis: Niedrig-Hoch", "Preis: Hoch-Niedrig", "E
 
 export default function Browse() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "Alle Kategorien");
   const [selectedCondition, setSelectedCondition] = useState("Alle");
@@ -242,7 +243,11 @@ export default function Browse() {
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredAds.map((ad) => (
-              <Card key={ad.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20 overflow-hidden">
+              <Card 
+                key={ad.id} 
+                className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20 overflow-hidden"
+                onClick={() => navigate(`/ad/${ad.id}`)}
+              >
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img 
