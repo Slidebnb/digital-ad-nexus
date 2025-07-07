@@ -46,6 +46,7 @@ export default function LoginSimple() {
       } else {
         // Successful login - redirect immediately
         console.log('Login successful, redirecting...', data);
+        setIsLoading(false);
         window.location.href = '/dashboard'; // Force navigation
       }
     } catch (err) {
