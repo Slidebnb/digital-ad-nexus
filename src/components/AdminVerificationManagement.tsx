@@ -36,42 +36,33 @@ export function AdminVerificationManagement() {
       console.log('Attempting to download:', documentUrl);
       
       if (!documentUrl) {
-        throw new Error('Keine URL verfügbar');
-      }
-
-      // Extrahiere den Pfad aus der URL falls es eine vollständige URL ist
-      let path = documentUrl;
-      if (documentUrl.includes('/storage/v1/object/')) {
-        path = documentUrl.split('/storage/v1/object/')[1];
-        if (path.startsWith('public/')) {
-          path = path.substring(7); // Entferne 'public/' prefix
-        }
-      }
-      
-      console.log('Downloading from path:', path);
-      
-      const { data, error } = await supabase.storage
-        .from('verification-documents')
-        .download(path);
-
-      if (error) {
-        console.error('Storage download error:', error);
-        throw error;
-      }
-
-      if (data) {
-        const url = URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(url);
-        
         toast({
-          title: "✅ Download erfolgreich",
-          description: "Das Dokument wurde heruntergeladen."
+          title: "❌ Kein Dokument verfügbar",
+          description: "Für dieses Feld wurde kein Dokument hochgeladen.",
+          variant: "destructive"
         });
+        return;
       }
+
+      // Da der Bucket jetzt public ist, können wir direkt die URL verwenden
+      const response = await fetch(documentUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "✅ Download erfolgreich",
+        description: "Das Dokument wurde heruntergeladen."
+      });
     } catch (error) {
       console.error('Download error:', error);
       toast({
