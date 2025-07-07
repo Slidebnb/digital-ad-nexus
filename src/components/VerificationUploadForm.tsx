@@ -226,13 +226,14 @@ export function VerificationUploadForm({ onSuccess, onCancel }: VerificationUplo
       <div className="space-y-2">
         <div 
           className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
-            ${file ? 'border-success bg-success/5' : 'border-border hover:border-primary/50'}`}
+            ${file ? 'border-success bg-success/10' : 'border-border hover:border-primary/50'}`}
           onClick={() => document.getElementById(`file-${label.replace(/\s+/g, '-')}`)?.click()}
         >
           {file ? (
             <div className="space-y-2">
               <CheckCircle className="h-6 w-6 mx-auto text-success" />
-              <p className="text-sm font-medium text-success">{file.name}</p>
+              <p className="text-sm font-medium text-success">✅ Datei ausgewählt</p>
+              <p className="text-xs font-medium text-foreground">{file.name}</p>
               <p className="text-xs text-muted-foreground">
                 {(file.size / 1024 / 1024).toFixed(2)} MB
               </p>
@@ -258,23 +259,38 @@ export function VerificationUploadForm({ onSuccess, onCancel }: VerificationUplo
         />
 
         {file && (
-          <div className="flex gap-2">
-            {previewUrl && (
-              <img 
-                src={previewUrl} 
-                alt="Vorschau" 
-                className="w-20 h-20 object-cover rounded-lg border"
-              />
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onFileChange(null)}
-              className="text-destructive hover:text-destructive"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Entfernen
-            </Button>
+          <div className="p-3 bg-success/5 border border-success/20 rounded-lg">
+            <div className="flex items-center gap-3">
+              {previewUrl && (
+                <img 
+                  src={previewUrl} 
+                  alt="Vorschau" 
+                  className="w-16 h-16 object-cover rounded-lg border border-success/30"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-success truncate">
+                  📎 {file.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Größe: {(file.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+                <p className="text-xs text-success">
+                  ✓ Bereit zum Upload
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFileChange(null);
+                }}
+                className="text-destructive hover:text-destructive shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
