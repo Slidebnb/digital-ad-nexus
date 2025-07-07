@@ -21,41 +21,20 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Mock data - wird später durch Supabase-Daten ersetzt
-const mockAds = [
-  {
-    id: 1,
-    title: "MacBook Pro M3 16\" - Wie neu",
-    price: 2499,
-    currency: "EUR",
-    cryptoPrices: [{ symbol: "BTC", price: 0.0578 }],
-    location: "Berlin",
-    timeAgo: "vor 2 Stunden",
-    images: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400"],
-    seller: { name: "TechMaster2023", rating: 4.9, verified: true },
-    category: "Computer",
-    featured: true,
-    condition: "Wie neu",
-    views: 234,
-    likes: 12
-  },
-  {
-    id: 2,
-    title: "Bitcoin Mining Rig - ASIC Antminer S19",
-    price: 1850,
-    currency: "EUR",
-    cryptoPrices: [{ symbol: "BTC", price: 0.0428 }],
-    location: "München",
-    timeAgo: "vor 4 Stunden", 
-    images: ["https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=400"],
-    seller: { name: "CryptoMiner", rating: 4.7, verified: true },
-    category: "Elektronik",
-    featured: false,
-    condition: "Gebraucht",
-    views: 189,
-    likes: 8
-  }
-];
+// Real data from Supabase
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
+import { FavoriteButton } from "@/components/FavoriteButton";
+
+type Ad = Tables<'ads'> & {
+  categories?: { name: string } | null;
+  profiles?: { 
+    full_name: string | null; 
+    rating: number | null; 
+    verified: boolean | null;
+    avatar_url: string | null;
+  } | null;
+};
 
 const categories = [
   "Alle Kategorien", "Elektronik", "Computer", "Smartphones", "Gaming", 
@@ -73,11 +52,39 @@ export default function Browse() {
   const [sortBy, setSortBy] = useState("Neueste");
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [showFilters, setShowFilters] = useState(false);
-  const [filteredAds, setFilteredAds] = useState(mockAds);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch ads from Supabase
+  useEffect(() => {
+    fetchAds();
+  }, []);
+
+  const fetchAds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ads')
+        .select(`
+          *,
+          categories (name),
+          profiles!ads_user_id_fkey (full_name, rating, verified, avatar_url)
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAds((data as Ad[]) || []);
+    } catch (error) {
+      console.error('Error fetching ads:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter ads based on current filters
   useEffect(() => {
-    let filtered = [...mockAds];
+    let filtered = [...ads];
 
     if (searchTerm) {
       filtered = filtered.filter(ad => 
@@ -87,7 +94,7 @@ export default function Browse() {
     }
 
     if (selectedCategory !== "Alle Kategorien") {
-      filtered = filtered.filter(ad => ad.category === selectedCategory);
+      filtered = filtered.filter(ad => ad.categories?.name === selectedCategory);
     }
 
     if (selectedCondition !== "Alle") {
@@ -99,20 +106,20 @@ export default function Browse() {
     // Sort
     switch (sortBy) {
       case "Preis: Niedrig-Hoch":
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => Number(a.price) - Number(b.price));
         break;
       case "Preis: Hoch-Niedrig":
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => Number(b.price) - Number(a.price));
         break;
       case "Beliebtheit":
-        filtered.sort((a, b) => b.likes - a.likes);
+        filtered.sort((a, b) => (b.favorites || 0) - (a.favorites || 0));
         break;
       default:
         break;
     }
 
     setFilteredAds(filtered);
-  }, [searchTerm, selectedCategory, selectedCondition, sortBy, priceRange]);
+  }, [searchTerm, selectedCategory, selectedCondition, sortBy, priceRange, ads]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,97 +223,111 @@ export default function Browse() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <div className="aspect-[4/3] bg-muted"></div>
+                <CardContent className="p-4 space-y-2">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-6 bg-muted rounded w-1/2"></div>
+                  <div className="h-3 bg-muted rounded w-full"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredAds.map((ad) => (
-            <Card key={ad.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20 overflow-hidden">
-              {/* Image */}
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <img 
-                  src={ad.images[0]} 
-                  alt={ad.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                
-                {/* Badges */}
-                <div className="absolute top-3 left-3 flex flex-col gap-2">
-                  {ad.featured && (
-                    <Badge className="bg-primary text-primary-foreground text-xs">
-                      Featured
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Like Button */}
-                <button className="absolute top-3 right-3 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors">
-                  <Heart className="h-4 w-4 text-muted-foreground hover:text-red-500 transition-colors" />
-                </button>
-
-                {/* Condition Badge */}
-                <div className="absolute bottom-3 left-3">
-                  <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
-                    {ad.condition}
-                  </Badge>
-                </div>
-              </div>
-
-              <CardContent className="p-4">
-                {/* Title */}
-                <h3 className="font-semibold text-sm md:text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                  {ad.title}
-                </h3>
-
-                {/* Price */}
-                <div className="mb-3">
-                  <div className="text-xl font-bold text-primary">
-                    €{ad.price.toLocaleString()}
-                  </div>
-                  {ad.cryptoPrices.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {ad.cryptoPrices.map((crypto, index) => (
-                        <span key={index} className="text-xs text-muted-foreground">
-                          {crypto.price} {crypto.symbol}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Location & Time */}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    <span>{ad.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{ad.timeAgo}</span>
-                  </div>
-                </div>
-
-                {/* Seller Info */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">{ad.seller.name}</span>
-                    {ad.seller.verified && (
-                      <Verified className="h-3 w-3 text-primary" />
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredAds.map((ad) => (
+              <Card key={ad.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer gradient-card border-border/50 hover:border-primary/20 overflow-hidden">
+                {/* Image */}
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img 
+                    src={ad.images?.[0] || "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400"} 
+                    alt={ad.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-3 left-3 flex flex-col gap-2">
+                    {ad.featured && (
+                      <Badge className="bg-primary text-primary-foreground text-xs">
+                        Featured
+                      </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                    <span>{ad.seller.rating}</span>
+
+                  {/* Favorite Button */}
+                  <div className="absolute top-3 right-3">
+                    <FavoriteButton adId={ad.id} size="sm" />
+                  </div>
+
+                  {/* Condition Badge */}
+                  <div className="absolute bottom-3 left-3">
+                    <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
+                      {ad.condition || 'Gut'}
+                    </Badge>
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                  <span>{ad.views} Aufrufe</span>
-                  <span>{ad.likes} Likes</span>
-                </div>
-              </CardContent>
+                <CardContent className="p-4">
+                  {/* Title */}
+                  <h3 className="font-semibold text-sm md:text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                    {ad.title}
+                  </h3>
+
+                  {/* Price */}
+                  <div className="mb-3">
+                    <div className="text-xl font-bold text-primary">
+                      €{Number(ad.price).toLocaleString()}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {ad.currency || 'EUR'} • {ad.categories?.name || 'Kategorie'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Location & Time */}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      <span>{ad.location || 'Unbekannt'}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{new Date(ad.created_at || '').toLocaleDateString('de-DE')}</span>
+                    </div>
+                  </div>
+
+                  {/* Seller Info */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{ad.profiles?.full_name || 'Unbekannt'}</span>
+                      {ad.profiles?.verified && (
+                        <Verified className="h-3 w-3 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                      <span>{ad.profiles?.rating?.toFixed(1) || '—'}</span>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                    <span>{ad.views || 0} Aufrufe</span>
+                    <span>{ad.favorites || 0} Likes</span>
+                  </div>
+                </CardContent>
             </Card>
-          ))}
-        </div>
+              ))}
+          </div>
+        )}
 
         {/* No Results */}
         {filteredAds.length === 0 && (
