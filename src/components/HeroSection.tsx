@@ -10,8 +10,29 @@ import {
   Coins
 } from "lucide-react";
 import heroImage from "@/assets/hero-bg.jpg";
+import { useHomepageStats } from "@/hooks/useHomepageStats";
 
 export function HeroSection() {
+  const { stats } = useHomepageStats();
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
+  const formatVolume = (volume: number) => {
+    if (volume >= 1000000) {
+      return `€${(volume / 1000000).toFixed(1)}M`;
+    } else if (volume >= 1000) {
+      return `€${(volume / 1000).toFixed(0)}K`;
+    }
+    return `€${volume}`;
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background */}
@@ -56,19 +77,27 @@ export function HeroSection() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-primary">10K+</div>
+              <div className="text-2xl md:text-3xl font-bold text-primary">
+                {stats.loading ? "..." : `${formatNumber(stats.activeUsers)}+`}
+              </div>
               <div className="text-sm text-muted-foreground">Aktive Nutzer</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-secondary">5K+</div>
+              <div className="text-2xl md:text-3xl font-bold text-secondary">
+                {stats.loading ? "..." : `${formatNumber(stats.totalAds)}+`}
+              </div>
               <div className="text-sm text-muted-foreground">Anzeigen</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-accent">€2.5M</div>
+              <div className="text-2xl md:text-3xl font-bold text-accent">
+                {stats.loading ? "..." : formatVolume(stats.tradeVolume)}
+              </div>
               <div className="text-sm text-muted-foreground">Handelsvolumen</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-success">99%</div>
+              <div className="text-2xl md:text-3xl font-bold text-success">
+                {stats.loading ? "..." : `${stats.satisfaction}%`}
+              </div>
               <div className="text-sm text-muted-foreground">Zufriedenheit</div>
             </div>
           </div>

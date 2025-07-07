@@ -6,8 +6,11 @@ import {
   Quote,
   Verified,
   TrendingUp,
-  Shield
+  Shield,
+  Clock,
+  Users
 } from "lucide-react";
+import { useHomepageStats } from "@/hooks/useHomepageStats";
 
 // Mock testimonials data
 const testimonials = [
@@ -43,28 +46,31 @@ const testimonials = [
   }
 ];
 
-const trustMetrics = [
-  {
-    icon: Shield,
-    label: "Sicherheit",
-    value: "99.9%",
-    description: "Erfolgreiche Transaktionen"
-  },
-  {
-    icon: Verified,
-    label: "Verifizierung",
-    value: "24h",
-    description: "Durchschnittliche Bearbeitungszeit"
-  },
-  {
-    icon: TrendingUp,
-    label: "Wachstum",
-    value: "+150%",
-    description: "Nutzer in den letzten 6 Monaten"
-  }
-];
 
 export function TrustSection() {
+  const { stats } = useHomepageStats();
+
+  const trustMetrics = [
+    {
+      icon: Shield,
+      label: "Sicherheit",
+      value: `${stats.satisfaction}%`,
+      description: "Erfolgreiche Transaktionen"
+    },
+    {
+      icon: Clock,
+      label: "Verifizierung",
+      value: "<24h",
+      description: "Durchschnittliche Bearbeitungszeit"
+    },
+    {
+      icon: Users,
+      label: "Community",
+      value: `${Math.round(stats.activeUsers / 1000)}K+`,
+      description: "Aktive Nutzer monatlich"
+    }
+  ];
+
   return (
     <section className="py-20">
       <div className="container mx-auto px-4">
@@ -159,6 +165,39 @@ export function TrustSection() {
           ))}
         </div>
 
+        {/* Additional Trust Features */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="gradient-card border-border/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">Sichere Escrow-Services</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Unsere Treuhand-Services sorgen für sichere Transaktionen zwischen Käufern und Verkäufern. 
+                Alle Trades werden überwacht und abgesichert.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="gradient-card border-border/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                  <Verified className="h-5 w-5 text-secondary" />
+                </div>
+                <h3 className="text-lg font-semibold">KYC-Verifizierung</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Mehrstufige Identitätsprüfung für maximales Vertrauen. Verifizierte Nutzer erhalten 
+                bessere Konditionen und höhere Handelslimits.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Bottom CTA */}
         <div className="text-center mt-16">
           <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -172,10 +211,10 @@ export function TrustSection() {
                 </Avatar>
               ))}
               <div className="h-8 w-8 border-2 border-background rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                +7K
+                +{Math.round(stats.activeUsers / 1000)}K
               </div>
             </div>
-            <span>Schließe dich über 10.000 zufriedenen Nutzern an</span>
+            <span>Schließe dich über {Math.round(stats.activeUsers / 1000).toLocaleString()}K zufriedenen Nutzern an</span>
           </div>
         </div>
       </div>
