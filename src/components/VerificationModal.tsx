@@ -198,9 +198,31 @@ export function VerificationModal({ children }: VerificationModalProps) {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
-                      Ausweis Vorderseite
+                      Ausweis Vorderseite *
                     </Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <div 
+                      className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => document.getElementById('document-front-upload')?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('border-primary');
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('border-primary');
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('border-primary');
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                          const file = files[0];
+                          if (file.type.startsWith('image/')) {
+                            setFormData(prev => ({ ...prev, document_front_url: URL.createObjectURL(file) }));
+                          }
+                        }
+                      }}
+                    >
                       <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
                         Klicken Sie hier oder ziehen Sie eine Datei hierher
@@ -209,6 +231,18 @@ export function VerificationModal({ children }: VerificationModalProps) {
                         PNG, JPG bis zu 10MB
                       </p>
                     </div>
+                    <input
+                      id="document-front-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({ ...prev, document_front_url: URL.createObjectURL(file) }));
+                        }
+                      }}
+                    />
                   </div>
 
                   {/* Document Back */}
@@ -217,7 +251,29 @@ export function VerificationModal({ children }: VerificationModalProps) {
                       <FileText className="h-4 w-4" />
                       Ausweis Rückseite
                     </Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <div 
+                      className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => document.getElementById('document-back-upload')?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('border-primary');
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('border-primary');
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('border-primary');
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                          const file = files[0];
+                          if (file.type.startsWith('image/')) {
+                            setFormData(prev => ({ ...prev, document_back_url: URL.createObjectURL(file) }));
+                          }
+                        }
+                      }}
+                    >
                       <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
                         Klicken Sie hier oder ziehen Sie eine Datei hierher
@@ -226,6 +282,18 @@ export function VerificationModal({ children }: VerificationModalProps) {
                         PNG, JPG bis zu 10MB
                       </p>
                     </div>
+                    <input
+                      id="document-back-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({ ...prev, document_back_url: URL.createObjectURL(file) }));
+                        }
+                      }}
+                    />
                   </div>
 
                   {/* Selfie */}
@@ -234,7 +302,29 @@ export function VerificationModal({ children }: VerificationModalProps) {
                       <Camera className="h-4 w-4" />
                       Selfie mit Ausweis (Optional)
                     </Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <div 
+                      className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => document.getElementById('selfie-upload')?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('border-primary');
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('border-primary');
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('border-primary');
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                          const file = files[0];
+                          if (file.type.startsWith('image/')) {
+                            setFormData(prev => ({ ...prev, selfie_url: URL.createObjectURL(file) }));
+                          }
+                        }
+                      }}
+                    >
                       <Camera className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
                         Selfie mit Ihrem Ausweis neben Ihrem Gesicht
@@ -243,6 +333,18 @@ export function VerificationModal({ children }: VerificationModalProps) {
                         Erhöht die Sicherheit Ihres Accounts
                       </p>
                     </div>
+                    <input
+                      id="selfie-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({ ...prev, selfie_url: URL.createObjectURL(file) }));
+                        }
+                      }}
+                    />
                   </div>
 
                   <div className="flex gap-3">
