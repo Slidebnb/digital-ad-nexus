@@ -17,6 +17,7 @@ import { UserMessages } from "@/components/UserMessages";
 import { FavoritesManager } from "@/components/FavoritesManager";
 import { PriceAlertsManager } from "@/components/PriceAlertsManager";
 import { MarketTrendsWidget } from "@/components/MarketTrendsWidget";
+import { UserVerificationCenter } from "@/components/UserVerificationCenter";
 import { ChatSystem } from "@/components/ChatSystem";
 import { BoostAdModal } from "@/components/BoostAdModal";
 import { 
@@ -290,6 +291,7 @@ export function UserDashboard() {
           <TabsContent value="settings">
             <div className="space-y-6">
               <ProfileSettings />
+              <UserVerificationCenter />
               <Card className="gradient-card">
                 <CardHeader>
                   <CardTitle>Erweiterte Einstellungen</CardTitle>
