@@ -427,22 +427,7 @@ export type Database = {
           sender_id?: string
           unread_by_recipient?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "conversations_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       favorites: {
         Row: {
@@ -591,15 +576,7 @@ export type Database = {
           read_at?: string | null
           sender_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notification_subscriptions: {
         Row: {

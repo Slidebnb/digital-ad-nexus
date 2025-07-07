@@ -31,16 +31,70 @@ export const useChat = () => {
   const fetchConversations = async () => {
     if (!user?.id) return;
     try {
-      const { data, error } = await supabase
+      const { data: conversationsData, error } = await supabase
         .from('conversations')
-        .select(`*`)
+        .select('*')
         .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
       if (error) throw error;
-      setConversations(data || []);
+      
+      // Fetch user profiles for conversations
+      const conversations = conversationsData || [];
+      const userIds = [...new Set(conversations.flatMap(conv => [conv.sender_id, conv.recipient_id]))];
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url')
+        .in('user_id', userIds);
+
+      // Create a map of user profiles
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      
+      // Add other_user information
+      const enrichedConversations = conversations.map(conv => {
+        const otherUserId = conv.sender_id === user.id ? conv.recipient_id : conv.sender_id;
+        const otherUserProfile = profileMap.get(otherUserId);
+        
+        return {
+          ...conv,
+          other_user: otherUserProfile ? {
+            full_name: otherUserProfile.full_name,
+            avatar_url: otherUserProfile.avatar_url
+          } : null
+        };
+      });
+      
+      setConversations(enrichedConversations);
     } catch (error) {
       console.error('Error fetching conversations:', error);
+    }
+  };
+
+  // Add fetchMessages function
+  const fetchMessages = async (conversationId: string) => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  // Update setActiveConversation to also fetch messages
+  const handleSetActiveConversation = (conversationId: string | null) => {
+    setActiveConversation(conversationId);
+    if (conversationId) {
+      fetchMessages(conversationId);
+    } else {
+      setMessages([]);
     }
   };
 
@@ -55,13 +109,41 @@ export const useChat = () => {
           sender_id: user.id,
           content: content.trim(),
           message_type: 'text'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Update the conversation's last message
+      await supabase
+        .from('conversations')
+        .update({
+          last_message: content.substring(0, 100),
+          last_message_at: new Date().toISOString(),
+          unread_by_recipient: true
+        })
+        .eq('id', activeConversation);
+
+      // Add message to current messages
+      setMessages(prev => [...prev, data]);
+      
+      // Refresh conversations list
       fetchConversations();
+      
+      toast({
+        title: "Nachricht gesendet",
+        description: "Ihre Nachricht wurde erfolgreich gesendet."
+      });
+      
       return { data };
     } catch (error) {
       console.error('Error sending message:', error);
+      toast({
+        title: "Fehler beim Senden",
+        description: "Die Nachricht konnte nicht gesendet werden.",
+        variant: "destructive"
+      });
       return { error };
     }
   };
@@ -104,10 +186,11 @@ export const useChat = () => {
     messages,
     activeConversation,
     loading,
-    setActiveConversation,
+    setActiveConversation: handleSetActiveConversation,
     sendMessage,
     markAsRead,
     createConversation,
-    fetchConversations
+    fetchConversations,
+    fetchMessages
   };
 };

@@ -37,9 +37,13 @@ export function ChatSystem() {
     e.preventDefault();
     if (!newMessage.trim() || !activeConversation) return;
 
-    const result = await sendMessage(newMessage);
-    if (!result.error) {
-      setNewMessage("");
+    try {
+      const result = await sendMessage(newMessage);
+      if (result && !result.error) {
+        setNewMessage("");
+      }
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
     }
   };
 
@@ -198,8 +202,19 @@ export function ChatSystem() {
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Nachricht eingeben..."
                     className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
                   />
-                  <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    disabled={!newMessage.trim()}
+                    className="shrink-0"
+                  >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
