@@ -242,7 +242,37 @@ export function UserDashboard() {
 
           {/* Settings Tab */}
           <TabsContent value="settings">
-            <ProfileSettings />
+            <div className="space-y-6">
+              <ProfileSettings />
+              <Card className="gradient-card">
+                <CardHeader>
+                  <CardTitle>Erweiterte Einstellungen</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">E-Mail-Benachrichtigungen</h4>
+                      <p className="text-sm text-muted-foreground">Erhalten Sie Updates per E-Mail</p>
+                    </div>
+                    <Button variant="outline" size="sm">Bearbeiten</Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Privatsphäre</h4>
+                      <p className="text-sm text-muted-foreground">Verwalten Sie Ihre Datenschutzeinstellungen</p>
+                    </div>
+                    <Button variant="outline" size="sm">Bearbeiten</Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Sicherheit</h4>
+                      <p className="text-sm text-muted-foreground">Passwort und Zwei-Faktor-Authentifizierung</p>
+                    </div>
+                    <Button variant="outline" size="sm">Bearbeiten</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

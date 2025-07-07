@@ -12,10 +12,11 @@ import {
   Coins
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth state
+  const { user, signOut } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -64,7 +65,7 @@ export function Navigation() {
               </Button>
             </Link>
             
-            {isLoggedIn ? (
+            {user ? (
               <>
                 <Link to="/profile">
                   <Button variant="ghost" size="icon">
@@ -81,12 +82,15 @@ export function Navigation() {
                     <User className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/profile?tab=create">
+                <Link to="/create-ad">
                   <Button variant="gradient" size="sm">
                     <PlusCircle className="h-4 w-4" />
                     Anzeige erstellen
                   </Button>
                 </Link>
+                <Button variant="ghost" size="sm" onClick={signOut}>
+                  Abmelden
+                </Button>
               </>
             ) : (
               <div className="flex items-center space-x-2">
@@ -150,7 +154,7 @@ export function Navigation() {
               </Button>
             </Link>
             
-            {isLoggedIn ? (
+            {user ? (
               <>
                 <Link to="/profile" className="block">
                   <Button variant="ghost" className="w-full justify-start" onClick={toggleMenu}>
@@ -164,12 +168,15 @@ export function Navigation() {
                     Nachrichten
                   </Button>
                 </Link>
-                <Link to="/profile?tab=create" className="block">
+                <Link to="/create-ad" className="block">
                   <Button variant="gradient" className="w-full" onClick={toggleMenu}>
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Anzeige erstellen
                   </Button>
                 </Link>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => { signOut(); toggleMenu(); }}>
+                  Abmelden
+                </Button>
               </>
             ) : (
               <div className="space-y-2 pt-2">
