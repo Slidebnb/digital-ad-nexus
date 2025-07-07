@@ -1,4 +1,4 @@
-import { Navigation } from "@/components/Navigation";
+import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
 import { HeroSection } from "@/components/HeroSection";
 import { CategoriesSection } from "@/components/CategoriesSection";
 import { FeaturedAdsSection } from "@/components/FeaturedAdsSection";
@@ -9,7 +9,7 @@ import { HowItWorksSection } from "@/components/HowItWorksSection";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <MobileOptimizedNavigation />
       <main>
         <HeroSection />
         <CategoriesSection />
