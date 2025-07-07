@@ -35,21 +35,24 @@ export default function LoginSimple() {
     setError("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       });
 
       if (error) {
         setError(error.message);
+        setIsLoading(false);
       } else {
-        navigate('/dashboard');
+        // Successful login - redirect immediately
+        console.log('Login successful, redirecting...', data);
+        window.location.href = '/dashboard'; // Force navigation
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Ein unerwarteter Fehler ist aufgetreten');
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -64,7 +67,7 @@ export default function LoginSimple() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: registerForm.email,
         password: registerForm.password,
         options: {
@@ -79,10 +82,12 @@ export default function LoginSimple() {
         setError(error.message);
       } else {
         setError('');
+        console.log('Registration successful:', data);
         alert('Registrierung erfolgreich! Bitte überprüfe deine E-Mails.');
         setActiveTab('login');
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError('Ein unerwarteter Fehler ist aufgetreten');
     }
     
