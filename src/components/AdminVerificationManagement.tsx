@@ -327,12 +327,20 @@ export function AdminVerificationManagement() {
                                              <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                            </div>
                                          </div>
-                                        <Button variant="outline" size="sm" className="w-full" asChild>
-                                          <a href={selectedRequest.document_front_url} download target="_blank">
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Herunterladen
-                                          </a>
-                                        </Button>
+                                         <Button 
+                                           variant="outline" 
+                                           size="sm" 
+                                           className="w-full"
+                                           onClick={() => {
+                                             const link = document.createElement('a');
+                                             link.href = selectedRequest.document_front_url;
+                                             link.download = 'dokument-vorderseite.jpg';
+                                             link.click();
+                                           }}
+                                         >
+                                           <Download className="h-4 w-4 mr-2" />
+                                           Herunterladen
+                                         </Button>
                                       </div>
                                     )}
 
@@ -354,12 +362,20 @@ export function AdminVerificationManagement() {
                                              <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                            </div>
                                          </div>
-                                        <Button variant="outline" size="sm" className="w-full" asChild>
-                                          <a href={selectedRequest.document_back_url} download target="_blank">
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Herunterladen
-                                          </a>
-                                        </Button>
+                                         <Button 
+                                           variant="outline" 
+                                           size="sm" 
+                                           className="w-full"
+                                           onClick={() => {
+                                             const link = document.createElement('a');
+                                             link.href = selectedRequest.document_back_url;
+                                             link.download = 'dokument-rueckseite.jpg';
+                                             link.click();
+                                           }}
+                                         >
+                                           <Download className="h-4 w-4 mr-2" />
+                                           Herunterladen
+                                         </Button>
                                       </div>
                                     )}
 
@@ -381,12 +397,20 @@ export function AdminVerificationManagement() {
                                              <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                            </div>
                                          </div>
-                                        <Button variant="outline" size="sm" className="w-full" asChild>
-                                          <a href={selectedRequest.selfie_url} download target="_blank">
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Herunterladen
-                                          </a>
-                                        </Button>
+                                         <Button 
+                                           variant="outline" 
+                                           size="sm" 
+                                           className="w-full"
+                                           onClick={() => {
+                                             const link = document.createElement('a');
+                                             link.href = selectedRequest.selfie_url;
+                                             link.download = 'selfie-dokument.jpg';
+                                             link.click();
+                                           }}
+                                         >
+                                           <Download className="h-4 w-4 mr-2" />
+                                           Herunterladen
+                                         </Button>
                                       </div>
                                     )}
                                   </div>
