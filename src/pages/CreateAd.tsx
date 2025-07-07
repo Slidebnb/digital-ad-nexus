@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -12,22 +12,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { PlusCircle, Upload, X, AlertCircle } from "lucide-react";
+import { PlusCircle, Upload, X, AlertCircle, Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
 const CRYPTO_OPTIONS = [
   'BTC', 'ETH', 'USDT', 'USDC', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'AVAX',
-  'MATIC', 'LTC', 'LINK', 'UNI', 'ATOM', 'XLM', 'VET', 'ICP', 'FTT', 'NEAR'
+  'MATIC', 'LTC', 'LINK', 'UNI', 'ATOM', 'XLM', 'VET', 'ICP', 'FTT', 'NEAR',
+  'ALGO', 'EGLD', 'HBAR', 'FLOW', 'XTZ', 'WAVES', 'KSM', 'DASH', 'ZEC', 'XMR'
 ];
 
-const CATEGORIES = [
-  { id: 'kaufen', name: 'Kaufen' },
-  { id: 'verkaufen', name: 'Verkaufen' },
-  { id: 'tauschen', name: 'Tauschen' },
-  { id: 'mining', name: 'Mining' },
-  { id: 'hardware', name: 'Hardware' },
-  { id: 'service', name: 'Service' }
-];
+const CRYPTO_CURRENCIES = ['BTC', 'ETH', 'USDT', 'USDC', 'EUR', 'USD'];
+
+type Category = Tables<'categories'>;
 
 export default function CreateAd() {
   const { user } = useAuth();
@@ -35,18 +32,47 @@ export default function CreateAd() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
-    currency: 'EUR',
-    category: '',
+    currency: 'BTC',
+    category_id: '',
     location: '',
     condition: 'neu',
     accepted_coins: [] as string[],
     tags: ''
   });
+
+  // Load categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('active', true)
+          .order('sort_order', { ascending: true });
+        
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast({
+          title: "Fehler",
+          description: "Kategorien konnten nicht geladen werden",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, [toast]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -119,6 +145,15 @@ export default function CreateAd() {
       return;
     }
 
+    if (!formData.category_id) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie eine Kategorie",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (formData.accepted_coins.length === 0) {
       toast({
         title: "Fehler",
@@ -131,7 +166,7 @@ export default function CreateAd() {
     setLoading(true);
 
     try {
-      // Create ad
+      // Create ad with correct category_id
       const { data: ad, error: adError } = await supabase
         .from('ads')
         .insert({
@@ -139,7 +174,7 @@ export default function CreateAd() {
           description: formData.description,
           price: parseFloat(formData.price),
           currency: formData.currency,
-          category: formData.category,
+          category_id: formData.category_id,
           location: formData.location,
           condition: formData.condition,
           accepted_coins: formData.accepted_coins,
@@ -150,7 +185,10 @@ export default function CreateAd() {
         .select()
         .single();
 
-      if (adError) throw adError;
+      if (adError) {
+        console.error('Ad creation error:', adError);
+        throw adError;
+      }
 
       // Upload images if any
       if (images.length > 0 && ad) {
@@ -164,16 +202,16 @@ export default function CreateAd() {
       }
 
       toast({
-        title: "Anzeige erstellt",
-        description: "Ihre Anzeige wurde erfolgreich veröffentlicht"
+        title: "Krypto-Anzeige erstellt",
+        description: "Ihre Anzeige wurde erfolgreich veröffentlicht und ist jetzt sichtbar"
       });
 
-      navigate('/dashboard');
+      navigate('/browse');
     } catch (error) {
       console.error('Error creating ad:', error);
       toast({
         title: "Fehler",
-        description: "Anzeige konnte nicht erstellt werden",
+        description: "Anzeige konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
         variant: "destructive"
       });
     } finally {
@@ -204,24 +242,30 @@ export default function CreateAd() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Neue Anzeige erstellen</h1>
+          <div className="mb-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Coins className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold">Krypto-Anzeige erstellen</h1>
+            </div>
             <p className="text-muted-foreground">
-              Erstellen Sie eine neue Krypto-Anzeige und erreichen Sie tausende von Nutzern
+              Handeln Sie sicher mit Kryptowährungen - erstellen Sie Ihre Anzeige und erreichen Sie tausende von Händlern
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Grundinformationen</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Coins className="h-5 w-5" />
+                  Anzeigendetails
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Titel *</Label>
+                  <Label htmlFor="title">Anzeigentitel *</Label>
                   <Input
                     id="title"
-                    placeholder="z.B. Bitcoin zu verkaufen - bester Preis"
+                    placeholder="z.B. Bitcoin verkaufen - beste Preise, schnelle Abwicklung"
                     value={formData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
                     required
@@ -230,10 +274,10 @@ export default function CreateAd() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Beschreibung *</Label>
+                  <Label htmlFor="description">Detaillierte Beschreibung *</Label>
                   <Textarea
                     id="description"
-                    placeholder="Detaillierte Beschreibung Ihrer Anzeige..."
+                    placeholder="Beschreiben Sie Ihr Krypto-Angebot: Zahlungsmethoden, Limits, Konditionen..."
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     required
@@ -248,23 +292,25 @@ export default function CreateAd() {
                     <Input
                       id="price"
                       type="number"
-                      step="0.01"
-                      placeholder="0.00"
+                      step="0.00000001"
+                      placeholder="0.00000000"
                       value={formData.price}
                       onChange={(e) => handleInputChange('price', e.target.value)}
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="currency">Währung</Label>
+                    <Label htmlFor="currency">Preiswährung *</Label>
                     <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="CHF">CHF</SelectItem>
+                        {CRYPTO_CURRENCIES.map(currency => (
+                          <SelectItem key={currency} value={currency}>
+                            {currency}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -273,14 +319,18 @@ export default function CreateAd() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="category">Kategorie *</Label>
-                    <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                    <Select 
+                      value={formData.category_id} 
+                      onValueChange={(value) => handleInputChange('category_id', value)}
+                      disabled={loadingCategories}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Kategorie wählen" />
+                        <SelectValue placeholder={loadingCategories ? "Laden..." : "Kategorie wählen"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
+                        {categories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -304,10 +354,10 @@ export default function CreateAd() {
                 </div>
 
                 <div>
-                  <Label htmlFor="location">Standort</Label>
+                  <Label htmlFor="location">Standort (optional)</Label>
                   <Input
                     id="location"
-                    placeholder="z.B. Berlin, Deutschland"
+                    placeholder="z.B. Berlin, Deutschland (für lokale Treffen)"
                     value={formData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
                   />
@@ -317,7 +367,7 @@ export default function CreateAd() {
                   <Label htmlFor="tags">Tags (kommagetrennt)</Label>
                   <Input
                     id="tags"
-                    placeholder="z.B. schnell, sicher, günstig"
+                    placeholder="z.B. P2P, SEPA, PayPal, schnell, sicher"
                     value={formData.tags}
                     onChange={(e) => handleInputChange('tags', e.target.value)}
                   />
@@ -327,29 +377,43 @@ export default function CreateAd() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Akzeptierte Kryptowährungen *</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Coins className="h-5 w-5" />
+                  Akzeptierte Kryptowährungen *
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Wählen Sie die Kryptowährungen aus, die Sie akzeptieren oder anbieten möchten
+                </p>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                   {CRYPTO_OPTIONS.map(coin => (
-                    <div key={coin} className="flex items-center space-x-2">
+                    <div key={coin} className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-accent/50">
                       <Checkbox
                         id={coin}
                         checked={formData.accepted_coins.includes(coin)}
                         onCheckedChange={() => handleCoinToggle(coin)}
                       />
-                      <Label htmlFor={coin} className="text-sm font-medium">
+                      <Label htmlFor={coin} className="text-sm font-medium cursor-pointer">
                         {coin}
                       </Label>
                     </div>
                   ))}
                 </div>
+                {formData.accepted_coins.length === 0 && (
+                  <p className="text-sm text-destructive mt-2">
+                    Wählen Sie mindestens eine Kryptowährung aus
+                  </p>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Bilder (optional)</CardTitle>
+                <CardTitle>Bilder hinzufügen (optional)</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Fügen Sie vertrauensbildende Bilder hinzu (Screenshots, Verifizierungen, etc.)
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -380,7 +444,7 @@ export default function CreateAd() {
                           <img
                             src={URL.createObjectURL(image)}
                             alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg"
+                            className="w-full h-24 object-cover rounded-lg border"
                           />
                           <button
                             type="button"
@@ -408,8 +472,9 @@ export default function CreateAd() {
               </Button>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || loadingCategories || !formData.category_id || formData.accepted_coins.length === 0}
                 className="flex-1"
+                variant="gradient"
               >
                 {loading ? (
                   <>
@@ -418,8 +483,8 @@ export default function CreateAd() {
                   </>
                 ) : (
                   <>
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Anzeige veröffentlichen
+                    <Coins className="w-4 h-4 mr-2" />
+                    Krypto-Anzeige veröffentlichen
                   </>
                 )}
               </Button>
