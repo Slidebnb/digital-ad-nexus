@@ -75,8 +75,11 @@ export function usePWANotifications() {
   const [isSupported, setIsSupported] = useState(false);
 
   useEffect(() => {
-    setIsSupported('Notification' in window && 'serviceWorker' in navigator);
-    setPermission(Notification.permission);
+    const notificationSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
+    setIsSupported(notificationSupported);
+    if (notificationSupported) {
+      setPermission(Notification.permission);
+    }
   }, []);
 
   const requestPermission = async () => {
