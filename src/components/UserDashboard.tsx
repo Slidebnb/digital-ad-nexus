@@ -192,7 +192,7 @@ export function UserDashboard() {
                     disabled={!canCreateAds}
                     onClick={() => {
                       if (!canCreateAds) return;
-                      // TODO: Navigate to create ad page
+                      window.location.href = '/create-ad';
                     }}
                   >
                     <PlusCircle className="h-6 w-6 mb-2" />
