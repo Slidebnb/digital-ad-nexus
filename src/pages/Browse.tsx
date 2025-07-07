@@ -33,7 +33,7 @@ type Ad = Tables<'ads'> & {
     rating: number | null; 
     verified: boolean | null;
     avatar_url: string | null;
-  } | null;
+  }[] | null;
 };
 
 const categories = [
@@ -74,7 +74,7 @@ export default function Browse() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAds((data as Ad[]) || []);
+      setAds(data || []);
     } catch (error) {
       console.error('Error fetching ads:', error);
     } finally {
@@ -307,14 +307,14 @@ export default function Browse() {
                   {/* Seller Info */}
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">{ad.profiles?.full_name || 'Unbekannt'}</span>
-                      {ad.profiles?.verified && (
+                      <span className="font-medium">{ad.profiles?.[0]?.full_name || 'Unbekannt'}</span>
+                      {ad.profiles?.[0]?.verified && (
                         <Verified className="h-3 w-3 text-primary" />
                       )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                      <span>{ad.profiles?.rating?.toFixed(1) || '—'}</span>
+                      <span>{ad.profiles?.[0]?.rating?.toFixed(1) || '—'}</span>
                     </div>
                   </div>
 
