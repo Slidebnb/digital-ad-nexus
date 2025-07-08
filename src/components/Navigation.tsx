@@ -61,6 +61,12 @@ export function Navigation() {
                 Kategorien
               </Button>
             </Link>
+            <Link to="/crypto-hub">
+              <Button variant="ghost" size="sm">
+                <Coins className="h-4 w-4 mr-2" />
+                Crypto Hub
+              </Button>
+            </Link>
             {user && (
               <Link to="/favorites">
                 <Button variant="ghost" size="sm">
@@ -152,6 +158,12 @@ export function Navigation() {
             <Link to="/categories" className="block">
               <Button variant="ghost" className="w-full justify-start" onClick={toggleMenu}>
                 Kategorien
+              </Button>
+            </Link>
+            <Link to="/crypto-hub" className="block">
+              <Button variant="ghost" className="w-full justify-start" onClick={toggleMenu}>
+                <Coins className="h-4 w-4 mr-2" />
+                Crypto Hub
               </Button>
             </Link>
             {user && (

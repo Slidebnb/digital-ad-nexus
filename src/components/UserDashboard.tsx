@@ -26,6 +26,8 @@ import { TaxReportingSystem } from "@/components/TaxReportingSystem";
 import { CookieConsentManager } from "@/components/CookieConsentManager";
 import { RealTimeAdStats } from "@/components/RealTimeAdStats";
 import { RealTimeMessagePreview } from "@/components/RealTimeMessagePreview";
+import { CryptoWalletManager } from "@/components/CryptoWalletManager";
+import { PaymentHistoryModal } from "@/components/PaymentHistoryModal";
 import { 
   User, 
   Settings, 
@@ -38,7 +40,9 @@ import {
   Shield,
   AlertTriangle,
   Bell,
-  FileText
+  FileText,
+  Wallet,
+  CreditCard
 } from "lucide-react";
 
 export function UserDashboard() {
@@ -123,7 +127,7 @@ export function UserDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 gap-1 p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-9 gap-1 p-1 h-auto">
             <TabsTrigger value="overview" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
               <span className="md:hidden">📊</span>
               <span className="hidden md:inline">Übersicht</span>
@@ -153,6 +157,16 @@ export function UserDashboard() {
               <Shield className="h-4 w-4 md:mr-2 md:mb-0" />
               <span className="md:hidden">🛡️</span>
               <span className="hidden md:inline">Datenschutz</span>
+            </TabsTrigger>
+            <TabsTrigger value="wallets" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <Wallet className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">💳</span>
+              <span className="hidden md:inline">Wallets</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
+              <CreditCard className="h-4 w-4 md:mr-2 md:mb-0" />
+              <span className="md:hidden">💰</span>
+              <span className="hidden md:inline">Zahlungen</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex-col gap-1 h-16 md:h-10 text-xs md:text-sm">
               <Settings className="h-4 w-4 md:mr-2 md:mb-0" />
@@ -350,6 +364,58 @@ export function UserDashboard() {
                 <CookieConsentManager />
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* Crypto Wallets Tab */}
+          <TabsContent value="wallets" className="space-y-6">
+            <CryptoWalletManager />
+          </TabsContent>
+
+          {/* Payments Tab */}
+          <TabsContent value="payments" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="gradient-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Zahlungshistorie
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    Verwalten Sie Ihre Crypto-Zahlungen und Transaktionshistorie
+                  </p>
+                  <PaymentHistoryModal>
+                    <Button className="w-full">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Zahlungshistorie anzeigen
+                    </Button>
+                  </PaymentHistoryModal>
+                </CardContent>
+              </Card>
+              
+              <Card className="gradient-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Wallet-Verwaltung
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    Verbinden und verwalten Sie Ihre Crypto-Wallets
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setActiveTab("wallets")}
+                  >
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Wallets verwalten
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Settings Tab */}
