@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useMessages } from "@/hooks/useMessages";
+import { useUserData } from "@/hooks/useUserData";
 import { VerificationModal, VerificationBadge } from "@/components/VerificationModal";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { UserAds } from "@/components/UserAds";
@@ -23,6 +24,8 @@ import { BoostAdModal } from "@/components/BoostAdModal";
 import { GDPRComplianceCenter } from "@/components/GDPRComplianceCenter";
 import { TaxReportingSystem } from "@/components/TaxReportingSystem";
 import { CookieConsentManager } from "@/components/CookieConsentManager";
+import { RealTimeAdStats } from "@/components/RealTimeAdStats";
+import { RealTimeMessagePreview } from "@/components/RealTimeMessagePreview";
 import { 
   User, 
   Settings, 
@@ -40,11 +43,13 @@ import {
 
 export function UserDashboard() {
   const { user, signOut } = useAuth();
-  const { profile, loading, getUserStats } = useProfile();
+  const { profile, loading: profileLoading, getUserStats } = useProfile();
   const { unreadCount } = useMessages();
+  const { stats: userStats, userAds, recentMessages, loading: userDataLoading, boostAd, deleteAd } = useUserData();
   const [activeTab, setActiveTab] = useState("overview");
   
   const stats = getUserStats();
+  const loading = profileLoading || userDataLoading;
 
   if (loading) {
     return (
@@ -162,40 +167,59 @@ export function UserDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
               <Card className="gradient-card">
                 <CardContent className="p-3 md:p-4 text-center">
-                  <div className="text-lg md:text-2xl font-bold text-primary">{stats.totalAds}</div>
+                  <div className="text-lg md:text-2xl font-bold text-primary">{userStats.totalAds}</div>
                   <div className="text-xs md:text-sm text-muted-foreground">Anzeigen gesamt</div>
+                  <Badge variant="secondary" className="mt-1 text-xs">
+                    {userStats.activeAds} aktiv
+                  </Badge>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-success">{stats.activeAds}</div>
+                  <div className="text-2xl font-bold text-success">{userStats.activeAds}</div>
                   <div className="text-sm text-muted-foreground">Aktive Anzeigen</div>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-secondary">{stats.totalViews}</div>
+                  <div className="text-2xl font-bold text-secondary">{userStats.totalViews}</div>
                   <div className="text-sm text-muted-foreground">Gesamtaufrufe</div>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-accent">{stats.totalMessages}</div>
+                  <div className="text-2xl font-bold text-accent">{userStats.totalMessages}</div>
                   <div className="text-sm text-muted-foreground">Nachrichten</div>
+                  {userStats.unreadMessages > 0 && (
+                    <Badge variant="destructive" className="mt-1 text-xs">
+                      {userStats.unreadMessages} neu
+                    </Badge>
+                  )}
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-warning">
-                    {stats.rating > 0 ? stats.rating.toFixed(1) : '—'}
+                    {userStats.rating > 0 ? userStats.rating.toFixed(1) : '—'}
                   </div>
                   <div className="text-sm text-muted-foreground">Bewertung</div>
+                  <div className="flex justify-center mt-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`h-3 w-3 ${i < Math.floor(userStats.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+                      />
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-primary">{stats.trades}</div>
+                  <div className="text-2xl font-bold text-primary">{userStats.totalTrades}</div>
                   <div className="text-sm text-muted-foreground">Erfolgreiche Trades</div>
+                  <Badge variant="outline" className="mt-1 text-xs">
+                    Vertrauen: {userStats.trustScore}%
+                  </Badge>
                 </CardContent>
               </Card>
             </div>
@@ -272,17 +296,27 @@ export function UserDashboard() {
           </TabsContent>
 
           {/* Ads Tab */}
-          <TabsContent value="ads">
-            <UserAds />
+          <TabsContent value="ads" className="space-y-6">
+            <RealTimeAdStats 
+              ads={userAds}
+              onBoostAd={boostAd}
+              onDeleteAd={deleteAd}
+              loading={loading}
+            />
           </TabsContent>
 
           {/* Messages Tab */}
-        <TabsContent value="messages">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UserMessages />
-            <ChatSystem />
-          </div>
-        </TabsContent>
+          <TabsContent value="messages" className="space-y-6">
+            <RealTimeMessagePreview 
+              messages={recentMessages}
+              unreadCount={userStats.unreadMessages}
+              loading={loading}
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <UserMessages />
+              <ChatSystem />
+            </div>
+          </TabsContent>
         
         <TabsContent value="favorites">
           <FavoritesManager />

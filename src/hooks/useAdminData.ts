@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminStats {
   totalUsers: number;
@@ -239,17 +240,102 @@ export const useAdminData = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      // Set loading to false immediately for faster dashboard load
-      setLoading(false);
+      setLoading(true);
       
-      // Fetch data in background
+      // Initial load
       Promise.all([
         fetchAdminStats(),
         fetchUsers(),
         fetchVerificationRequests()
-      ]).catch(error => {
-        console.error('Error loading admin data:', error);
+      ]).finally(() => {
+        setLoading(false);
       });
+
+      // Setup realtime subscriptions
+      const usersChannel = supabase
+        .channel('admin_users_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'users'
+          },
+          () => {
+            fetchUsers();
+            fetchAdminStats();
+          }
+        )
+        .subscribe();
+
+      const adsChannel = supabase
+        .channel('admin_ads_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'ads'
+          },
+          () => {
+            fetchAdminStats();
+          }
+        )
+        .subscribe();
+
+      const verificationsChannel = supabase
+        .channel('admin_verifications_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'verification_requests'
+          },
+          () => {
+            fetchVerificationRequests();
+            fetchAdminStats();
+          }
+        )
+        .subscribe();
+
+      const reportsChannel = supabase
+        .channel('admin_reports_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reports'
+          },
+          () => {
+            fetchAdminStats();
+          }
+        )
+        .subscribe();
+
+      const tradesChannel = supabase
+        .channel('admin_trades_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'trades'
+          },
+          () => {
+            fetchAdminStats();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(usersChannel);
+        supabase.removeChannel(adsChannel);
+        supabase.removeChannel(verificationsChannel);
+        supabase.removeChannel(reportsChannel);
+        supabase.removeChannel(tradesChannel);
+      };
     } else {
       setLoading(false);
     }
