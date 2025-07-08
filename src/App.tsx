@@ -42,14 +42,13 @@ const App = () => (
                 <Route path="/favorites" element={<AuthGuard requireAuth><Favorites /></AuthGuard>} />
                 <Route path="/create-ad" element={<AuthGuard requireAuth><CreateAd /></AuthGuard>} />
                 <Route path="/ad/:id" element={<AdDetail />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <CookieConsentManager />
             </BrowserRouter>
-            <Toaster />
-            <Sonner />
           </AuthProvider>
+          <Toaster />
+          <Sonner />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
