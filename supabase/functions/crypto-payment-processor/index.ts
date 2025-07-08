@@ -125,9 +125,7 @@ async function processPaymentAction(supabaseClient: any, payment: any) {
         await processPremiumPayment(supabaseClient, payment)
       }
       break
-    case 'escrow':
-      await processEscrowPayment(supabaseClient, payment)
-      break
+    // Escrow removed per user request
   }
 }
 
@@ -176,21 +174,6 @@ async function processPremiumPayment(supabaseClient: any, payment: any) {
     .eq('id', payment.subscription_id)
 }
 
-async function processEscrowPayment(supabaseClient: any, payment: any) {
-  // Handle escrow release logic
-  const metadata = payment.metadata || {}
-  
-  if (metadata.escrow_type === 'release') {
-    // Release funds to seller
-    await supabaseClient
-      .from('escrow_transactions')
-      .update({
-        status: 'released',
-        released_at: new Date().toISOString()
-      })
-      .eq('payment_id', payment.id)
-  }
-}
 
 async function sendPaymentNotification(supabaseClient: any, payment: any, status: string) {
   // Create notification record
