@@ -1614,6 +1614,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_real_admin_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_users: number
+          verified_users: number
+          admin_users: number
+          banned_users: number
+          moderator_users: number
+          active_ads: number
+          total_ads: number
+          boosted_ads: number
+          pending_reports: number
+          total_reports: number
+          total_trades: number
+          platform_volume: number
+          pending_verifications: number
+          total_conversations: number
+          total_messages: number
+        }[]
+      }
       get_user_rating_count: {
         Args: { user_uuid: string }
         Returns: number

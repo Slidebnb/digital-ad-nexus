@@ -11,7 +11,7 @@ import { AdminRealTimeMonitor } from "@/components/AdminRealTimeMonitor";
 import { AdminUserManagementDashboard } from "@/components/AdminUserManagementDashboard";
 import { AdminAdsManagementDashboard } from "@/components/AdminAdsManagementDashboard";
 import { AdminVerificationManagement } from "@/components/AdminVerificationManagement";
-import { AdminStats } from "@/components/AdminStats";
+import { AdminRealTimeAnalytics } from "@/components/AdminRealTimeAnalytics";
 import { AdminPromoteUser } from "@/components/AdminPromoteUser";
 import { AdminWelcome } from "@/components/AdminWelcome";
 import { GDPRComplianceCenter } from "@/components/GDPRComplianceCenter";
@@ -259,7 +259,7 @@ export function AdminDashboard() {
 
           {/* Analytics & Stats */}
           <TabsContent value="analytics" className="space-y-6">
-            <AdminStats />
+            <AdminRealTimeAnalytics />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="gradient-card">

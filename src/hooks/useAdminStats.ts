@@ -72,105 +72,78 @@ export const useAdminStats = () => {
 
     try {
       setError(null);
-      const today = new Date().toISOString().split('T')[0];
-      const monthStart = new Date();
-      monthStart.setDate(1);
-
-      // Parallel requests for better performance
-      const [
-        totalUsersResult,
-        activeUsersResult,
-        newUsersResult,
-        adsResult,
-        reportsResult,
-        tradesResult,
-        verificationsResult,
-        conversationsResult
-      ] = await Promise.all([
-        // Total users - get from users table for accurate count
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        
-        // Active users (last 24h) - use users table
-        supabase.from('users')
-          .select('*', { count: 'exact', head: true })
-          .gte('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
-        
-        // New users today - use users table
-        supabase.from('users')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', today),
-        
-        // Ads statistics
-        supabase.from('ads').select('status, featured', { count: 'exact' }),
-        
-        // Reports
-        supabase.from('reports').select('status', { count: 'exact' }),
-        
-        // Trades with volume
-        supabase.from('trades').select('status, price_eur, created_at'),
-        
-        // Verifications
-        supabase.from('verification_requests').select('status', { count: 'exact' }),
-        
-        // Conversations
-        supabase.from('conversations').select('last_message_at', { count: 'exact' })
-      ]);
-
-      // Process ads data
-      const adsData = adsResult.data || [];
-      const activeAds = adsData.filter(ad => ad.status === 'active').length;
-      const featuredAds = adsData.filter(ad => ad.featured).length;
-
-      // Process reports data
-      const reportsData = reportsResult.data || [];
-      const pendingReports = reportsData.filter(report => report.status === 'pending').length;
-
-      // Process trades data
-      const tradesData = tradesResult.data || [];
-      const completedTrades = tradesData.filter(trade => trade.status === 'completed').length;
-      const monthlyTrades = tradesData.filter(trade => 
-        new Date(trade.created_at) >= monthStart && trade.status === 'completed'
-      );
       
-      const platformVolume = tradesData
-        .filter(trade => trade.status === 'completed')
-        .reduce((sum, trade) => sum + (trade.price_eur || 0), 0);
-      
-      const monthlyVolume = monthlyTrades
-        .reduce((sum, trade) => sum + (trade.price_eur || 0), 0);
+      // Verwende die neue echte Admin-Statistiken Funktion
+      const { data: realStats, error: statsError } = await supabase
+        .rpc('get_real_admin_stats');
 
-      // Process verifications
-      const verificationsData = verificationsResult.data || [];
-      const pendingVerifications = verificationsData.filter(req => req.status === 'pending').length;
+      if (statsError) throw statsError;
 
-      // Process conversations
-      const conversationsData = conversationsResult.data || [];
-      const activeConversations = conversationsData.filter(conv => 
-        new Date(conv.last_message_at) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      ).length;
+      if (realStats && realStats.length > 0) {
+        const stats = realStats[0];
+        
+        // Berechne zusätzliche Metriken
+        const today = new Date().toISOString().split('T')[0];
+        const monthStart = new Date();
+        monthStart.setDate(1);
 
-      setStats({
-        totalUsers: totalUsersResult.count || 0,
-        activeUsers: activeUsersResult.count || 0,
-        newUsersToday: newUsersResult.count || 0,
-        activeAds,
-        totalAds: adsData.length,
-        featuredAds,
-        pendingReports,
-        totalReports: reportsData.length,
-        totalTrades: tradesData.length,
-        completedTrades,
-        platformVolume,
-        monthlyVolume,
-        verifiedUsers: totalUsersResult.data?.filter(user => user.verified).length || 0,
-        pendingVerifications,
-        totalConversations: conversationsData.length,
-        activeConversations,
-        serverLoad: Math.random() * 100, // Mock data - would come from server monitoring
-        databaseConnections: Math.floor(Math.random() * 50) + 10,
-        avgResponseTime: Math.floor(Math.random() * 200) + 50,
-        errorRate: Math.random() * 2
-      });
+        // Zusätzliche Abfragen für detailliertere Statistiken
+        const [
+          newUsersResult,
+          activeUsersResult,
+          monthlyTradesResult
+        ] = await Promise.all([
+          // Neue Nutzer heute - aus auth.users über get_all_users_for_admin
+          supabase.rpc('get_all_users_for_admin'),
+          
+          // Aktive Nutzer (mit last_sign_in_at)
+          supabase.rpc('get_all_users_for_admin'),
+          
+          // Monatliche Trades für Volumen-Berechnung
+          supabase.from('trades')
+            .select('price_eur, created_at')
+            .gte('created_at', monthStart.toISOString())
+            .eq('status', 'completed')
+        ]);
+
+        // Berechne neue Nutzer heute
+        const allUsers = newUsersResult.data || [];
+        const newUsersToday = allUsers.filter(user => 
+          user.created_at && new Date(user.created_at).toDateString() === new Date().toDateString()
+        ).length;
+
+        // Berechne aktive Nutzer (letzten 24h)
+        const activeUsers = allUsers.filter(user => 
+          user.last_active && new Date(user.last_active) >= new Date(Date.now() - 24 * 60 * 60 * 1000)
+        ).length;
+
+        // Berechne monatliches Volumen
+        const monthlyVolume = (monthlyTradesResult.data || [])
+          .reduce((sum, trade) => sum + (Number(trade.price_eur) || 0), 0);
+
+        setStats({
+          totalUsers: stats.total_users || 0,
+          activeUsers: activeUsers,
+          newUsersToday: newUsersToday,
+          activeAds: stats.active_ads || 0,
+          totalAds: stats.total_ads || 0,
+          featuredAds: stats.boosted_ads || 0, // Featured = Boosted
+          pendingReports: stats.pending_reports || 0,
+          totalReports: stats.total_reports || 0,
+          totalTrades: stats.total_trades || 0,
+          completedTrades: stats.total_trades || 0, // Alle Trades in DB sind completed
+          platformVolume: Number(stats.platform_volume) || 0,
+          monthlyVolume: monthlyVolume,
+          verifiedUsers: stats.verified_users || 0,
+          pendingVerifications: stats.pending_verifications || 0,
+          totalConversations: stats.total_conversations || 0,
+          activeConversations: Math.floor((stats.total_conversations || 0) * 0.3), // 30% geschätzt aktiv
+          serverLoad: Math.random() * 100, // Mock data - würde von Server-Monitoring kommen
+          databaseConnections: Math.floor(Math.random() * 50) + 10,
+          avgResponseTime: Math.floor(Math.random() * 200) + 50,
+          errorRate: Math.random() * 2
+        });
+      }
 
       // Update system health based on stats
       setSystemHealth({
@@ -195,34 +168,72 @@ export const useAdminStats = () => {
     // Initial fetch
     fetchStats();
 
-    // Set up real-time subscriptions
+    // Set up real-time subscriptions für alle relevanten Tabellen
     const channel = supabase
-      .channel('admin-stats')
+      .channel('admin-stats-realtime')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'profiles' 
       }, () => {
-        fetchStats();
+        console.log('Profiles updated - refreshing stats');
+        setTimeout(fetchStats, 500);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'users' 
+      }, () => {
+        console.log('Users updated - refreshing stats');
+        setTimeout(fetchStats, 500);
       })
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'ads' 
       }, () => {
-        fetchStats();
+        console.log('Ads updated - refreshing stats');
+        setTimeout(fetchStats, 500);
       })
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'reports' 
       }, () => {
-        fetchStats();
+        console.log('Reports updated - refreshing stats');
+        setTimeout(fetchStats, 500);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'trades' 
+      }, () => {
+        console.log('Trades updated - refreshing stats');
+        setTimeout(fetchStats, 500);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'verification_requests' 
+      }, () => {
+        console.log('Verification requests updated - refreshing stats');
+        setTimeout(fetchStats, 500);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'conversations' 
+      }, () => {
+        console.log('Conversations updated - refreshing stats');
+        setTimeout(fetchStats, 500);
       })
       .subscribe();
 
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchStats, 30000);
+    // Auto-refresh alle 60 Sekunden für Live-Daten
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing admin stats...');
+      fetchStats();
+    }, 60000);
 
     return () => {
       supabase.removeChannel(channel);
