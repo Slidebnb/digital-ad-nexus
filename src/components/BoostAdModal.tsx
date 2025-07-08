@@ -5,18 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { TrendingUp, Zap, Star, Info } from "lucide-react";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import { CryptoPaymentModal } from "./CryptoPaymentModal";
+import { WalletConnectModal } from "./WalletConnectModal";
+import { TrendingUp, Zap, Star, Info, Wallet, CreditCard } from "lucide-react";
 
 interface BoostPackage {
   id: number;
   name: string;
   description: string;
   price_eur: number;
+  price_sol?: number;
+  price_btc?: number;
+  price_eth?: number;
   duration_days: number;
   features: string[];
+  crypto_enabled: boolean;
 }
 
 interface BoostAdModalProps {
@@ -26,11 +35,14 @@ interface BoostAdModalProps {
 export function BoostAdModal({ children }: BoostAdModalProps) {
   const { user } = useAuth();
   const { userAds } = useProfile();
+  const { convertEurToCrypto, formatCryptoAmount, getCryptoSymbol, prices } = useCryptoPrices();
   const [open, setOpen] = useState(false);
   const [selectedAd, setSelectedAd] = useState<string>("");
   const [selectedPackage, setSelectedPackage] = useState<string>("");
   const [packages, setPackages] = useState<BoostPackage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'eur' | 'crypto'>('eur');
+  const [showCryptoPayment, setShowCryptoPayment] = useState(false);
 
   const activeAds = userAds.filter(ad => ad.status === 'active');
 
@@ -58,11 +70,17 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
   const handleBoost = async () => {
     if (!selectedAd || !selectedPackage || !user?.id) return;
 
+    const selectedPackageData = packages.find(p => p.id.toString() === selectedPackage);
+    if (!selectedPackageData) return;
+
+    if (paymentMethod === 'crypto') {
+      setShowCryptoPayment(true);
+      return;
+    }
+
+    // EUR Payment (existing logic)
     setLoading(true);
     try {
-      const selectedPackageData = packages.find(p => p.id.toString() === selectedPackage);
-      if (!selectedPackageData) return;
-
       const boostEnd = new Date();
       boostEnd.setDate(boostEnd.getDate() + selectedPackageData.duration_days);
 
@@ -91,7 +109,6 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
       setSelectedAd("");
       setSelectedPackage("");
       
-      // Show success message (you can implement toast here)
       alert(`Anzeige erfolgreich für ${selectedPackageData.duration_days} Tage geboostet!`);
     } catch (error) {
       console.error('Error boosting ad:', error);
@@ -99,6 +116,13 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCryptoPaymentComplete = (paymentId: string) => {
+    setShowCryptoPayment(false);
+    setOpen(false);
+    setSelectedAd("");
+    setSelectedPackage("");
   };
 
   const selectedPackageData = packages.find(p => p.id.toString() === selectedPackage);
@@ -148,6 +172,47 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
             </Select>
           </div>
 
+          {/* Payment Method Selection */}
+          <div className="space-y-3">
+            <h3 className="font-medium">Zahlungsmethode</h3>
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="payment-eur"
+                  checked={paymentMethod === 'eur'}
+                  onCheckedChange={() => setPaymentMethod('eur')}
+                />
+                <Label htmlFor="payment-eur" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  EUR (Klassisch)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="payment-crypto"
+                  checked={paymentMethod === 'crypto'}
+                  onCheckedChange={() => setPaymentMethod('crypto')}
+                />
+                <Label htmlFor="payment-crypto" className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Kryptowährung
+                </Label>
+              </div>
+            </div>
+            
+            {paymentMethod === 'crypto' && (
+              <Alert>
+                <Wallet className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Bezahlen Sie mit SOL, BTC oder ETH</span>
+                  <WalletConnectModal>
+                    <Button size="sm" variant="outline">Wallet verbinden</Button>
+                  </WalletConnectModal>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
           {/* Boost-Pakete */}
           <div className="space-y-3">
             <h3 className="font-medium">Boost-Paket wählen</h3>
@@ -178,8 +243,34 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="text-2xl font-bold text-primary">
-                        €{pkg.price_eur}
+                      {/* Price Display */}
+                      <div className="space-y-2">
+                        <div className="text-2xl font-bold text-primary">
+                          €{pkg.price_eur}
+                        </div>
+                        
+                        {paymentMethod === 'crypto' && pkg.crypto_enabled && (
+                          <div className="space-y-1 text-sm">
+                            {pkg.price_sol && prices.SOL && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">SOL:</span>
+                                <span className="font-medium">◎ {formatCryptoAmount(pkg.price_sol, 'SOL')}</span>
+                              </div>
+                            )}
+                            {pkg.price_btc && prices.BTC && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">BTC:</span>
+                                <span className="font-medium">₿ {formatCryptoAmount(pkg.price_btc, 'BTC')}</span>
+                              </div>
+                            )}
+                            {pkg.price_eth && prices.ETH && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">ETH:</span>
+                                <span className="font-medium">Ξ {formatCryptoAmount(pkg.price_eth, 'ETH')}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       {pkg.features && pkg.features.length > 0 && (
@@ -227,7 +318,7 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
               disabled={!selectedAd || !selectedPackage || loading || activeAds.length === 0}
               className="min-w-24"
             >
-              {loading ? "Wird geboostet..." : "Jetzt Boosten"}
+              {loading ? "Wird verarbeitet..." : paymentMethod === 'crypto' ? "Mit Krypto bezahlen" : "Jetzt Boosten"}
             </Button>
           </div>
 
@@ -240,6 +331,21 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
             </Alert>
           )}
         </div>
+
+        {/* Crypto Payment Modal */}
+        {selectedPackageData && (
+          <CryptoPaymentModal
+            open={showCryptoPayment}
+            onOpenChange={setShowCryptoPayment}
+            paymentType="boost"
+            eurAmount={selectedPackageData.price_eur}
+            title="Anzeige Boosten - Krypto Zahlung"
+            description={`${selectedPackageData.name} Paket für ${selectedPackageData.duration_days} Tage`}
+            onPaymentComplete={handleCryptoPaymentComplete}
+            adId={selectedAd}
+            packageId={selectedPackageData.id}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

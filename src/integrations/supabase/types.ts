@@ -172,6 +172,7 @@ export type Database = {
           contact_count: number | null
           created_at: string | null
           created_by: string | null
+          crypto_payment_enabled: boolean
           currency: string | null
           description: string
           favorite_count: number | null
@@ -181,6 +182,7 @@ export type Database = {
           images: string[] | null
           location: string | null
           metadata: Json | null
+          preferred_crypto: string[] | null
           price: number
           status: string | null
           tags: string[] | null
@@ -199,6 +201,7 @@ export type Database = {
           contact_count?: number | null
           created_at?: string | null
           created_by?: string | null
+          crypto_payment_enabled?: boolean
           currency?: string | null
           description: string
           favorite_count?: number | null
@@ -208,6 +211,7 @@ export type Database = {
           images?: string[] | null
           location?: string | null
           metadata?: Json | null
+          preferred_crypto?: string[] | null
           price: number
           status?: string | null
           tags?: string[] | null
@@ -226,6 +230,7 @@ export type Database = {
           contact_count?: number | null
           created_at?: string | null
           created_by?: string | null
+          crypto_payment_enabled?: boolean
           currency?: string | null
           description?: string
           favorite_count?: number | null
@@ -235,6 +240,7 @@ export type Database = {
           images?: string[] | null
           location?: string | null
           metadata?: Json | null
+          preferred_crypto?: string[] | null
           price?: number
           status?: string | null
           tags?: string[] | null
@@ -288,32 +294,44 @@ export type Database = {
         Row: {
           active: boolean | null
           created_at: string | null
+          crypto_enabled: boolean
           description: string | null
           duration_days: number
           features: string[] | null
           id: number
           name: string
+          price_btc: number | null
+          price_eth: number | null
           price_eur: number
+          price_sol: number | null
         }
         Insert: {
           active?: boolean | null
           created_at?: string | null
+          crypto_enabled?: boolean
           description?: string | null
           duration_days: number
           features?: string[] | null
           id?: number
           name: string
+          price_btc?: number | null
+          price_eth?: number | null
           price_eur: number
+          price_sol?: number | null
         }
         Update: {
           active?: boolean | null
           created_at?: string | null
+          crypto_enabled?: boolean
           description?: string | null
           duration_days?: number
           features?: string[] | null
           id?: number
           name?: string
+          price_btc?: number | null
+          price_eth?: number | null
           price_eur?: number
+          price_sol?: number | null
         }
         Relationships: []
       }
@@ -561,6 +579,111 @@ export type Database = {
           updated_at?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      crypto_payments: {
+        Row: {
+          ad_id: string | null
+          amount_crypto: number
+          amount_eur: number
+          blockchain_network: string
+          boost_package_id: number | null
+          confirmation_count: number | null
+          confirmed_at: string | null
+          created_at: string
+          cryptocurrency: string
+          exchange_rate: number
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          payment_type: string
+          status: string
+          subscription_id: string | null
+          transaction_hash: string | null
+          updated_at: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          ad_id?: string | null
+          amount_crypto: number
+          amount_eur: number
+          blockchain_network: string
+          boost_package_id?: number | null
+          confirmation_count?: number | null
+          confirmed_at?: string | null
+          created_at?: string
+          cryptocurrency: string
+          exchange_rate: number
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_type: string
+          status?: string
+          subscription_id?: string | null
+          transaction_hash?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          ad_id?: string | null
+          amount_crypto?: number
+          amount_eur?: number
+          blockchain_network?: string
+          boost_package_id?: number | null
+          confirmation_count?: number | null
+          confirmed_at?: string | null
+          created_at?: string
+          cryptocurrency?: string
+          exchange_rate?: number
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_type?: string
+          status?: string
+          subscription_id?: string | null
+          transaction_hash?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      crypto_prices: {
+        Row: {
+          change_24h: number | null
+          cryptocurrency: string
+          id: string
+          last_updated: string
+          market_cap: number | null
+          price_eur: number
+          price_usd: number
+          source: string
+          volume_24h: number | null
+        }
+        Insert: {
+          change_24h?: number | null
+          cryptocurrency: string
+          id?: string
+          last_updated?: string
+          market_cap?: number | null
+          price_eur: number
+          price_usd: number
+          source?: string
+          volume_24h?: number | null
+        }
+        Update: {
+          change_24h?: number | null
+          cryptocurrency?: string
+          id?: string
+          last_updated?: string
+          market_cap?: number | null
+          price_eur?: number
+          price_usd?: number
+          source?: string
+          volume_24h?: number | null
         }
         Relationships: []
       }
@@ -812,6 +935,62 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_transactions: {
+        Row: {
+          block_number: number | null
+          blockchain_status: string
+          confirmation_blocks: number | null
+          created_at: string
+          crypto_payment_id: string
+          error_message: string | null
+          gas_price: number | null
+          gas_used: number | null
+          id: string
+          network_fee: number | null
+          required_confirmations: number | null
+          transaction_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          block_number?: number | null
+          blockchain_status?: string
+          confirmation_blocks?: number | null
+          created_at?: string
+          crypto_payment_id: string
+          error_message?: string | null
+          gas_price?: number | null
+          gas_used?: number | null
+          id?: string
+          network_fee?: number | null
+          required_confirmations?: number | null
+          transaction_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          block_number?: number | null
+          blockchain_status?: string
+          confirmation_blocks?: number | null
+          created_at?: string
+          crypto_payment_id?: string
+          error_message?: string | null
+          gas_price?: number | null
+          gas_used?: number | null
+          id?: string
+          network_fee?: number | null
+          required_confirmations?: number | null
+          transaction_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_crypto_payment_id_fkey"
+            columns: ["crypto_payment_id"]
+            isOneToOne: false
+            referencedRelation: "crypto_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_alerts: {
         Row: {
           coin: string
@@ -850,6 +1029,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_convert_crypto: boolean
           avatar_url: string | null
           backup_codes: string[] | null
           badges: string[] | null
@@ -857,6 +1037,7 @@ export type Database = {
           city: string | null
           completion_rate: number | null
           created_at: string | null
+          crypto_wallet_connected: boolean
           favorite_categories: string[] | null
           full_name: string | null
           id: string
@@ -870,6 +1051,7 @@ export type Database = {
           phone: string | null
           preferred_coins: string[] | null
           preferred_language: string | null
+          preferred_payment_methods: string[] | null
           privacy_settings: Json | null
           rating: number | null
           response_time: string | null
@@ -893,6 +1075,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          auto_convert_crypto?: boolean
           avatar_url?: string | null
           backup_codes?: string[] | null
           badges?: string[] | null
@@ -900,6 +1083,7 @@ export type Database = {
           city?: string | null
           completion_rate?: number | null
           created_at?: string | null
+          crypto_wallet_connected?: boolean
           favorite_categories?: string[] | null
           full_name?: string | null
           id?: string
@@ -913,6 +1097,7 @@ export type Database = {
           phone?: string | null
           preferred_coins?: string[] | null
           preferred_language?: string | null
+          preferred_payment_methods?: string[] | null
           privacy_settings?: Json | null
           rating?: number | null
           response_time?: string | null
@@ -936,6 +1121,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          auto_convert_crypto?: boolean
           avatar_url?: string | null
           backup_codes?: string[] | null
           badges?: string[] | null
@@ -943,6 +1129,7 @@ export type Database = {
           city?: string | null
           completion_rate?: number | null
           created_at?: string | null
+          crypto_wallet_connected?: boolean
           favorite_categories?: string[] | null
           full_name?: string | null
           id?: string
@@ -956,6 +1143,7 @@ export type Database = {
           phone?: string | null
           preferred_coins?: string[] | null
           preferred_language?: string | null
+          preferred_payment_methods?: string[] | null
           privacy_settings?: Json | null
           rating?: number | null
           response_time?: string | null
@@ -1179,10 +1367,13 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          auto_renewal_crypto: boolean
           created_at: string
+          crypto_payment_id: string | null
           expires_at: string
           features: Json | null
           id: string
+          payment_method: string
           plan_type: string
           starts_at: string
           status: string
@@ -1190,10 +1381,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_renewal_crypto?: boolean
           created_at?: string
+          crypto_payment_id?: string | null
           expires_at: string
           features?: Json | null
           id?: string
+          payment_method?: string
           plan_type: string
           starts_at?: string
           status?: string
@@ -1201,17 +1395,28 @@ export type Database = {
           user_id: string
         }
         Update: {
+          auto_renewal_crypto?: boolean
           created_at?: string
+          crypto_payment_id?: string | null
           expires_at?: string
           features?: Json | null
           id?: string
+          payment_method?: string
           plan_type?: string
           starts_at?: string
           status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_crypto_payment_id_fkey"
+            columns: ["crypto_payment_id"]
+            isOneToOne: false
+            referencedRelation: "crypto_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tax_reports: {
         Row: {
@@ -1424,6 +1629,45 @@ export type Database = {
           id?: string
           reason?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_wallets: {
+        Row: {
+          created_at: string
+          cryptocurrency: string
+          id: string
+          is_primary: boolean
+          is_verified: boolean
+          last_used_at: string | null
+          updated_at: string
+          user_id: string
+          wallet_address: string
+          wallet_type: string
+        }
+        Insert: {
+          created_at?: string
+          cryptocurrency: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          last_used_at?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_address: string
+          wallet_type: string
+        }
+        Update: {
+          created_at?: string
+          cryptocurrency?: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          last_used_at?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string
+          wallet_type?: string
         }
         Relationships: []
       }
