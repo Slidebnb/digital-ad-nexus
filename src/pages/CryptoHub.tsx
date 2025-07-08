@@ -10,6 +10,7 @@ import { PaymentHistoryModal } from "@/components/PaymentHistoryModal";
 import { CryptoPaymentModal } from "@/components/CryptoPaymentModal";
 import { CryptoAnalyticsDashboard } from "@/components/CryptoAnalyticsDashboard";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useCryptoWallet } from "@/hooks/useCryptoWallet";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
@@ -24,13 +25,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Radio,
+  Bell
 } from "lucide-react";
 
 export default function CryptoHub() {
   const { user, loading: authLoading } = useAuth();
   const { prices, loading: pricesLoading, getCryptoSymbol } = useCryptoPrices();
   const { wallets, connections } = useCryptoWallet();
+  const { unreadCount } = useRealtimeNotifications();
   const [selectedCrypto, setSelectedCrypto] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -56,16 +60,27 @@ export default function CryptoHub() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Crypto Hub</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold mb-2">Crypto Hub</h1>
+              <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full animate-pulse">
+                <Radio className="h-3 w-3" />
+                LIVE
+              </div>
+            </div>
             <p className="text-muted-foreground">
-              Verwalten Sie Ihre Kryptowährungen, Wallets und Zahlungen
+              Echtzeit-Verwaltung Ihrer Kryptowährungen, Wallets und Zahlungen
             </p>
           </div>
           <div className="flex gap-3">
             <PaymentHistoryModal>
-              <Button variant="outline">
+              <Button variant="outline" className="relative">
                 <Clock className="h-4 w-4 mr-2" />
                 Zahlungshistorie
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
               </Button>
             </PaymentHistoryModal>
           </div>
@@ -213,6 +228,10 @@ export default function CryptoHub() {
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
                   Live Kryptowährungs-Kurse
+                  <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full animate-pulse ml-auto">
+                    <Radio className="h-3 w-3" />
+                    LIVE
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -227,12 +246,12 @@ export default function CryptoHub() {
                       if (!price) return null;
                       
                       return (
-                        <div key={crypto} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div key={crypto} className="flex items-center justify-between p-4 border rounded-lg hover-scale transition-all animate-fade-in">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                              crypto === 'BTC' ? 'bg-orange-500' :
-                              crypto === 'ETH' ? 'bg-blue-500' :
-                              'bg-purple-500'
+                              crypto === 'BTC' ? 'bg-orange-500 animate-pulse' :
+                              crypto === 'ETH' ? 'bg-blue-500 animate-pulse' :
+                              'bg-purple-500 animate-pulse'
                             }`}>
                               {getCryptoSymbol(crypto) || crypto}
                             </div>
@@ -245,7 +264,7 @@ export default function CryptoHub() {
                           </div>
                           
                           <div className="text-right">
-                            <div className="text-lg font-bold">
+                            <div className="text-lg font-bold animate-pulse text-primary">
                               €{price.price_eur.toLocaleString('de-DE', { minimumFractionDigits: 2 })}
                             </div>
                             <div className="text-sm text-muted-foreground">
@@ -254,13 +273,13 @@ export default function CryptoHub() {
                           </div>
                           
                           {price.change_24h && (
-                            <div className={`flex items-center gap-1 ${
+                            <div className={`flex items-center gap-1 animate-fade-in ${
                               price.change_24h >= 0 ? 'text-green-600' : 'text-red-600'
                             }`}>
                               {price.change_24h >= 0 ? (
-                                <TrendingUp className="h-4 w-4" />
+                                <TrendingUp className="h-4 w-4 animate-bounce" />
                               ) : (
-                                <TrendingDown className="h-4 w-4" />
+                                <TrendingDown className="h-4 w-4 animate-bounce" />
                               )}
                               <span className="font-medium">
                                 {price.change_24h >= 0 ? '+' : ''}{price.change_24h.toFixed(2)}%

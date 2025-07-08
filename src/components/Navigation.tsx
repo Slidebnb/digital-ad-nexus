@@ -13,6 +13,7 @@ import {
   Heart
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -79,6 +80,7 @@ export function Navigation() {
             
             {user ? (
               <>
+                <NotificationCenter />
                 <Link to="/profile">
                   <Button variant="ghost" size="icon">
                     <Bell className="h-4 w-4" />

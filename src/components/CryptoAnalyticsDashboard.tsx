@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCryptoPaymentsRealtime } from "@/hooks/useCryptoPaymentsRealtime";
 import { 
   BarChart, 
   Bar, 
@@ -28,7 +29,8 @@ import {
   Users,
   Zap,
   Target,
-  Award
+  Award,
+  Radio
 } from "lucide-react";
 
 interface CryptoAnalytics {
@@ -50,6 +52,7 @@ interface ChartData {
 
 export function CryptoAnalyticsDashboard() {
   const { user, isAdmin } = useAuth();
+  const { payments, loading: paymentsLoading } = useCryptoPaymentsRealtime();
   const [analytics, setAnalytics] = useState<CryptoAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30d');
@@ -63,6 +66,27 @@ export function CryptoAnalyticsDashboard() {
   useEffect(() => {
     if (user) {
       fetchAnalytics();
+      
+      // Set up realtime subscription for analytics updates
+      const channel = supabase
+        .channel('crypto-analytics-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'crypto_payments'
+          },
+          () => {
+            // Refetch analytics when payments change
+            setTimeout(fetchAnalytics, 1000); // Small delay to ensure data consistency
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user, timeRange]);
 
@@ -218,9 +242,15 @@ export function CryptoAnalyticsDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Crypto Analytics</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold">Crypto Analytics</h2>
+            <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full animate-pulse">
+              <Radio className="h-3 w-3" />
+              LIVE
+            </div>
+          </div>
           <p className="text-muted-foreground">
-            Umfassende Analyse Ihrer Kryptowährungs-Aktivitäten
+            Echtzeit-Analyse Ihrer Kryptowährungs-Aktivitäten
           </p>
         </div>
         <div className="flex gap-2">
@@ -228,7 +258,7 @@ export function CryptoAnalyticsDashboard() {
             <Badge
               key={range}
               variant={timeRange === range ? 'default' : 'outline'}
-              className="cursor-pointer"
+              className="cursor-pointer hover-scale"
               onClick={() => setTimeRange(range)}
             >
               {range}

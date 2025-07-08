@@ -76,10 +76,36 @@ export function useCryptoPrices() {
   useEffect(() => {
     fetchPrices();
     
-    // Auto-refresh prices every 30 seconds
-    const interval = setInterval(fetchPrices, 30000);
+    // Set up realtime subscription for crypto prices
+    const channel = supabase
+      .channel('crypto-prices-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'crypto_prices',
+          filter: `cryptocurrency=in.(SOL,BTC,ETH)`
+        },
+        (payload) => {
+          console.log('Crypto price update:', payload);
+          
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            const newPrice = payload.new as CryptoPrice;
+            setPrices(prev => ({
+              ...prev,
+              [newPrice.cryptocurrency]: newPrice
+            }));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Crypto prices realtime status:', status);
+      });
     
-    return () => clearInterval(interval);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {
