@@ -30,16 +30,37 @@ export function UserVerificationCenter() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('verification_requests')
         .insert({
           user_id: user.id,
           document_type: documentType,
           full_name: fullName.trim(),
           status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send admin notification (non-blocking)
+      if (data) {
+        setTimeout(async () => {
+          try {
+            await supabase.functions.invoke('send-admin-notification-email', {
+              body: {
+                verificationRequestId: data.id,
+                userName: fullName.trim(),
+                userEmail: user.email || 'unknown@platform.local',
+                documentType: documentType
+              }
+            });
+            console.log('Admin notification sent for verification request:', data.id);
+          } catch (emailError) {
+            console.error('Admin notification email error:', emailError);
+          }
+        }, 100);
+      }
 
       toast({
         title: "Antrag eingereicht",

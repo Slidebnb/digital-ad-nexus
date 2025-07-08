@@ -18,6 +18,7 @@ interface VerificationRequest {
   updated_at: string;
   user_email?: string;
   user_city?: string;
+  user_profile_name?: string;
 }
 
 interface VerificationStats {
@@ -103,6 +104,9 @@ export const useVerificationManagement = () => {
     if (!isAdmin) return { error: 'Nicht autorisiert' };
 
     try {
+      // Find the request to get user details
+      const request = requests.find(r => r.id === requestId);
+      
       // Update verification request
       const { error } = await supabase.rpc('update_verification_status', {
         p_request_id: requestId,
@@ -111,6 +115,25 @@ export const useVerificationManagement = () => {
       });
 
       if (error) throw error;
+
+      // Send status email to user (non-blocking)
+      if (request) {
+        setTimeout(async () => {
+          try {
+            await supabase.functions.invoke('send-verification-status-email', {
+              body: {
+                email: request.user_email,
+                displayName: request.user_profile_name || request.full_name,
+                status: status,
+                adminNotes: adminNotes
+              }
+            });
+            console.log(`Verification status email sent to ${request.user_email}`);
+          } catch (emailError) {
+            console.error('Verification status email error:', emailError);
+          }
+        }, 100);
+      }
 
       // Log the verification decision
       console.log(`Verification ${status} for request ${requestId}`);

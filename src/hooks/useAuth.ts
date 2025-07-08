@@ -100,7 +100,7 @@ export const useAuthProvider = () => {
   const signUp = async (email: string, password: string, displayName: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -122,6 +122,25 @@ export const useAuthProvider = () => {
         title: "Registrierung erfolgreich",
         description: "Bitte überprüfe deine E-Mails zur Bestätigung."
       });
+
+      // Send welcome email (non-blocking)
+      if (data.user) {
+        setTimeout(async () => {
+          try {
+            await supabase.functions.invoke('send-welcome-email', {
+              body: {
+                email: email,
+                displayName: displayName,
+                userId: data.user.id
+              }
+            });
+            console.log('Welcome email sent successfully');
+          } catch (emailError) {
+            console.error('Welcome email error:', emailError);
+            // Don't show error to user - welcome email is nice-to-have
+          }
+        }, 100);
+      }
     }
 
     return { error };
