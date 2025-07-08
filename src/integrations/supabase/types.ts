@@ -1558,6 +1558,23 @@ export type Database = {
           sort_order: number
         }[]
       }
+      get_all_users_for_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          created_at: string
+          last_sign_in_at: string
+          email_confirmed_at: string
+          role: string
+          verified: boolean
+          banned: boolean
+          last_active: string
+          total_trades: number
+          total_trade_volume_eur: number
+          profile_data: Json
+        }[]
+      }
       get_all_verification_requests: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1638,6 +1655,18 @@ export type Database = {
         Args: { target_email: string }
         Returns: boolean
       }
+      promote_user_to_admin_by_email: {
+        Args: { target_email: string }
+        Returns: boolean
+      }
+      update_user_ban_status: {
+        Args: {
+          target_user_id: string
+          is_banned: boolean
+          ban_reason?: string
+        }
+        Returns: boolean
+      }
       update_verification_status: {
         Args: {
           p_request_id: string
@@ -1645,6 +1674,10 @@ export type Database = {
           p_admin_notes?: string
           p_admin_id?: string
         }
+        Returns: boolean
+      }
+      verify_user_by_id: {
+        Args: { target_user_id: string }
         Returns: boolean
       }
     }

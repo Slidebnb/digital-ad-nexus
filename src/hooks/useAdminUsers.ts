@@ -56,80 +56,67 @@ export const useAdminUsers = () => {
     setError(null);
 
     try {
-      // Apply filters first
-      let usersQuery = supabase
-        .from('users')
-        .select(`
-          id,
-          email,
-          created_at,
-          role,
-          verified,
-          banned,
-          last_active,
-          total_trades,
-          total_trade_volume_eur
-        `, { count: 'exact' });
+      // Verwende die neue Admin-Funktion um alle echten Nutzer zu laden
+      const { data: allUsers, error: usersError } = await supabase
+        .rpc('get_all_users_for_admin');
 
-      // Apply filters
+      if (usersError) throw usersError;
+
+      // Verarbeite die Daten von der Funktion
+      let processedUsers = allUsers?.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+        role: user.role,
+        verified: user.verified,
+        banned: user.banned,
+        last_active: user.last_active,
+        total_trades: user.total_trades,
+        total_trade_volume_eur: user.total_trade_volume_eur,
+        profile: user.profile_data
+      })) || [];
+
+      // Anwenden der Frontend-Filter
       if (filters.search) {
-        usersQuery = usersQuery.ilike('email', `%${filters.search}%`);
+        processedUsers = processedUsers.filter(user => 
+          user.email.toLowerCase().includes(filters.search.toLowerCase()) ||
+          (user.profile?.full_name && user.profile.full_name.toLowerCase().includes(filters.search.toLowerCase()))
+        );
       }
 
       if (filters.role !== 'all') {
-        usersQuery = usersQuery.eq('role', filters.role);
+        processedUsers = processedUsers.filter(user => user.role === filters.role);
       }
 
       if (filters.status !== 'all') {
         if (filters.status === 'banned') {
-          usersQuery = usersQuery.eq('banned', true);
+          processedUsers = processedUsers.filter(user => user.banned);
         } else if (filters.status === 'unverified') {
-          usersQuery = usersQuery.eq('verified', false);
+          processedUsers = processedUsers.filter(user => !user.verified);
         } else if (filters.status === 'active') {
-          usersQuery = usersQuery.eq('banned', false).eq('verified', true);
+          processedUsers = processedUsers.filter(user => !user.banned && user.verified);
         }
       }
 
-      // Apply sorting and pagination
-      usersQuery = usersQuery.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' });
-      
+      // Sortierung
+      processedUsers.sort((a, b) => {
+        const aValue = a[filters.sortBy];
+        const bValue = b[filters.sortBy];
+        
+        if (filters.sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      // Pagination
       const from = (pagination.page - 1) * pagination.limit;
-      const to = from + pagination.limit - 1;
-      usersQuery = usersQuery.range(from, to);
-
-      const { data: usersData, error: usersError, count } = await usersQuery;
-
-      if (usersError) throw usersError;
-
-      // Get profiles separately if users exist
-      let profilesData = [];
-      if (usersData && usersData.length > 0) {
-        const userIds = usersData.map(user => user.id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select(`
-            user_id,
-            full_name,
-            avatar_url,
-            city,
-            verification_level,
-            trust_score
-          `)
-          .in('user_id', userIds);
-        profilesData = profiles || [];
-      }
-
-      // Merge user data with profiles
-      const processedUsers = usersData?.map((user: any) => {
-        const profile = profilesData?.find(p => p.user_id === user.id);
-        return {
-          ...user,
-          profile: profile || null
-        };
-      }) || [];
+      const to = from + pagination.limit;
+      const paginatedUsers = processedUsers.slice(from, to);
       
-      setUsers(processedUsers);
-      setTotalCount(count || 0);
+      setUsers(paginatedUsers);
+      setTotalCount(processedUsers.length);
 
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -143,7 +130,7 @@ export const useAdminUsers = () => {
     if (!isAdmin) return { error: 'Not authorized' };
 
     try {
-      const { error } = await supabase.rpc('promote_to_admin', {
+      const { data, error } = await supabase.rpc('promote_user_to_admin_by_email', {
         target_email: email
       });
 
@@ -161,28 +148,13 @@ export const useAdminUsers = () => {
     if (!isAdmin) return { error: 'Not authorized' };
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ banned: true })
-        .eq('id', userId);
+      const { data, error } = await supabase.rpc('update_user_ban_status', {
+        target_user_id: userId,
+        is_banned: true,
+        ban_reason: reason
+      });
 
       if (error) throw error;
-
-      // Log admin action
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('admin_logs').insert({
-            admin_id: user.id,
-            action: 'user_banned',
-            target_type: 'user',
-            target_id: userId,
-            details: { reason }
-          });
-        }
-      } catch (logError) {
-        console.warn('Failed to log admin action:', logError);
-      }
 
       await fetchUsers();
       return { success: true };
@@ -196,27 +168,12 @@ export const useAdminUsers = () => {
     if (!isAdmin) return { error: 'Not authorized' };
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ banned: false })
-        .eq('id', userId);
+      const { data, error } = await supabase.rpc('update_user_ban_status', {
+        target_user_id: userId,
+        is_banned: false
+      });
 
       if (error) throw error;
-
-      // Log admin action
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('admin_logs').insert({
-            admin_id: user.id,
-            action: 'user_unbanned',
-            target_type: 'user',
-            target_id: userId
-          });
-        }
-      } catch (logError) {
-        console.warn('Failed to log admin action:', logError);
-      }
 
       await fetchUsers();
       return { success: true };
@@ -230,10 +187,9 @@ export const useAdminUsers = () => {
     if (!isAdmin) return { error: 'Not authorized' };
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ verified: true })
-        .eq('id', userId);
+      const { data, error } = await supabase.rpc('verify_user_by_id', {
+        target_user_id: userId
+      });
 
       if (error) throw error;
 
@@ -302,36 +258,57 @@ export const useAdminUsers = () => {
     fetchUsers();
   }, [isAdmin, filters, pagination]);
 
-  // Real-time updates with better performance
+  // Real-time updates mit besserer Performance
   useEffect(() => {
     if (!isAdmin) return;
 
-    const channel = supabase
-      .channel('admin-users-realtime')
+    // Setup realtime für auth.users Änderungen
+    const authChannel = supabase
+      .channel('admin-auth-users-realtime')
       .on('postgres_changes', { 
         event: '*', 
-        schema: 'public', 
+        schema: 'auth', 
         table: 'users' 
       }, (payload) => {
-        console.log('User update:', payload);
-        // Debounced refresh to avoid too many updates
-        setTimeout(() => fetchUsers(), 100);
+        console.log('Auth user update:', payload);
+        setTimeout(() => fetchUsers(), 500);
       })
+      .subscribe();
+
+    const profilesChannel = supabase
+      .channel('admin-profiles-realtime')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'profiles' 
       }, (payload) => {
         console.log('Profile update:', payload);
-        setTimeout(() => fetchUsers(), 100);
+        setTimeout(() => fetchUsers(), 500);
       })
       .subscribe();
 
-    // Auto-refresh every 30 seconds for live data
-    const interval = setInterval(fetchUsers, 30000);
+    const usersChannel = supabase
+      .channel('admin-public-users-realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'users' 
+      }, (payload) => {
+        console.log('Public users update:', payload);
+        setTimeout(() => fetchUsers(), 500);
+      })
+      .subscribe();
+
+    // Auto-refresh alle 60 Sekunden für Live-Daten
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing user data...');
+      fetchUsers();
+    }, 60000);
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(authChannel);
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(usersChannel);
       clearInterval(interval);
     };
   }, [isAdmin]);
