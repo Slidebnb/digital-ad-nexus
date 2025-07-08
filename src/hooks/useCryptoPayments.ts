@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface CryptoPayment {
   id?: string;
@@ -12,16 +13,19 @@ export interface CryptoPayment {
   cryptocurrency: string;
   exchange_rate: number;
   wallet_address: string;
-  transaction_hash?: string;
+  transaction_hash?: string | null;
   blockchain_network: string;
   status: string;
-  ad_id?: string;
-  boost_package_id?: number;
-  subscription_id?: string;
-  metadata?: Record<string, any>;
-  expires_at?: string;
-  created_at?: string;
-  updated_at?: string;
+  ad_id?: string | null;
+  boost_package_id?: number | null;
+  subscription_id?: string | null;
+  metadata?: Json;
+  expires_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  confirmation_count?: number;
+  confirmed_at?: string | null;
+  payment_transactions?: any[];
 }
 
 export function useCryptoPayments() {
@@ -218,11 +222,7 @@ export function useCryptoPayments() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPayments((data || []).map(payment => ({
-        ...payment,
-        payment_type: payment.payment_type as 'boost' | 'premium' | 'escrow',
-        status: payment.status as 'pending' | 'confirmed' | 'failed' | 'cancelled'
-      })));
+      setPayments(data || []);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
     }
