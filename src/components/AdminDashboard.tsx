@@ -19,6 +19,7 @@ import { TaxReportingSystem } from "@/components/TaxReportingSystem";
 import { CookieConsentManager } from "@/components/CookieConsentManager";
 import { AuditTrailSystem } from "@/components/AuditTrailSystem";
 import { LegalDocumentManager } from "@/components/LegalDocumentManager";
+import { AdminCryptoManagement } from "@/components/AdminCryptoManagement";
 import { 
   Activity,
   Users, 
@@ -241,13 +242,14 @@ export function AdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-8 mb-8">
+          <TabsList className="grid w-full grid-cols-9 mb-8">
             <TabsTrigger value="monitor">Monitor</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="users">Nutzer</TabsTrigger>
             <TabsTrigger value="ads">Anzeigen</TabsTrigger>
             <TabsTrigger value="verification">Verifizierung</TabsTrigger>
             <TabsTrigger value="compliance">Compliance</TabsTrigger>
+            <TabsTrigger value="crypto">Crypto</TabsTrigger>
             <TabsTrigger value="settings">Einstellungen</TabsTrigger>
             <TabsTrigger value="welcome">Willkommen</TabsTrigger>
           </TabsList>
@@ -334,6 +336,11 @@ export function AdminDashboard() {
                 <LegalDocumentManager />
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* Crypto Management */}
+          <TabsContent value="crypto">
+            <AdminCryptoManagement />
           </TabsContent>
 
           {/* Settings */}

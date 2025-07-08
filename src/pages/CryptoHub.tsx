@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CryptoWalletManager } from "@/components/CryptoWalletManager";
 import { PaymentHistoryModal } from "@/components/PaymentHistoryModal";
 import { CryptoPaymentModal } from "@/components/CryptoPaymentModal";
+import { CryptoAnalyticsDashboard } from "@/components/CryptoAnalyticsDashboard";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useCryptoWallet } from "@/hooks/useCryptoWallet";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,11 +72,12 @@ export default function CryptoHub() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
             <TabsTrigger value="prices">Kurse</TabsTrigger>
             <TabsTrigger value="wallets">Wallets</TabsTrigger>
             <TabsTrigger value="payments">Zahlungen</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -324,6 +326,11 @@ export default function CryptoHub() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <CryptoAnalyticsDashboard />
           </TabsContent>
         </Tabs>
       </div>
