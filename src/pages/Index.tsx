@@ -6,15 +6,17 @@ import { Footer } from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { TrustSection } from "@/components/TrustSection";
+import { MobilePerformanceOptimizer } from "@/components/MobilePerformanceOptimizer";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <MobilePerformanceOptimizer />
       <MobileOptimizedNavigation />
       <main>
       
-      {/* PWA Install Prompt */}
-      <div className="container mx-auto px-4 py-4">
+      {/* PWA Install Prompt - Enhanced */}
+      <div className="container mx-auto px-4 py-6">
         <PWAInstallPrompt />
       </div>
       

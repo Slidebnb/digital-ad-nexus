@@ -1,7 +1,7 @@
 {
-  "name": "KryptoAnzeigen.de",
+  "name": "KryptoAnzeigen.de - Deutschlands Krypto-Marktplatz",
   "short_name": "KryptoAnzeigen",
-  "description": "Deutschlands führende Plattform für Krypto-Kleinanzeigen",
+  "description": "Deutschlands führende Plattform für sichere Krypto-Kleinanzeigen. Kaufen und verkaufen Sie Bitcoin, Ethereum und andere Kryptowährungen von verifizierten Nutzern.",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -17,55 +17,100 @@
     {
       "src": "/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
     }
   ],
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "theme_color": "#2563eb",
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["finance", "business", "productivity"],
+  "categories": ["finance", "business", "productivity", "shopping"],
   "lang": "de-DE",
   "dir": "ltr",
   "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+kryptoanzeigen",
+      "url": "/ad/%s"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Anzeige erstellen",
       "short_name": "Erstellen",
-      "description": "Neue Krypto-Anzeige erstellen",
+      "description": "Neue Krypto-Anzeige schnell erstellen",
       "url": "/create-ad",
       "icons": [
         {
           "src": "/icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Durchsuchen",
+      "name": "Anzeigen durchsuchen",
       "short_name": "Suchen",
-      "description": "Anzeigen durchsuchen",
+      "description": "Alle verfügbaren Anzeigen durchsuchen",
       "url": "/browse",
       "icons": [
         {
           "src": "/icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Favoriten",
+      "name": "Meine Favoriten",
       "short_name": "Favoriten",
-      "description": "Meine Favoriten anzeigen",
+      "description": "Gespeicherte Favoriten anzeigen",
       "url": "/favorites",
       "icons": [
         {
           "src": "/icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard", 
+      "short_name": "Profil",
+      "description": "Persönliches Dashboard und Profil",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
-  ]
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "text/plain": [".txt"],
+        "application/json": [".json"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": "/create-ad",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
