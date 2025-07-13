@@ -3,46 +3,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useFavorites = () => {
+export const useFavoritesRealtime = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchFavorites();
-      
-      // Set up real-time subscription for user's favorites
-      const channel = supabase
-        .channel('user-favorites-realtime')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'favorites',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Real-time favorites update:', payload);
-            
-            if (payload.eventType === 'INSERT') {
-              const newFavorite = payload.new;
-              setFavorites(prev => [...prev, newFavorite.ad_id]);
-            } else if (payload.eventType === 'DELETE') {
-              const deletedFavorite = payload.old;
-              setFavorites(prev => prev.filter(id => id !== deletedFavorite.ad_id));
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user?.id]);
 
   const fetchFavorites = async () => {
     if (!user?.id) return;
@@ -83,7 +48,6 @@ export const useFavorites = () => {
           .eq('ad_id', adId);
 
         if (error) throw error;
-        setFavorites(prev => prev.filter(id => id !== adId));
         
         toast({
           title: "Favorit entfernt",
@@ -98,7 +62,6 @@ export const useFavorites = () => {
           });
 
         if (error) throw error;
-        setFavorites(prev => [...prev, adId]);
         
         toast({
           title: "Favorit hinzugefügt",
@@ -124,7 +87,7 @@ export const useFavorites = () => {
         .select(`
           *,
           categories (name),
-          profiles!ads_user_id_fkey (full_name, rating, verified)
+          profiles (full_name, rating, verified)
         `)
         .in('id', favorites)
         .eq('status', 'active');
@@ -136,6 +99,55 @@ export const useFavorites = () => {
       return [];
     }
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchFavorites();
+      
+      // Set up real-time subscription for user's favorites
+      const channel = supabase
+        .channel('user-favorites-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'favorites',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Real-time favorites update:', payload);
+            
+            if (payload.eventType === 'INSERT') {
+              const newFavorite = payload.new;
+              setFavorites(prev => [...prev, newFavorite.ad_id]);
+              
+              toast({
+                title: "Favorit hinzugefügt",
+                description: "Anzeige wurde zu Ihren Favoriten hinzugefügt.",
+                duration: 3000,
+              });
+            } else if (payload.eventType === 'DELETE') {
+              const deletedFavorite = payload.old;
+              setFavorites(prev => prev.filter(id => id !== deletedFavorite.ad_id));
+              
+              toast({
+                title: "Favorit entfernt", 
+                description: "Anzeige wurde aus Ihren Favoriten entfernt.",
+                duration: 3000,
+              });
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('Favorites realtime subscription status:', status);
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user?.id, toast]);
 
   return {
     favorites,
