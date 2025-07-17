@@ -101,10 +101,20 @@ export function useCryptoPrices() {
       )
       .subscribe((status) => {
         console.log('Crypto prices realtime status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to crypto prices');
+        }
       });
+    
+    // Fetch prices every 5 minutes as fallback
+    const interval = setInterval(() => {
+      console.log('Fetching crypto prices (interval)');
+      fetchPrices();
+    }, 5 * 60 * 1000);
     
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
