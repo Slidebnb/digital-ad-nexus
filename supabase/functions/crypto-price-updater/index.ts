@@ -19,7 +19,7 @@ serve(async (req) => {
 
     console.log('Fetching crypto prices from CoinGecko...')
 
-    // Fetch prices from CoinGecko API
+    // Fetch prices from CoinGecko API with all needed data
     const response = await fetch(
       'https://api.coingecko.com/api/v3/simple/price?ids=solana,bitcoin,ethereum&vs_currencies=eur,usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true'
     )
@@ -31,33 +31,33 @@ serve(async (req) => {
     const data = await response.json()
     console.log('Received price data:', data)
 
-    // Transform data for our database
+    // Transform data for our database with all available data
     const priceUpdates = [
       {
         cryptocurrency: 'SOL',
         price_eur: data.solana.eur,
         price_usd: data.solana.usd,
-        market_cap: data.solana.eur_market_cap,
-        volume_24h: data.solana.eur_24h_vol,
-        change_24h: data.solana.eur_24h_change,
+        market_cap: data.solana.eur_market_cap || null,
+        volume_24h: data.solana.eur_24h_vol || null,
+        change_24h: data.solana.eur_24h_change || null,
         source: 'coingecko'
       },
       {
         cryptocurrency: 'BTC',
         price_eur: data.bitcoin.eur,
         price_usd: data.bitcoin.usd,
-        market_cap: data.bitcoin.eur_market_cap,
-        volume_24h: data.bitcoin.eur_24h_vol,
-        change_24h: data.bitcoin.eur_24h_change,
+        market_cap: data.bitcoin.eur_market_cap || null,
+        volume_24h: data.bitcoin.eur_24h_vol || null,
+        change_24h: data.bitcoin.eur_24h_change || null,
         source: 'coingecko'
       },
       {
         cryptocurrency: 'ETH',
         price_eur: data.ethereum.eur,
         price_usd: data.ethereum.usd,
-        market_cap: data.ethereum.eur_market_cap,
-        volume_24h: data.ethereum.eur_24h_vol,
-        change_24h: data.ethereum.eur_24h_change,
+        market_cap: data.ethereum.eur_market_cap || null,
+        volume_24h: data.ethereum.eur_24h_vol || null,
+        change_24h: data.ethereum.eur_24h_change || null,
         source: 'coingecko'
       }
     ]

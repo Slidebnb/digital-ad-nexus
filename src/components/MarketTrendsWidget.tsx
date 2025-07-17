@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Activity, Wifi } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Wifi, RefreshCw } from 'lucide-react';
 import { useCryptoPrices } from '@/hooks/useCryptoPrices';
+import { useManualPriceUpdate } from '@/hooks/useManualPriceUpdate';
 
 const cryptoNames = {
   'BTC': 'Bitcoin',
@@ -10,6 +11,7 @@ const cryptoNames = {
 
 export function MarketTrendsWidget() {
   const { prices, loading, error } = useCryptoPrices();
+  const { updatePrices, isUpdating } = useManualPriceUpdate();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -74,9 +76,19 @@ export function MarketTrendsWidget() {
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
           Markt-Trends
-          <div className="flex items-center gap-1 ml-auto">
-            <Wifi className="h-3 w-3 text-green-500 animate-pulse" />
-            <span className="text-xs text-green-500 font-medium">LIVE</span>
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={updatePrices}
+              disabled={isUpdating}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${isUpdating ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Update</span>
+            </button>
+            <div className="flex items-center gap-1">
+              <Wifi className="h-3 w-3 text-green-500 animate-pulse" />
+              <span className="text-xs text-green-500 font-medium">LIVE</span>
+            </div>
           </div>
         </CardTitle>
       </CardHeader>

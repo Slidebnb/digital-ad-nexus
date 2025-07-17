@@ -9,6 +9,7 @@ import { TrustSection } from "@/components/TrustSection";
 import { MobilePerformanceOptimizer } from "@/components/MobilePerformanceOptimizer";
 import { LiveUserCount } from "@/components/LiveUserCount";
 import { MarketTrendsWidget } from "@/components/MarketTrendsWidget";
+import { CryptoPriceUpdater } from "@/components/CryptoPriceUpdater";
 
 const Index = () => {
   return (
@@ -40,6 +41,7 @@ const Index = () => {
         <TrustSection />
       </main>
       <Footer />
+      <CryptoPriceUpdater />
     </div>
   );
 };
