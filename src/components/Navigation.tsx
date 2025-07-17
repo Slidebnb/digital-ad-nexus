@@ -76,7 +76,7 @@ export function Navigation() {
               </Link>
             )}
             
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             
             {user ? (
               <>
