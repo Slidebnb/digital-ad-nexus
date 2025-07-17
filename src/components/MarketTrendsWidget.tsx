@@ -1,13 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Wifi } from 'lucide-react';
+import { useCryptoPrices } from '@/hooks/useCryptoPrices';
 
-const mockData = [
-  { symbol: 'BTC', name: 'Bitcoin', price: 42150.50, change24h: 2.3 },
-  { symbol: 'ETH', name: 'Ethereum', price: 2580.75, change24h: -1.2 },
-  { symbol: 'SOL', name: 'Solana', price: 98.45, change24h: 5.7 },
-];
+const cryptoNames = {
+  'BTC': 'Bitcoin',
+  'ETH': 'Ethereum', 
+  'SOL': 'Solana'
+};
 
 export function MarketTrendsWidget() {
+  const { prices, loading, error } = useCryptoPrices();
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -16,36 +19,106 @@ export function MarketTrendsWidget() {
     }).format(price);
   };
 
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Markt-Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {['BTC', 'ETH', 'SOL'].map((symbol) => (
+              <div key={symbol} className="flex items-center justify-between p-3 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">{symbol}</span>
+                  </div>
+                  <div className="w-20 h-4 bg-muted animate-pulse rounded"></div>
+                </div>
+                <div className="text-right">
+                  <div className="w-16 h-4 bg-muted animate-pulse rounded mb-1"></div>
+                  <div className="w-12 h-3 bg-muted animate-pulse rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Markt-Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-muted-foreground">
+            <p>Fehler beim Laden der Marktdaten</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
           Markt-Trends
+          <div className="flex items-center gap-1 ml-auto">
+            <Wifi className="h-3 w-3 text-green-500 animate-pulse" />
+            <span className="text-xs text-green-500 font-medium">LIVE</span>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {mockData.map((coin) => {
-            const ChangeIcon = coin.change24h >= 0 ? TrendingUp : TrendingDown;
-            const changeColor = coin.change24h >= 0 ? 'text-green-600' : 'text-red-600';
+          {Object.entries(prices).map(([symbol, data]) => {
+            const changeColor = (data.change_24h || 0) >= 0 ? 'text-green-600' : 'text-red-600';
+            const ChangeIcon = (data.change_24h || 0) >= 0 ? TrendingUp : TrendingDown;
             
             return (
-              <div key={coin.symbol} className="flex items-center justify-between p-3 rounded-lg border">
+              <div 
+                key={symbol} 
+                className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-all duration-300"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-xs font-bold text-primary">{coin.symbol}</span>
+                    <span className="text-xs font-bold text-primary">{symbol}</span>
                   </div>
-                  <span className="font-medium text-sm">{coin.name}</span>
+                  <span className="font-medium text-sm">{cryptoNames[symbol as keyof typeof cryptoNames]}</span>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-sm">{formatPrice(coin.price)}</p>
+                  <p className="font-semibold text-sm transition-colors duration-500">
+                    {formatPrice(data.price_eur)}
+                  </p>
                   <div className="flex items-center gap-1">
-                    <ChangeIcon className={`h-3 w-3 ${changeColor}`} />
-                    <span className={`text-xs ${changeColor}`}>
-                      {coin.change24h > 0 ? '+' : ''}{coin.change24h.toFixed(2)}%
+                    <ChangeIcon className={`h-3 w-3 ${changeColor} transition-colors duration-500`} />
+                    <span className={`text-xs ${changeColor} transition-colors duration-500`}>
+                      {data.change_24h !== null && data.change_24h !== undefined 
+                        ? `${data.change_24h > 0 ? '+' : ''}${data.change_24h.toFixed(2)}%`
+                        : '—'
+                      }
                     </span>
                   </div>
+                  {data.volume_24h && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Vol: {new Intl.NumberFormat('de-DE', {
+                        style: 'currency',
+                        currency: 'EUR',
+                        notation: 'compact'
+                      }).format(data.volume_24h)}
+                    </div>
+                  )}
                 </div>
               </div>
             );

@@ -8,6 +8,7 @@ import { HowItWorksSection } from "@/components/HowItWorksSection";
 import { TrustSection } from "@/components/TrustSection";
 import { MobilePerformanceOptimizer } from "@/components/MobilePerformanceOptimizer";
 import { LiveUserCount } from "@/components/LiveUserCount";
+import { MarketTrendsWidget } from "@/components/MarketTrendsWidget";
 
 const Index = () => {
   return (
@@ -26,6 +27,11 @@ const Index = () => {
       {/* Live User Count */}
       <div className="container mx-auto px-4 -mt-8 relative z-10">
         <LiveUserCount />
+      </div>
+      
+      {/* Real-Time Market Trends */}
+      <div className="container mx-auto px-4 py-8">
+        <MarketTrendsWidget />
       </div>
       
         <CategoriesSection />
