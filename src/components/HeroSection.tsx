@@ -74,36 +74,8 @@ export function HeroSection() {
             Kaufe, verkaufe und tausche direkt mit anderen Nutzern.
           </p>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-primary">
-                {stats.loading ? "..." : `${formatNumber(stats.activeUsers)}+`}
-              </div>
-              <div className="text-sm text-muted-foreground">Aktive Nutzer</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-secondary">
-                {stats.loading ? "..." : `${formatNumber(stats.totalAds)}+`}
-              </div>
-              <div className="text-sm text-muted-foreground">Anzeigen</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-accent">
-                {stats.loading ? "..." : formatVolume(stats.tradeVolume)}
-              </div>
-              <div className="text-sm text-muted-foreground">Handelsvolumen</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-success">
-                {stats.loading ? "..." : `${stats.satisfaction}%`}
-              </div>
-              <div className="text-sm text-muted-foreground">Zufriedenheit</div>
-            </div>
-          </div>
-
-          {/* Call to Action */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+          {/* Call to Action - Vereinfacht */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <Link to="/browse">
               <Button variant="gradient" size="lg" className="text-lg px-8 py-4">
                 Jetzt durchsuchen
@@ -117,13 +89,13 @@ export function HeroSection() {
             </Link>
           </div>
 
-          {/* Features */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+          {/* Features - Vereinfacht auf 2 wichtigste */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12 max-w-2xl mx-auto">
             <div className="text-center p-6 rounded-xl gradient-card shadow-elevation">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
                 <Shield className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Sicher & Vertrauensvoll</h3>
+              <h3 className="text-lg font-semibold mb-2">100% Sicher</h3>
               <p className="text-muted-foreground text-sm">
                 Bewertungssystem und Verifizierung für maximale Sicherheit
               </p>
@@ -133,19 +105,9 @@ export function HeroSection() {
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-secondary/10 mb-4">
                 <Zap className="h-6 w-6 text-secondary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Schnell & Einfach</h3>
+              <h3 className="text-lg font-semibold mb-2">Sofort verfügbar</h3>
               <p className="text-muted-foreground text-sm">
-                Intuitive Benutzeroberfläche für müheloses Handeln
-              </p>
-            </div>
-
-            <div className="text-center p-6 rounded-xl gradient-card shadow-elevation">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mb-4">
-                <Users className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Community-Driven</h3>
-              <p className="text-muted-foreground text-sm">
-                Direkte Kommunikation zwischen Käufern und Verkäufern
+                Direkte Kommunikation und schnelle Abwicklung
               </p>
             </div>
           </div>

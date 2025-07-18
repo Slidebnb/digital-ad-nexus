@@ -6,6 +6,11 @@ import { Badge } from '@/components/ui/badge';
 export function LiveUserCount() {
   const { userCount, onlineUsers } = useUserPresence();
 
+  // Nur anzeigen wenn tatsächlich Nutzer online sind
+  if (userCount === 0) {
+    return null;
+  }
+
   return (
     <Card className="border-success/20 bg-success/5">
       <CardContent className="p-4">
@@ -30,11 +35,9 @@ export function LiveUserCount() {
           </Badge>
         </div>
         
-        {userCount > 0 && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            Aktive Nutzer browsing die Plattform
-          </div>
-        )}
+        <div className="mt-2 text-xs text-muted-foreground">
+          Aktive Nutzer browsen die Plattform
+        </div>
       </CardContent>
     </Card>
   );
