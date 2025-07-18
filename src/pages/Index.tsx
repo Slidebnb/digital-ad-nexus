@@ -15,6 +15,15 @@ import { QuickStatsWidget } from "@/components/QuickStatsWidget";
 import { QuickActionWidget } from "@/components/QuickActionWidget";
 import { TrustSignalsWidget } from "@/components/TrustSignalsWidget";
 import { SafetyTipsWidget } from "@/components/SafetyTipsWidget";
+import { FAQWidget } from "@/components/FAQWidget";
+import { LiveSupportWidget } from "@/components/LiveSupportWidget";
+import { CryptoFeesWidget } from "@/components/CryptoFeesWidget";
+import { TestimonialWidget } from "@/components/TestimonialWidget";
+import { PlatformStatsWidget } from "@/components/PlatformStatsWidget";
+import { FloatingChatWidget } from "@/components/FloatingChatWidget";
+import { MobileQuickActions } from "@/components/MobileQuickActions";
+import { TrendingCoinsWidget } from "@/components/TrendingCoinsWidget";
+import { NotificationWidget } from "@/components/NotificationWidget";
 
 const Index = () => {
   return (
@@ -32,22 +41,36 @@ const Index = () => {
       
       {/* Kompakte Widget-Sektion */}
       <div className="container mx-auto px-4 -mt-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <LiveUserCount />
           <SecurityWidget />
           <QuickActionWidget />
-          <TrustSignalsWidget />
+          <LiveSupportWidget />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <QuickStatsWidget />
           <MarketTrendsWidget />
         </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <TrustSignalsWidget />
+          <CryptoFeesWidget />
+          <TestimonialWidget />
+          <PlatformStatsWidget />
+        </div>
       </div>
       
-      {/* Sicherheitshinweise */}
+      {/* FAQ Section */}
       <div className="container mx-auto px-4 mb-8">
-        <SafetyTipsWidget />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <FAQWidget />
+          <SafetyTipsWidget />
+          <div className="space-y-4">
+            <TrendingCoinsWidget />
+            <NotificationWidget />
+          </div>
+        </div>
       </div>
       
         <CategoriesSection />
@@ -57,6 +80,8 @@ const Index = () => {
       </main>
       <Footer />
       <CryptoPriceUpdater />
+      <FloatingChatWidget />
+      <MobileQuickActions />
     </div>
   );
 };
