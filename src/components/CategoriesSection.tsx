@@ -15,24 +15,28 @@ import {
   Package,
   Monitor,
   Cpu,
-  Headphones
+  Headphones,
+  Wrench,
+  GraduationCap
 } from "lucide-react";
 import { useCategoriesWithCounts } from "@/hooks/useCategoriesWithCounts";
 
 // Icon mapping for categories
 const iconMap: { [key: string]: any } = {
-  'Smartphone': Smartphone,
-  'Laptop': Laptop,
-  'Car': Car,
-  'Home': Home,
-  'Gamepad2': Gamepad2,
-  'Shirt': Shirt,
-  'Camera': Camera,
-  'Music': Music,
-  'Package': Package,
-  'Monitor': Monitor,
-  'Cpu': Cpu,
-  'Headphones': Headphones
+  'smartphone': Smartphone,
+  'laptop': Laptop,
+  'car': Car,
+  'home': Home,
+  'gamepad2': Gamepad2,
+  'shirt': Shirt,
+  'camera': Camera,
+  'music': Music,
+  'package': Package,
+  'monitor': Monitor,
+  'cpu': Cpu,
+  'headphones': Headphones,
+  'wrench': Wrench,
+  'graduation-cap': GraduationCap
 };
 
 export function CategoriesSection() {
