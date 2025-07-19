@@ -69,10 +69,16 @@ export const useCategoriesWithCounts = () => {
         })
       );
 
-      // Sort by count descending
+      // Sort by sort_order (show all categories in intended order)
       const sortedCategories = categoriesWithCounts
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => {
+          // Find original sort order from categoriesData
+          const categoryA = categoriesData?.find(c => c.id === a.id);
+          const categoryB = categoriesData?.find(c => c.id === b.id);
+          return (categoryA?.sort_order || 0) - (categoryB?.sort_order || 0);
+        });
 
+      console.log('Categories loaded:', sortedCategories);
       setCategories(sortedCategories);
 
     } catch (error) {
