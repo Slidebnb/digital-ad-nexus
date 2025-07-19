@@ -35,7 +35,7 @@ export const useCategoriesWithCounts = () => {
     try {
       setLoading(true);
 
-      // Get categories
+      // Get categories with a forced refresh
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
         .select('*')
@@ -79,6 +79,7 @@ export const useCategoriesWithCounts = () => {
         });
 
       console.log('Categories loaded:', sortedCategories);
+      console.log('Total categories from DB:', categoriesData?.length);
       setCategories(sortedCategories);
 
     } catch (error) {

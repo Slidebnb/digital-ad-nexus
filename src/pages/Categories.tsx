@@ -49,6 +49,10 @@ const getIconForCategory = (categoryName: string) => {
     'Bücher': BookOpen,
     'Sport': Heart,
     'Dienstleistungen': Settings,
+    'Mining': Cpu,
+    'Krypto': Coins,
+    'Hardware': Cpu,
+    'Services': HelpCircle,
     'Sonstiges': Package
   };
   
