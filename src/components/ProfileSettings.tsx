@@ -237,20 +237,45 @@ export function ProfileSettings() {
     setUploadingAvatar(true);
 
     try {
-      console.log('Uploading avatar for user:', user.id);
+      console.log('Starting avatar upload process...', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        userId: user.id
+      });
       
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
+      console.log('Upload path:', filePath);
+
+      // Delete old avatar if exists
+      if (profile?.avatar_url) {
+        try {
+          const oldFileName = profile.avatar_url.split('/').pop();
+          if (oldFileName) {
+            console.log('Deleting old avatar:', oldFileName);
+            await supabase.storage
+              .from('profile-avatars')
+              .remove([`avatars/${oldFileName}`]);
+          }
+        } catch (deleteError) {
+          console.warn('Could not delete old avatar:', deleteError);
+        }
+      }
+
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      console.log('Uploading to storage...');
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('profile-avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
+
+      console.log('Upload result:', { uploadData, uploadError });
 
       if (uploadError) throw uploadError;
 
@@ -259,16 +284,20 @@ export function ProfileSettings() {
         .from('profile-avatars')
         .getPublicUrl(filePath);
 
-      console.log('Avatar uploaded, public URL:', publicUrl);
+      console.log('Generated public URL:', publicUrl);
 
       // Update profile in database
-      const { error: updateError } = await supabase
+      console.log('Updating profile with new avatar URL...');
+      const { data: updateData, error: updateError } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
           avatar_url: publicUrl,
           updated_at: new Date().toISOString()
-        });
+        })
+        .select();
+
+      console.log('Profile update result:', { updateData, updateError });
 
       if (updateError) throw updateError;
 
@@ -277,8 +306,8 @@ export function ProfileSettings() {
         description: "Profilbild wurde erfolgreich hochgeladen."
       });
 
-      // Reload profile data
-      setTimeout(() => fetchProfileData(), 500);
+      // Force immediate profile reload
+      await fetchProfileData();
 
     } catch (error) {
       console.error('Error uploading avatar:', error);
