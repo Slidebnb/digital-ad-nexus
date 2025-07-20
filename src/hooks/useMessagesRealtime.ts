@@ -1,287 +1,222 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { logger } from '@/utils/logger';
+import { logger, measurePerformance, retryWithBackoff } from '@/utils/logger';
 
-export interface Message {
+interface Message {
   id: string;
   content: string;
   sender_id: string;
+  created_at: string;
+  read_at?: string;
   conversation_id: string;
-  created_at: string;
-  read_at: string | null;
-  message_type: string;
 }
 
-export interface ConversationWithProfile {
-  id: string;
-  sender_id: string;
-  recipient_id: string;
-  last_message: string | null;
-  last_message_at: string | null;
-  unread_by_recipient: boolean;
-  created_at: string;
-  profiles?: {
-    full_name: string;
-    avatar_url: string;
-  };
-}
-
-export function useMessagesRealtime() {
+export const useMessagesRealtime = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [conversations, setConversations] = useState<ConversationWithProfile[]>([]);
-  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [messages, setMessages] = useState<Message[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
+  const [error, setError] = useState<string | null>(null);
+  
+  // Use refs to prevent unnecessary effect reruns
+  const channelRef = useRef<any>(null);
+  const lastFetchTimeRef = useRef<number>(0);
+  const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchConversations = async () => {
-    if (!user?.id) return;
+  const fetchMessages = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('last_message_at', { ascending: false });
+      const result = await measurePerformance(async () => {
+        // Get user's conversations first
+        const { data: conversations, error: convError } = await supabase
+          .from('conversations')
+          .select('id')
+          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`);
 
-      if (error) throw error;
+        if (convError) throw convError;
 
-      setConversations(data || []);
-      
-      // Count unread messages
-      const unread = data?.filter(conv => 
-        conv.recipient_id === user.id && conv.unread_by_recipient
-      ).length || 0;
-      
-      setUnreadCount(unread);
-    } catch (error) {
-      logger.error('Error fetching conversations', 'useMessagesRealtime', { 
-        error: (error as Error).message 
+        if (!conversations || conversations.length === 0) {
+          return { messages: [], unreadCount: 0 };
+        }
+
+        const conversationIds = conversations.map(c => c.id);
+
+        // Get recent messages with pagination
+        const { data: messagesData, error: msgError } = await supabase
+          .from('messages')
+          .select('*')
+          .in('conversation_id', conversationIds)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (msgError) throw msgError;
+
+        // Calculate unread count efficiently
+        const unreadMessages = messagesData?.filter(msg => 
+          msg.sender_id !== user.id && !msg.read_at
+        ) || [];
+
+        return {
+          messages: messagesData || [],
+          unreadCount: unreadMessages.length
+        };
+      }, 'fetchMessages', 'useMessagesRealtime');
+
+      setMessages(result.messages);
+      setUnreadCount(result.unreadCount);
+      setError(null);
+      lastFetchTimeRef.current = Date.now();
+
+      logger.debug('Messages fetched successfully', 'useMessagesRealtime', {
+        messageCount: result.messages.length,
+        unreadCount: result.unreadCount,
+        userId: user.id
       });
+
+    } catch (error) {
+      logger.error('Failed to fetch messages', 'useMessagesRealtime', { 
+        error: error.message,
+        userId: user.id 
+      });
+      setError('Nachrichten konnten nicht geladen werden');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const fetchMessages = async (conversationId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      setMessages(prev => ({
-        ...prev,
-        [conversationId]: data || []
-      }));
-    } catch (error) {
-      logger.error('Error fetching messages', 'useMessagesRealtime', { 
-        error: (error as Error).message 
-      });
-    }
-  };
-
-  const sendMessage = async (conversationId: string, content: string) => {
-    if (!user?.id) return;
-
-    try {
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content,
-          message_type: 'text'
-        });
-
-      if (messageError) throw messageError;
-
-      // Update conversation last_message
-      const { error: convError } = await supabase
-        .from('conversations')
-        .update({
-          last_message: content,
-          last_message_at: new Date().toISOString(),
-          unread_by_recipient: true
-        })
-        .eq('id', conversationId);
-
-      if (convError) throw convError;
-
-    } catch (error) {
-      logger.error('Error sending message', 'useMessagesRealtime', { 
-        error: (error as Error).message 
-      });
-      toast({
-        title: "Fehler",
-        description: "Nachricht konnte nicht gesendet werden.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const markAsRead = async (conversationId: string) => {
-    if (!user?.id) return;
-
-    try {
-      // Mark conversation as read
-      const { error: convError } = await supabase
-        .from('conversations')
-        .update({ unread_by_recipient: false })
-        .eq('id', conversationId)
-        .eq('recipient_id', user.id);
-
-      if (convError) throw convError;
-
-      // Mark all messages as read
-      const { error: msgError } = await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('conversation_id', conversationId)
-        .is('read_at', null);
-
-      if (msgError) throw msgError;
-
-    } catch (error) {
-      logger.error('Error marking as read', 'useMessagesRealtime', { 
-        error: (error as Error).message 
-      });
-    }
-  };
-
-  const broadcastTyping = (conversationId: string, isTyping: boolean) => {
-    if (!user?.id) return;
-
-    const channel = supabase.channel(`conversation-${conversationId}`);
-    
-    if (isTyping) {
-      channel.send({
-        type: 'broadcast',
-        event: 'typing',
-        payload: { user_id: user.id, typing: true }
-      });
-    } else {
-      channel.send({
-        type: 'broadcast',
-        event: 'typing',
-        payload: { user_id: user.id, typing: false }
-      });
-    }
-  };
+  const fetchMessagesWithRetry = useCallback(() => {
+    return retryWithBackoff(fetchMessages, 3, 1000, 'useMessagesRealtime');
+  }, [fetchMessages]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setMessages([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
 
-    fetchConversations();
+    // Initial fetch
+    fetchMessagesWithRetry();
 
-    // Set up real-time subscription for conversations
-    const conversationsChannel = supabase
-      .channel('conversations-realtime')
-      .on(
-        'postgres_changes',
-        {
+    // Set up realtime subscription
+    const setupRealtimeSubscription = () => {
+      // Clean up existing channel
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+
+      channelRef.current = supabase
+        .channel('messages-realtime')
+        .on('postgres_changes', {
           event: '*',
           schema: 'public',
-          table: 'conversations',
-          filter: `sender_id=eq.${user.id},recipient_id=eq.${user.id}`
-        },
-        (payload) => {
-          logger.debug('Real-time conversation update', 'useMessagesRealtime', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newConv = payload.new as ConversationWithProfile;
-            setConversations(prev => [newConv, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedConv = payload.new as ConversationWithProfile;
-            setConversations(prev => 
-              prev.map(conv => conv.id === updatedConv.id ? updatedConv : conv)
-            );
-            
-            // Show notification for new messages
-            if (updatedConv.recipient_id === user.id && updatedConv.unread_by_recipient) {
-              toast({
-                title: "Neue Nachricht",
-                description: updatedConv.last_message || "Sie haben eine neue Nachricht erhalten.",
-                duration: 5000,
-              });
-              
-              // Update unread count
-              setUnreadCount(prev => prev + 1);
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    // Set up real-time subscription for messages
-    const messagesChannel = supabase
-      .channel('messages-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
           table: 'messages'
-        },
-        (payload) => {
-          logger.debug('Real-time message update', 'useMessagesRealtime', payload);
-          
-          const newMessage = payload.new as Message;
-          setMessages(prev => ({
-            ...prev,
-            [newMessage.conversation_id]: [
-              ...(prev[newMessage.conversation_id] || []),
-              newMessage
-            ]
-          }));
-        }
-      )
-      .subscribe();
+        }, (payload) => {
+          logger.debug('Realtime message update', 'useMessagesRealtime', { 
+            event: payload.eventType,
+            messageId: payload.new?.id || payload.old?.id
+          });
+
+          // Debounce rapid updates
+          const now = Date.now();
+          if (now - lastFetchTimeRef.current < 1000) {
+            return;
+          }
+
+          // Refresh messages after realtime update
+          fetchMessagesWithRetry();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'conversations'
+        }, (payload) => {
+          logger.debug('Realtime conversation update', 'useMessagesRealtime', { 
+            event: payload.eventType,
+            conversationId: payload.new?.id || payload.old?.id
+          });
+
+          // Refresh messages when conversations change
+          fetchMessagesWithRetry();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            logger.info('Realtime subscription active', 'useMessagesRealtime');
+          } else if (status === 'CHANNEL_ERROR') {
+            logger.error('Realtime subscription error', 'useMessagesRealtime');
+            // Retry subscription after delay
+            setTimeout(setupRealtimeSubscription, 5000);
+          }
+        });
+    };
+
+    setupRealtimeSubscription();
+
+    // Set up periodic refresh as fallback
+    fetchIntervalRef.current = setInterval(() => {
+      fetchMessagesWithRetry();
+    }, 30000); // 30 seconds
 
     return () => {
-      supabase.removeChannel(conversationsChannel);
-      supabase.removeChannel(messagesChannel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+      if (fetchIntervalRef.current) {
+        clearInterval(fetchIntervalRef.current);
+      }
     };
-  }, [user?.id, toast]);
+  }, [user?.id, fetchMessagesWithRetry]);
 
-  // Set up typing indicators for active conversations
-  const subscribeToConversation = (conversationId: string) => {
-    const channel = supabase
-      .channel(`conversation-${conversationId}`)
-      .on('broadcast', { event: 'typing' }, (payload) => {
-        const { user_id, typing } = payload.payload;
-        
-        if (user_id !== user?.id) {
-          setTypingUsers(prev => ({
-            ...prev,
-            [conversationId]: typing 
-              ? [...(prev[conversationId] || []), user_id]
-              : (prev[conversationId] || []).filter(id => id !== user_id)
-          }));
-        }
-      })
-      .subscribe();
+  const markAsRead = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
 
-    return () => supabase.removeChannel(channel);
-  };
+    try {
+      await measurePerformance(async () => {
+        const { error } = await supabase
+          .from('messages')
+          .update({ read_at: new Date().toISOString() })
+          .eq('id', messageId)
+          .neq('sender_id', user.id);
+
+        if (error) throw error;
+      }, 'markAsRead', 'useMessagesRealtime');
+
+      // Update local state optimistically
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, read_at: new Date().toISOString() }
+          : msg
+      ));
+      
+      setUnreadCount(prev => Math.max(0, prev - 1));
+
+      logger.debug('Message marked as read', 'useMessagesRealtime', { messageId });
+
+    } catch (error) {
+      logger.error('Failed to mark message as read', 'useMessagesRealtime', { 
+        error: error.message,
+        messageId 
+      });
+    }
+  }, [user?.id]);
+
+  const refetch = useCallback(() => {
+    return fetchMessagesWithRetry();
+  }, [fetchMessagesWithRetry]);
 
   return {
-    conversations,
     messages,
     unreadCount,
     loading,
-    typingUsers,
-    refetch: fetchConversations,
-    fetchMessages,
-    sendMessage,
+    error,
     markAsRead,
-    broadcastTyping,
-    subscribeToConversation
+    refetch
   };
-}
+};

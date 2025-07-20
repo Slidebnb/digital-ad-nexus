@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export enum LogLevel {
@@ -24,15 +25,27 @@ class Logger {
   private sessionId: string;
   private logQueue: LogEntry[] = [];
   private isFlushingLogs = false;
+  private isDevelopment = process.env.NODE_ENV === 'development';
 
   constructor() {
     this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Auto-flush logs every 30 seconds
-    setInterval(() => this.flushLogs(), 30000);
+    // Auto-flush logs every 30 seconds in production, 10 seconds in development
+    const flushInterval = this.isDevelopment ? 10000 : 30000;
+    setInterval(() => this.flushLogs(), flushInterval);
     
     // Flush logs before page unload
     window.addEventListener('beforeunload', () => this.flushLogs());
+    
+    // Flush critical logs immediately
+    window.addEventListener('error', (event) => {
+      this.critical(`Uncaught error: ${event.error?.message || event.message}`, 'Global', {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error?.stack
+      });
+    });
   }
 
   private async getUserId(): Promise<string | undefined> {
@@ -49,7 +62,7 @@ class Logger {
       level,
       message,
       context,
-      metadata,
+      metadata: this.sanitizeMetadata(metadata),
       timestamp: new Date().toISOString(),
       sessionId: this.sessionId,
       url: window.location.href,
@@ -57,15 +70,71 @@ class Logger {
     };
   }
 
+  private sanitizeMetadata(metadata?: Record<string, any>): Record<string, any> | undefined {
+    if (!metadata) return undefined;
+    
+    // Remove sensitive data and circular references
+    const sanitized: Record<string, any> = {};
+    
+    for (const [key, value] of Object.entries(metadata)) {
+      try {
+        // Skip functions and complex objects that might cause issues
+        if (typeof value === 'function') continue;
+        if (value instanceof HTMLElement) continue;
+        if (value instanceof Event) continue;
+        
+        // Sanitize sensitive fields
+        if (key.toLowerCase().includes('password') || 
+            key.toLowerCase().includes('token') ||
+            key.toLowerCase().includes('secret')) {
+          sanitized[key] = '[REDACTED]';
+          continue;
+        }
+        
+        // Truncate long strings
+        if (typeof value === 'string' && value.length > 1000) {
+          sanitized[key] = value.substring(0, 1000) + '...';
+          continue;
+        }
+        
+        // Handle objects carefully
+        if (typeof value === 'object' && value !== null) {
+          try {
+            JSON.stringify(value); // Test if serializable
+            sanitized[key] = value;
+          } catch {
+            sanitized[key] = '[Object]';
+          }
+        } else {
+          sanitized[key] = value;
+        }
+      } catch {
+        sanitized[key] = '[Error serializing value]';
+      }
+    }
+    
+    return sanitized;
+  }
+
   private async log(level: LogLevel, message: string, context?: string, metadata?: Record<string, any>) {
     const entry = this.createLogEntry(level, message, context, metadata);
     entry.userId = await this.getUserId();
 
-    // Console output based on level
+    // Console output with proper formatting
     const consoleMethod = level === LogLevel.ERROR || level === LogLevel.CRITICAL ? 'error' :
-                         level === LogLevel.WARN ? 'warn' : 'log';
+                         level === LogLevel.WARN ? 'warn' : 
+                         level === LogLevel.DEBUG && !this.isDevelopment ? null : 'log';
     
-    console[consoleMethod](`[${level.toUpperCase()}] ${context ? `[${context}] ` : ''}${message}`, metadata || '');
+    if (consoleMethod) {
+      const prefix = `[${level.toUpperCase()}]${context ? ` [${context}]` : ''}`;
+      const timestamp = new Date().toLocaleTimeString('de-DE');
+      
+      if (metadata && Object.keys(metadata).length > 0) {
+        console[consoleMethod](`${timestamp} ${prefix} ${message}`, metadata);
+      } else {
+        console[consoleMethod](`${timestamp} ${prefix} ${message}`);
+      }
+    }
 
     // Add to queue for database logging
     this.logQueue.push(entry);
@@ -84,26 +153,36 @@ class Logger {
     this.logQueue = [];
 
     try {
-      // Log performance data to our table
+      // In development, also log to console group
+      if (this.isDevelopment && logsToFlush.length > 0) {
+        console.group(`📊 Flushing ${logsToFlush.length} Logs`);
+        logsToFlush.forEach(log => {
+          const timestamp = new Date(log.timestamp).toLocaleTimeString('de-DE');
+          console.log(`${timestamp} [${log.level}] ${log.context ? `[${log.context}] ` : ''}${log.message}`, log.metadata || '');
+        });
+        console.groupEnd();
+      }
+
+      // For production, we could send logs to a logging service
+      // For now, we'll store basic metrics in our performance tracking
       const performanceLogs = logsToFlush.map(log => ({
         query_type: `log_${log.level}`,
         execution_time_ms: 0,
         user_id: log.userId
       }));
 
-      // For now, just log to console since types aren't updated yet
-      console.log('Performance logs:', performanceLogs);
+      // Store critical errors for admin review
+      const criticalLogs = logsToFlush.filter(log => 
+        log.level === LogLevel.CRITICAL || log.level === LogLevel.ERROR
+      );
 
-      // For development, also log to console
-      if (process.env.NODE_ENV === 'development') {
-        console.group('📊 Flushing Logs to Database');
-        logsToFlush.forEach(log => {
-          console.log(`[${log.level}] ${log.context ? `[${log.context}] ` : ''}${log.message}`, log.metadata);
-        });
-        console.groupEnd();
+      if (criticalLogs.length > 0) {
+        // TODO: Send critical logs to admin notification system
+        console.error(`${criticalLogs.length} critical logs detected`, criticalLogs);
       }
+
     } catch (error) {
-      console.error('Failed to flush logs to database:', error);
+      console.error('Failed to flush logs:', error);
       // Re-add failed logs to queue
       this.logQueue.unshift(...logsToFlush);
     } finally {
@@ -131,32 +210,47 @@ class Logger {
     this.log(LogLevel.CRITICAL, message, context, metadata);
   }
 
-  // Performance logging
+  // Performance logging with better error handling
   async logQueryPerformance(queryType: string, executionTime: number, userId?: string) {
     try {
-      // For now, just log to console since types aren't updated yet
-      console.log(`Query Performance: ${queryType} - ${executionTime}ms`, { userId });
+      this.debug(`Query performance: ${queryType}`, 'Performance', {
+        executionTime: Math.round(executionTime),
+        userId,
+        performanceGrade: executionTime < 100 ? 'excellent' : 
+                         executionTime < 500 ? 'good' : 
+                         executionTime < 1000 ? 'fair' : 'poor'
+      });
     } catch (error) {
       console.error('Failed to log query performance:', error);
     }
   }
 
-  // Network request logging
+  // Network request logging with status categorization
   logNetworkRequest(url: string, method: string, duration: number, status: number, error?: string) {
-    const level = status >= 400 ? LogLevel.ERROR : LogLevel.INFO;
-    this.log(level, `${method} ${url} - ${status} (${duration}ms)`, 'network', {
+    const level = status >= 500 ? LogLevel.ERROR :
+                 status >= 400 ? LogLevel.WARN :
+                 status >= 300 ? LogLevel.INFO : LogLevel.DEBUG;
+    
+    const statusCategory = status >= 200 && status < 300 ? 'success' :
+                          status >= 300 && status < 400 ? 'redirect' :
+                          status >= 400 && status < 500 ? 'client_error' :
+                          status >= 500 ? 'server_error' : 'unknown';
+
+    this.log(level, `${method} ${url} - ${status} (${duration}ms)`, 'Network', {
       url,
       method,
-      duration,
+      duration: Math.round(duration),
       status,
-      error
+      statusCategory,
+      error,
+      slow: duration > 2000
     });
   }
 }
 
 export const logger = new Logger();
 
-// Performance measurement utilities
+// Performance measurement with better error handling
 export function measurePerformance<T>(
   operation: () => Promise<T> | T,
   operationName: string,
@@ -166,17 +260,20 @@ export function measurePerformance<T>(
   
   const logResult = (result: T) => {
     const duration = performance.now() - start;
-    logger.info(`${operationName} completed in ${duration.toFixed(2)}ms`, context, { duration });
-    logger.logQueryPerformance(operationName, Math.round(duration));
+    logger.info(`${operationName} completed`, context || 'Performance', { 
+      duration: Math.round(duration),
+      success: true
+    });
+    logger.logQueryPerformance(operationName, duration);
     return result;
   };
 
   const logError = (error: any) => {
     const duration = performance.now() - start;
-    logger.error(`${operationName} failed after ${duration.toFixed(2)}ms`, context, { 
-      duration, 
-      error: error.message,
-      stack: error.stack 
+    logger.error(`${operationName} failed`, context || 'Performance', { 
+      duration: Math.round(duration), 
+      error: error?.message || String(error),
+      stack: error?.stack
     });
     throw error;
   };
@@ -193,7 +290,7 @@ export function measurePerformance<T>(
   }
 }
 
-// Retry with exponential backoff
+// Enhanced retry with exponential backoff
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -209,18 +306,21 @@ export async function retryWithBackoff<T>(
       lastError = error as Error;
       
       if (attempt === maxRetries) {
-        logger.error(`Operation failed after ${maxRetries} attempts`, context, {
+        logger.error(`Operation failed after ${maxRetries} attempts`, context || 'Retry', {
           error: lastError.message,
-          attempts: maxRetries
+          attempts: maxRetries,
+          finalAttempt: true
         });
         throw lastError;
       }
       
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      logger.warn(`Operation failed, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`, context, {
+      const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), 10000); // Cap at 10 seconds
+      logger.warn(`Operation failed, retrying`, context || 'Retry', {
         error: lastError.message,
         attempt,
-        delay
+        maxRetries,
+        delay,
+        nextAttemptIn: `${delay}ms`
       });
       
       await new Promise(resolve => setTimeout(resolve, delay));
