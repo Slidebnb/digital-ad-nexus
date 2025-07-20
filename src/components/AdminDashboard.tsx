@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { AdminStats } from "@/components/AdminStats";
 import { AdminUserManagement } from "@/components/AdminUserManagement";
