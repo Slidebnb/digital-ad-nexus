@@ -1,5 +1,5 @@
+
 import { useEffect, useState } from "react";
-import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
+import { Footer } from "@/components/Footer";
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 
 export default function Browse() {
   const [search, setSearch] = useState("");
@@ -92,7 +95,10 @@ export default function Browse() {
   };
 
   return (
-    <PageLayout>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Einheitliche Navigation wie auf der Startseite */}
+      <MobileOptimizedNavigation />
+      
       <div className="container mx-auto px-4 py-6 md:py-8">
         <h1 className="text-3xl font-bold mb-4">Browse Listings</h1>
 
@@ -188,6 +194,12 @@ export default function Browse() {
           </p>
         </div>
       </div>
-    </PageLayout>
+
+      {/* Mobile Bottom Navigation - einheitlich auf allen Seiten */}
+      <MobileBottomNavigation />
+      
+      {/* Footer wie auf der Startseite */}
+      <Footer />
+    </div>
   );
 }

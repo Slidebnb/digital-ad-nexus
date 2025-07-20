@@ -1,13 +1,16 @@
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
+
 import { FavoritesManager } from "@/components/FavoritesManager";
 import { AuthGuard } from "@/components/AuthGuard";
+import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
+import { Footer } from "@/components/Footer";
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 
 export default function Favorites() {
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-background">
-        <Navigation />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        {/* Einheitliche Navigation wie auf der Startseite */}
+        <MobileOptimizedNavigation />
         
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
@@ -26,6 +29,10 @@ export default function Favorites() {
           </div>
         </div>
 
+        {/* Mobile Bottom Navigation - einheitlich auf allen Seiten */}
+        <MobileBottomNavigation />
+        
+        {/* Footer wie auf der Startseite */}
         <Footer />
       </div>
     </AuthGuard>
