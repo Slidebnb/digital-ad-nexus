@@ -102,7 +102,9 @@ export function AdminSecurityCenter() {
         id: alert.id,
         type: alert.action === 'security_breach' ? 'critical' : 'warning',
         title: `Security Event: ${alert.action}`,
-        description: alert.details?.description || `Action: ${alert.action}`,
+        description: (alert.details && typeof alert.details === 'object' && 'description' in alert.details) 
+          ? String(alert.details.description) 
+          : `Action: ${alert.action}`,
         created_at: alert.created_at,
         resolved: false
       })) || [];
