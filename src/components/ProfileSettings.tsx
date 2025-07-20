@@ -258,22 +258,23 @@ export function ProfileSettings() {
         userId: user.id
       });
       
-      // Generate unique filename
+      // Generate unique filename - einfacher Ansatz
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `avatar_${user.id}_${Date.now()}.${fileExt}`;
+      // Kein Unterordner, direkt im Bucket
+      const filePath = fileName;
 
       console.log('Upload path:', filePath);
 
-      // Delete old avatar if exists
+      // Delete old avatar if exists (vereinfacht)
       if (profile?.avatar_url) {
         try {
           const oldFileName = profile.avatar_url.split('/').pop();
-          if (oldFileName) {
+          if (oldFileName && oldFileName.startsWith('avatar_')) {
             console.log('Deleting old avatar:', oldFileName);
             await supabase.storage
               .from('profile-avatars')
-              .remove([`avatars/${oldFileName}`]);
+              .remove([oldFileName]);
           }
         } catch (deleteError) {
           console.warn('Could not delete old avatar:', deleteError);
