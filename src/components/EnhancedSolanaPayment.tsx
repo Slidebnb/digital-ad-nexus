@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, ExternalLink, CheckCircle, Clock, Loader2, Smartphone, QrCode, Wallet } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface BoostPackage {
   id: number;
@@ -275,7 +275,7 @@ export const EnhancedSolanaPayment: React.FC<EnhancedSolanaPaymentProps> = ({
             /* QR Code Payment */
             <div className="space-y-4">
               <div className="flex justify-center p-6 bg-white rounded-lg">
-                <QRCode 
+                <QRCodeSVG 
                   value={solanaPayURI} 
                   size={200}
                   level="M"

@@ -90,7 +90,7 @@ export function usePaymentMonitoring(paymentId: string | null) {
 
       if (error) throw error;
       
-      setPaymentStatus(data);
+      setPaymentStatus(data as PaymentStatus);
       
       if (data.status === 'confirmed' || data.status === 'failed') {
         stopMonitoring();
