@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/utils/logger";
 import { 
   Coins,
   TrendingUp,
@@ -55,7 +56,7 @@ export function CategoriesSection() {
 
   const fetchCategories = async () => {
     try {
-      console.log('Fetching categories...');
+      logger.debug('Fetching categories', 'CategoriesSection');
       
       // Fetch all active categories
       const { data: categoriesData, error: categoriesError } = await supabase
@@ -65,14 +66,14 @@ export function CategoriesSection() {
         .order('sort_order', { ascending: true });
 
       if (categoriesError) {
-        console.error('Categories error:', categoriesError);
+        logger.error('Categories error', 'CategoriesSection', { error: categoriesError.message });
         throw categoriesError;
       }
 
-      console.log('Categories fetched:', categoriesData);
+      logger.debug('Categories fetched', 'CategoriesSection', { count: categoriesData?.length });
 
       if (!categoriesData || categoriesData.length === 0) {
-        console.log('No categories found, will show empty state');
+        logger.info('No categories found, showing empty state', 'CategoriesSection');
         setCategories([]);
         setLoading(false);
         return;
@@ -89,7 +90,10 @@ export function CategoriesSection() {
               .eq('status', 'active');
 
             if (countError) {
-              console.warn('Count error for category', category.name, countError);
+              logger.warn('Count error for category', 'CategoriesSection', { 
+                category: category.name, 
+                error: countError.message 
+              });
             }
 
             return {
@@ -97,7 +101,10 @@ export function CategoriesSection() {
               ad_count: count || 0
             };
           } catch (error) {
-            console.warn('Error counting ads for category', category.name, error);
+            logger.warn('Error counting ads for category', 'CategoriesSection', { 
+              category: category.name, 
+              error: (error as Error).message 
+            });
             return {
               ...category,
               ad_count: 0
@@ -106,10 +113,12 @@ export function CategoriesSection() {
         })
       );
 
-      console.log('Categories with counts:', categoriesWithCounts);
+      logger.debug('Categories with counts', 'CategoriesSection', { categoriesCount: categoriesWithCounts.length });
       setCategories(categoriesWithCounts);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      logger.error('Error fetching categories', 'CategoriesSection', { 
+        error: (error as Error).message 
+      });
       // Show empty state instead of error
       setCategories([]);
     } finally {
@@ -128,7 +137,7 @@ export function CategoriesSection() {
         schema: 'public',
         table: 'categories'
       }, (payload) => {
-        console.log('Categories updated:', payload);
+        logger.debug('Categories updated', 'CategoriesSection', payload);
         fetchCategories();
       })
       .subscribe();

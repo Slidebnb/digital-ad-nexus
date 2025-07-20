@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 export interface Message {
   id: string;
@@ -57,7 +58,9 @@ export function useMessagesRealtime() {
       
       setUnreadCount(unread);
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      logger.error('Error fetching conversations', 'useMessagesRealtime', { 
+        error: (error as Error).message 
+      });
     } finally {
       setLoading(false);
     }
@@ -78,7 +81,9 @@ export function useMessagesRealtime() {
         [conversationId]: data || []
       }));
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      logger.error('Error fetching messages', 'useMessagesRealtime', { 
+        error: (error as Error).message 
+      });
     }
   };
 
@@ -110,7 +115,9 @@ export function useMessagesRealtime() {
       if (convError) throw convError;
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message', 'useMessagesRealtime', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Fehler",
         description: "Nachricht konnte nicht gesendet werden.",
@@ -142,7 +149,9 @@ export function useMessagesRealtime() {
       if (msgError) throw msgError;
 
     } catch (error) {
-      console.error('Error marking as read:', error);
+      logger.error('Error marking as read', 'useMessagesRealtime', { 
+        error: (error as Error).message 
+      });
     }
   };
 
@@ -183,7 +192,7 @@ export function useMessagesRealtime() {
           filter: `sender_id=eq.${user.id},recipient_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Real-time conversation update:', payload);
+          logger.debug('Real-time conversation update', 'useMessagesRealtime', payload);
           
           if (payload.eventType === 'INSERT') {
             const newConv = payload.new as ConversationWithProfile;
@@ -221,7 +230,7 @@ export function useMessagesRealtime() {
           table: 'messages'
         },
         (payload) => {
-          console.log('Real-time message update:', payload);
+          logger.debug('Real-time message update', 'useMessagesRealtime', payload);
           
           const newMessage = payload.new as Message;
           setMessages(prev => ({

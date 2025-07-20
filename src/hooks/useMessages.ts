@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/utils/logger';
 
 interface Message {
   id: string;
@@ -54,7 +55,9 @@ export const useMessages = () => {
       
       setUnreadCount(unread);
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      logger.error('Error fetching conversations', 'useMessages', { 
+        error: (error as Error).message 
+      });
     } finally {
       setLoading(false);
     }

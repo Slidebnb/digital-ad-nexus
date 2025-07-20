@@ -10,12 +10,14 @@ import {
   LogOut
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useMessagesRealtime } from "@/hooks/useMessagesRealtime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export function MobileBottomNavigation() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { unreadCount } = useMessagesRealtime();
 
   const navItems = [
     {
@@ -40,7 +42,7 @@ export function MobileBottomNavigation() {
       label: "Chats",
       href: "/dashboard",
       icon: MessageCircle,
-      badge: 0, // TODO: Add unread count
+      badge: unreadCount,
       requireAuth: true
     },
     {

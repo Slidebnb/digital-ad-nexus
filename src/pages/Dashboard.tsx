@@ -3,11 +3,13 @@ import { Navigate } from "react-router-dom";
 import { UserDashboard } from "@/components/UserDashboard";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { logger } from "@/utils/logger";
 
 export default function Dashboard() {
   const { user, loading, isAdmin, userRole } = useAuth();
 
-  console.log('Dashboard render - user:', user?.id, 'loading:', loading, 'isAdmin:', isAdmin, 'userRole:', userRole);
+  logger.debug('Dashboard render', 'Dashboard', { userId: user?.id, loading, isAdmin, userRole });
 
   if (loading) {
     return (
@@ -30,18 +32,14 @@ export default function Dashboard() {
     );
   }
 
-  console.log('Rendering dashboard for role:', userRole, 'isAdmin:', isAdmin);
+  logger.debug('Rendering dashboard for role', 'Dashboard', { userRole, isAdmin });
   
-  // Admin Dashboard
-  if (isAdmin) {
-    return <AdminDashboard />;
-  }
-
-  // User Dashboard - simplified without duplicate tabs
   return (
-    <div className="min-h-screen bg-background">
-      {isAdmin ? <AdminDashboard /> : <UserDashboard />}
-      <MobileBottomNavigation />
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        {isAdmin ? <AdminDashboard /> : <UserDashboard />}
+        <MobileBottomNavigation />
+      </div>
+    </ErrorBoundary>
   );
 }

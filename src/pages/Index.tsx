@@ -12,12 +12,24 @@ import { FloatingChatWidget } from "@/components/FloatingChatWidget";
 import { MobileQuickActions } from "@/components/MobileQuickActions";
 import { RealTimeStatsWidget } from "@/components/RealTimeStatsWidget";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
+import { ProductionReadyBanner } from "@/components/ProductionReadyBanner";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Index() {
+  const { isAdmin } = useAuth();
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <MobilePerformanceOptimizer />
       <MobileOptimizedNavigation />
+      
+      {/* Admin Production Ready Banner */}
+      {isAdmin && (
+        <div className="container mx-auto px-4 pt-4">
+          <ProductionReadyBanner />
+        </div>
+      )}
+      
       <main>
         <HeroSection />
         
