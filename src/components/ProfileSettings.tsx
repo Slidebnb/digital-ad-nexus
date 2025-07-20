@@ -288,9 +288,6 @@ export function ProfileSettings() {
                   disabled
                   className="bg-muted cursor-not-allowed"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Aus Registrierung - Support für Änderungen
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -303,9 +300,6 @@ export function ProfileSettings() {
                   disabled
                   className="bg-muted cursor-not-allowed"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Aus Registrierung - Support für Änderungen
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -318,9 +312,6 @@ export function ProfileSettings() {
                   disabled
                   className="bg-muted cursor-not-allowed"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Aus Registrierung - Support für Änderungen
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -333,9 +324,6 @@ export function ProfileSettings() {
                   disabled
                   className="bg-muted cursor-not-allowed"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Aus Registrierung - Support für Änderungen
-                </p>
               </div>
             </div>
 
@@ -388,9 +376,6 @@ export function ProfileSettings() {
                 placeholder="Erzählen Sie etwas über sich..."
                 rows={3}
               />
-              <p className="text-xs text-muted-foreground">
-                Diese Information kann jederzeit geändert werden
-              </p>
             </div>
 
             <div className="space-y-2">
