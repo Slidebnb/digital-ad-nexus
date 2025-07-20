@@ -321,7 +321,10 @@ export function ProfileSettings() {
         description: "Profilbild wurde erfolgreich hochgeladen."
       });
 
-      // Force immediate profile reload
+      // Sofort die Komponente mit neuer URL aktualisieren
+      setProfile(prev => prev ? {...prev, avatar_url: publicUrl} : null);
+      
+      // Zusätzlich Daten neu laden
       await fetchProfileData();
 
     } catch (error) {
