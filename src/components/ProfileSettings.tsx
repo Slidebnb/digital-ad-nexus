@@ -242,7 +242,7 @@ export function ProfileSettings() {
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* UNVERÄNDERBARE GRUNDINFORMATIONEN */}
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="border-muted bg-muted/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-blue-600" />
@@ -253,9 +253,9 @@ export function ProfileSettings() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert className="border-blue-200 bg-blue-50">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
+            <Alert className="border-muted bg-muted/50">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <AlertDescription>
                 Diese Daten stammen aus Ihrer Registrierung und können nur über den Support geändert werden.
               </AlertDescription>
             </Alert>
@@ -263,7 +263,7 @@ export function ProfileSettings() {
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={profile?.avatar_url || "/placeholder-avatar.jpg"} />
+                <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback className="text-lg">
                   {profile?.full_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
@@ -274,7 +274,7 @@ export function ProfileSettings() {
                   Profilbild (Support)
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Änderungen nur über Support möglich
+                  {profile?.avatar_url ? '✅ Profilbild aus Datenbank geladen' : '📷 Kein Profilbild hinterlegt - Support kontaktieren'}
                 </p>
               </div>
             </div>
@@ -283,7 +283,7 @@ export function ProfileSettings() {
               {/* UNVERÄNDERBARE FELDER */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Lock className="h-3 w-3 text-blue-600" />
+                  <Lock className="h-3 w-3 text-muted-foreground" />
                   E-Mail-Adresse
                 </Label>
                 <Input
@@ -298,7 +298,7 @@ export function ProfileSettings() {
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Lock className="h-3 w-3 text-blue-600" />
+                  <Lock className="h-3 w-3 text-muted-foreground" />
                   Vollständiger Name
                 </Label>
                 <Input
@@ -313,7 +313,7 @@ export function ProfileSettings() {
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Lock className="h-3 w-3 text-blue-600" />
+                  <Lock className="h-3 w-3 text-muted-foreground" />
                   Stadt
                 </Label>
                 <Input
@@ -328,7 +328,7 @@ export function ProfileSettings() {
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Lock className="h-3 w-3 text-blue-600" />
+                  <Lock className="h-3 w-3 text-muted-foreground" />
                   Telefonnummer
                 </Label>
                 <Input
@@ -344,7 +344,7 @@ export function ProfileSettings() {
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <Lock className="h-3 w-3 text-blue-600" />
+                <Lock className="h-3 w-3 text-muted-foreground" />
                 Registriert seit
               </Label>
               <Input
