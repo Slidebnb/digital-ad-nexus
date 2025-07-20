@@ -5,6 +5,7 @@ import { AdminDashboard } from "@/components/AdminDashboard";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { logger } from "@/utils/logger";
+import { PageLayout } from "@/components/PageLayout";
 
 export default function Dashboard() {
   const { user, loading, isAdmin, userRole } = useAuth();
@@ -35,11 +36,11 @@ export default function Dashboard() {
   logger.debug('Rendering dashboard for role', 'Dashboard', { userRole, isAdmin });
   
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-background">
+    <PageLayout>
+      <div className="container mx-auto px-4 py-6 md:py-8">
         {isAdmin ? <AdminDashboard /> : <UserDashboard />}
         <MobileBottomNavigation />
       </div>
-    </ErrorBoundary>
+    </PageLayout>
   );
 }
