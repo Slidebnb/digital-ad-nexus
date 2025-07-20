@@ -21,8 +21,19 @@ serve(async (req) => {
 
     console.log(`Processing payment: ${paymentId}, TX: ${transactionHash}`)
 
-    // Simulate blockchain verification (in production, use actual blockchain APIs)
-    const verificationResult = await simulateBlockchainVerification(transactionHash, cryptocurrency)
+    // Verify Solana transaction
+    let verificationResult;
+    if (cryptocurrency === 'SOL') {
+      verificationResult = await verifySolanaTransaction(transactionHash);
+    } else {
+      // For other cryptocurrencies, use existing simulation
+      verificationResult = {
+        success: Math.random() > 0.1,
+        confirmations: Math.floor(Math.random() * 10) + 1,
+        blockHeight: Math.floor(Math.random() * 1000000),
+        verified: true
+      };
+    }
 
     if (!verificationResult.success) {
       // Update payment as failed
@@ -50,8 +61,9 @@ serve(async (req) => {
       })
       .eq('crypto_payment_id', paymentId)
 
-    // If enough confirmations, confirm the payment
-    if (verificationResult.confirmations >= 3) {
+    // If enough confirmations, confirm the payment (Solana needs fewer confirmations)
+    const requiredConfirmations = cryptocurrency === 'SOL' ? 1 : 3;
+    if (verificationResult.confirmations >= requiredConfirmations) {
       const { data: payment } = await supabaseClient
         .from('crypto_payments')
         .select('*')
@@ -96,20 +108,74 @@ serve(async (req) => {
   }
 })
 
-async function simulateBlockchainVerification(txHash: string, crypto: string) {
-  // Simulate API calls to blockchain explorers
-  // In production, use actual APIs like:
-  // - Solana: https://api.solana.com
-  // - Bitcoin: https://blockstream.info/api
-  // - Ethereum: https://api.etherscan.io
-  
-  await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate network delay
-  
-  return {
-    success: Math.random() > 0.1, // 90% success rate
-    confirmations: Math.floor(Math.random() * 10) + 1,
-    blockHeight: Math.floor(Math.random() * 1000000),
-    verified: true
+async function verifySolanaTransaction(txHash: string) {
+  try {
+    // Use Solana RPC endpoint to verify transaction
+    const response = await fetch('https://api.mainnet-beta.solana.com', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getTransaction',
+        params: [
+          txHash,
+          {
+            encoding: 'json',
+            commitment: 'confirmed'
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.result && data.result.meta && data.result.meta.err === null) {
+      // Transaction exists and is successful
+      const slot = data.result.slot;
+      
+      // Get current slot to calculate confirmations
+      const currentSlotResponse = await fetch('https://api.mainnet-beta.solana.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getSlot',
+          params: [{ commitment: 'confirmed' }]
+        })
+      });
+
+      const currentSlotData = await currentSlotResponse.json();
+      const confirmations = currentSlotData.result - slot;
+
+      return {
+        success: true,
+        confirmations: Math.max(1, confirmations),
+        blockHeight: slot,
+        verified: true,
+        amount: data.result.meta.postBalances?.[1] - data.result.meta.preBalances?.[1] || 0
+      };
+    }
+    
+    return {
+      success: false,
+      confirmations: 0,
+      blockHeight: 0,
+      verified: false
+    };
+  } catch (error) {
+    console.error('Solana verification error:', error);
+    return {
+      success: false,
+      confirmations: 0,
+      blockHeight: 0,
+      verified: false
+    };
   }
 }
 

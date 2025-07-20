@@ -1,59 +1,45 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
-import { useCryptoPrices } from "@/hooks/useCryptoPrices";
-import { CryptoPaymentModal } from "./CryptoPaymentModal";
-import { WalletConnectModal } from "./WalletConnectModal";
-import { TrendingUp, Zap, Star, Info, Wallet, CreditCard } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Star, Zap, Target, TrendingUp, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { SolanaBoostPayment } from './SolanaBoostPayment';
 
 interface BoostPackage {
   id: number;
   name: string;
   description: string;
   price_eur: number;
-  price_sol?: number;
-  price_btc?: number;
-  price_eth?: number;
+  price_sol: number;
   duration_days: number;
   features: string[];
-  crypto_enabled: boolean;
 }
 
 interface BoostAdModalProps {
-  children: React.ReactNode;
+  isOpen: boolean;
+  onClose: () => void;
+  adId: string;
 }
 
-export function BoostAdModal({ children }: BoostAdModalProps) {
-  const { user } = useAuth();
-  const { userAds } = useProfile();
-  const { convertEurToCrypto, formatCryptoAmount, getCryptoSymbol, prices } = useCryptoPrices();
-  const [open, setOpen] = useState(false);
-  const [selectedAd, setSelectedAd] = useState<string>("");
-  const [selectedPackage, setSelectedPackage] = useState<string>("");
-  const [packages, setPackages] = useState<BoostPackage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'eur' | 'crypto'>('eur');
-  const [showCryptoPayment, setShowCryptoPayment] = useState(false);
-
-  const activeAds = userAds.filter(ad => ad.status === 'active');
+const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) => {
+  const { toast } = useToast();
+  const [boostPackages, setBoostPackages] = useState<BoostPackage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPackage, setSelectedPackage] = useState<BoostPackage | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       fetchBoostPackages();
     }
-  }, [open]);
+  }, [isOpen]);
 
   const fetchBoostPackages = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('boost_packages')
         .select('*')
@@ -61,292 +47,139 @@ export function BoostAdModal({ children }: BoostAdModalProps) {
         .order('price_eur', { ascending: true });
 
       if (error) throw error;
-      setPackages(data || []);
+      setBoostPackages(data || []);
     } catch (error) {
       console.error('Error fetching boost packages:', error);
-    }
-  };
-
-  const handleBoost = async () => {
-    if (!selectedAd || !selectedPackage || !user?.id) return;
-
-    const selectedPackageData = packages.find(p => p.id.toString() === selectedPackage);
-    if (!selectedPackageData) return;
-
-    if (paymentMethod === 'crypto') {
-      setShowCryptoPayment(true);
-      return;
-    }
-
-    // EUR Payment (existing logic)
-    setLoading(true);
-    try {
-      const boostEnd = new Date();
-      boostEnd.setDate(boostEnd.getDate() + selectedPackageData.duration_days);
-
-      const { error } = await supabase
-        .from('boosts')
-        .insert({
-          user_id: user.id,
-          ad_id: selectedAd,
-          boost_type: 'paid',
-          boost_start: new Date().toISOString(),
-          boost_end: boostEnd.toISOString()
-        });
-
-      if (error) throw error;
-
-      // Update ad as boosted
-      await supabase
-        .from('ads')
-        .update({ 
-          boosted_until: boostEnd.toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedAd);
-
-      setOpen(false);
-      setSelectedAd("");
-      setSelectedPackage("");
-      
-      alert(`Anzeige erfolgreich für ${selectedPackageData.duration_days} Tage geboostet!`);
-    } catch (error) {
-      console.error('Error boosting ad:', error);
-      alert('Fehler beim Boosten der Anzeige. Bitte versuchen Sie es später erneut.');
+      toast({
+        title: "Fehler",
+        description: "Boost-Pakete konnten nicht geladen werden.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCryptoPaymentComplete = (paymentId: string) => {
-    setShowCryptoPayment(false);
-    setOpen(false);
-    setSelectedAd("");
-    setSelectedPackage("");
+  const handleSelectPackage = (pkg: BoostPackage) => {
+    setSelectedPackage(pkg);
+    setShowPayment(true);
   };
 
-  const selectedPackageData = packages.find(p => p.id.toString() === selectedPackage);
+  const handlePaymentSuccess = () => {
+    toast({
+      title: "Anzeige geboostet!",
+      description: `Ihre Anzeige wird für ${selectedPackage?.duration_days} Tage hervorgehoben.`,
+    });
+    onClose();
+  };
+
+  const handleBackToPackages = () => {
+    setShowPayment(false);
+    setSelectedPackage(null);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Anzeige Boosten
+            {showPayment && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToPackages}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <Zap className="h-5 w-5 text-yellow-500" />
+            {showPayment ? 'Krypto-Zahlung' : 'Anzeige boosten'}
           </DialogTitle>
           <DialogDescription>
-            Steigern Sie die Sichtbarkeit Ihrer Anzeige und erreichen Sie mehr potentielle Käufer.
+            {showPayment
+              ? 'Bezahlen Sie sicher mit Solana (SOL)'
+              : 'Erhöhen Sie die Sichtbarkeit Ihrer Anzeige und erreichen Sie mehr potenzielle Käufer.'
+            }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Anzeige auswählen */}
-          <div className="space-y-3">
-            <h3 className="font-medium">Anzeige auswählen</h3>
-            <Select value={selectedAd} onValueChange={setSelectedAd}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wählen Sie eine Anzeige zum Boosten" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeAds.length === 0 ? (
-                  <SelectItem value="" disabled>
-                    Keine aktiven Anzeigen verfügbar
-                  </SelectItem>
-                ) : (
-                  activeAds.map((ad) => (
-                    <SelectItem key={ad.id} value={ad.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span className="truncate">{ad.title}</span>
-                        <span className="text-primary font-medium ml-2">
-                          €{ad.price}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+        {showPayment && selectedPackage ? (
+          <SolanaBoostPayment
+            adId={adId}
+            boostPackage={selectedPackage}
+            onPaymentSuccess={handlePaymentSuccess}
+            onCancel={handleBackToPackages}
+          />
+        ) : loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-
-          {/* Payment Method Selection */}
-          <div className="space-y-3">
-            <h3 className="font-medium">Zahlungsmethode</h3>
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="payment-eur"
-                  checked={paymentMethod === 'eur'}
-                  onCheckedChange={() => setPaymentMethod('eur')}
-                />
-                <Label htmlFor="payment-eur" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  EUR (Klassisch)
-                </Label>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-green-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">SOL</span>
+                </div>
+                <span className="font-medium">Nur Krypto-Zahlungen akzeptiert</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="payment-crypto"
-                  checked={paymentMethod === 'crypto'}
-                  onCheckedChange={() => setPaymentMethod('crypto')}
-                />
-                <Label htmlFor="payment-crypto" className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  Kryptowährung
-                </Label>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Alle Boost-Pakete werden ausschließlich mit Solana (SOL) bezahlt. 
+                Sichere, schnelle und dezentrale Transaktionen.
+              </p>
             </div>
-            
-            {paymentMethod === 'crypto' && (
-              <Alert>
-                <Wallet className="h-4 w-4" />
-                <AlertDescription className="flex items-center justify-between">
-                  <span>Bezahlen Sie mit SOL, BTC oder ETH</span>
-                  <WalletConnectModal>
-                    <Button size="sm" variant="outline">Wallet verbinden</Button>
-                  </WalletConnectModal>
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
 
-          {/* Boost-Pakete */}
-          <div className="space-y-3">
-            <h3 className="font-medium">Boost-Paket wählen</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {packages.map((pkg) => (
-                <Card 
-                  key={pkg.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    selectedPackage === pkg.id.toString() 
-                      ? 'ring-2 ring-primary bg-primary/5' 
-                      : 'hover:border-primary/50'
-                  }`}
-                  onClick={() => setSelectedPackage(pkg.id.toString())}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {pkg.name === 'Premium' && <Star className="h-4 w-4 text-warning" />}
-                        {pkg.name === 'Standard' && <Zap className="h-4 w-4 text-secondary" />}
-                        {pkg.name === 'Basic' && <TrendingUp className="h-4 w-4 text-accent" />}
-                        {pkg.name}
-                      </CardTitle>
-                      <Badge variant="outline">
-                        {pkg.duration_days} Tage
-                      </Badge>
+            <div className="grid gap-4">
+              {boostPackages.map((pkg) => (
+                <Card key={pkg.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {pkg.name === 'Basic Boost' && <Star className="h-4 w-4 text-blue-500" />}
+                          {pkg.name === 'Premium Boost' && <Target className="h-4 w-4 text-purple-500" />}
+                          {pkg.name === 'Ultimate Boost' && <TrendingUp className="h-4 w-4 text-orange-500" />}
+                          {pkg.name}
+                        </CardTitle>
+                        <CardDescription>{pkg.description}</CardDescription>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">
+                          {pkg.price_sol?.toFixed(4)} SOL
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          ~€{pkg.price_eur} • {pkg.duration_days} Tage
+                        </div>
+                      </div>
                     </div>
-                    <CardDescription>{pkg.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {/* Price Display */}
-                      <div className="space-y-2">
-                        <div className="text-2xl font-bold text-primary">
-                          €{pkg.price_eur}
-                        </div>
-                        
-                        {paymentMethod === 'crypto' && pkg.crypto_enabled && (
-                          <div className="space-y-1 text-sm">
-                            {pkg.price_sol && prices.SOL && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">SOL:</span>
-                                <span className="font-medium">◎ {formatCryptoAmount(pkg.price_sol, 'SOL')}</span>
-                              </div>
-                            )}
-                            {pkg.price_btc && prices.BTC && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">BTC:</span>
-                                <span className="font-medium">₿ {formatCryptoAmount(pkg.price_btc, 'BTC')}</span>
-                              </div>
-                            )}
-                            {pkg.price_eth && prices.ETH && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">ETH:</span>
-                                <span className="font-medium">Ξ {formatCryptoAmount(pkg.price_eth, 'ETH')}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                      <div className="flex flex-wrap gap-2">
+                        {pkg.features.map((feature, index) => (
+                          <Badge key={index} variant="secondary">
+                            {feature}
+                          </Badge>
+                        ))}
                       </div>
-                      
-                      {pkg.features && pkg.features.length > 0 && (
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-medium">Features:</h4>
-                          <ul className="text-sm text-muted-foreground space-y-1">
-                            {pkg.features.map((feature, index) => (
-                              <li key={index} className="flex items-center gap-2">
-                                <div className="h-1.5 w-1.5 bg-primary rounded-full" />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      <Button 
+                        onClick={() => handleSelectPackage(pkg)}
+                        className="w-full"
+                        variant={pkg.name === 'Ultimate Boost' ? 'default' : 'outline'}
+                      >
+                        Mit SOL bezahlen
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </div>
-
-          {/* Zusammenfassung */}
-          {selectedAd && selectedPackageData && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-1">
-                  <div><strong>Anzeige:</strong> {activeAds.find(ad => ad.id === selectedAd)?.title}</div>
-                  <div><strong>Paket:</strong> {selectedPackageData.name}</div>
-                  <div><strong>Dauer:</strong> {selectedPackageData.duration_days} Tage</div>
-                  <div><strong>Preis:</strong> €{selectedPackageData.price_eur}</div>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Buttons */}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button 
-              onClick={handleBoost}
-              disabled={!selectedAd || !selectedPackage || loading || activeAds.length === 0}
-              className="min-w-24"
-            >
-              {loading ? "Wird verarbeitet..." : paymentMethod === 'crypto' ? "Mit Krypto bezahlen" : "Jetzt Boosten"}
-            </Button>
-          </div>
-
-          {activeAds.length === 0 && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Sie haben keine aktiven Anzeigen zum Boosten. Erstellen Sie zuerst eine Anzeige.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        {/* Crypto Payment Modal */}
-        {selectedPackageData && (
-          <CryptoPaymentModal
-            open={showCryptoPayment}
-            onOpenChange={setShowCryptoPayment}
-            paymentType="boost"
-            eurAmount={selectedPackageData.price_eur}
-            title="Anzeige Boosten - Krypto Zahlung"
-            description={`${selectedPackageData.name} Paket für ${selectedPackageData.duration_days} Tage`}
-            onPaymentComplete={handleCryptoPaymentComplete}
-            adId={selectedAd}
-            packageId={selectedPackageData.id}
-          />
         )}
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default BoostAdModal;
