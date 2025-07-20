@@ -78,7 +78,7 @@ export function ProfileSettings() {
     if (!user) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 Live Profile Update');
+      console.log('Profile Update');
       fetchProfileData();
     }, 15000);
 
@@ -100,7 +100,7 @@ export function ProfileSettings() {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🚀 Real-time Profil-Einstellungen Update:', payload);
+          console.log('Real-time Profil-Einstellungen Update:', payload);
           fetchProfileData();
         }
       )
@@ -111,7 +111,7 @@ export function ProfileSettings() {
     if (!user) return;
 
     try {
-      console.log('📡 Live-Abfrage: Profil-Einstellungen für User:', user.id);
+      console.log('Profil-Einstellungen für User:', user.id);
       setFetchLoading(true);
 
       // Profil-Daten abrufen
@@ -145,7 +145,7 @@ export function ProfileSettings() {
         created_at: authUser.created_at || ''
       };
 
-      console.log('✅ Profil-Daten geladen:', fullProfile);
+      console.log('Profil-Daten geladen:', fullProfile);
       setProfile(fullProfile);
 
       // Editierbare Daten setzen
@@ -158,7 +158,7 @@ export function ProfileSettings() {
       });
 
     } catch (error) {
-      console.error('❌ Fehler beim Laden der Profil-Daten:', error);
+      console.error('Fehler beim Laden der Profil-Daten:', error);
     } finally {
       setFetchLoading(false);
     }
@@ -170,7 +170,7 @@ export function ProfileSettings() {
 
     setLoading(true);
     try {
-      console.log('💾 Speichere editierbare Profil-Daten:', editableData);
+      console.log('Speichere editierbare Profil-Daten:', editableData);
 
       const { error } = await supabase
         .from('profiles')
@@ -183,7 +183,7 @@ export function ProfileSettings() {
       if (error) throw error;
 
       toast({
-        title: "✅ Gespeichert",
+        title: "Gespeichert",
         description: "Ihre Profileinstellungen wurden erfolgreich aktualisiert."
       });
 
@@ -193,7 +193,7 @@ export function ProfileSettings() {
     } catch (error) {
       console.error('Fehler beim Speichern:', error);
       toast({
-        title: "❌ Fehler",
+        title: "Fehler",
         description: "Profil konnte nicht gespeichert werden.",
         variant: "destructive"
       });
@@ -212,7 +212,7 @@ export function ProfileSettings() {
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-2">🔄 Live-Profildaten werden geladen...</span>
+            <span className="ml-2">Profildaten werden geladen...</span>
           </div>
         </CardContent>
       </Card>
@@ -223,15 +223,12 @@ export function ProfileSettings() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">🔴 Live-Profileinstellungen</h2>
+          <h2 className="text-xl font-semibold">Profileinstellungen</h2>
           <p className="text-sm text-muted-foreground">
-            📡 Automatische Updates alle 15 Sekunden
+            Verwalten Sie Ihre persönlichen Informationen
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="animate-pulse">
-            🔄 Live Updates
-          </Badge>
           <VerificationBadge 
             verified={profile?.verified || false} 
             verificationLevel={profile?.verification_level || 'none'} 
@@ -245,8 +242,8 @@ export function ProfileSettings() {
         <Card className="border-muted bg-muted/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-blue-600" />
-              🔒 Grundinformationen (Registrierung)
+              <Lock className="h-5 w-5" />
+              Grundinformationen (Registrierung)
               <Badge variant="outline" className="text-xs">
                 Unveränderbar
               </Badge>
@@ -274,7 +271,7 @@ export function ProfileSettings() {
                   Profilbild (Support)
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  {profile?.avatar_url ? '✅ Profilbild aus Datenbank geladen' : '📷 Kein Profilbild hinterlegt - Support kontaktieren'}
+                  {profile?.avatar_url ? 'Profilbild aus Datenbank geladen' : 'Kein Profilbild hinterlegt - Support kontaktieren'}
                 </p>
               </div>
             </div>
@@ -292,7 +289,7 @@ export function ProfileSettings() {
                   className="bg-muted cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground">
-                  📧 Aus Registrierung - Support für Änderungen
+                  Aus Registrierung - Support für Änderungen
                 </p>
               </div>
 
@@ -307,7 +304,7 @@ export function ProfileSettings() {
                   className="bg-muted cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground">
-                  👤 Aus Registrierung - Support für Änderungen
+                  Aus Registrierung - Support für Änderungen
                 </p>
               </div>
 
@@ -322,7 +319,7 @@ export function ProfileSettings() {
                   className="bg-muted cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground">
-                  🏙️ Aus Registrierung - Support für Änderungen
+                  Aus Registrierung - Support für Änderungen
                 </p>
               </div>
 
@@ -337,7 +334,7 @@ export function ProfileSettings() {
                   className="bg-muted cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground">
-                  📱 Aus Registrierung - Support für Änderungen
+                  Aus Registrierung - Support für Änderungen
                 </p>
               </div>
             </div>
@@ -361,7 +358,7 @@ export function ProfileSettings() {
             <Alert className="border-yellow-200 bg-yellow-50">
               <HelpCircle className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800">
-                💬 <strong>Support kontaktieren:</strong> Für Änderungen der Grunddaten wenden Sie sich an unser Support-Team.
+                <strong>Support kontaktieren:</strong> Für Änderungen der Grunddaten wenden Sie sich an unser Support-Team.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -373,8 +370,8 @@ export function ProfileSettings() {
         <Card className="border-green-200 bg-green-50/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-green-600" />
-              ✏️ Zusätzliche Informationen
+              <User className="h-5 w-5" />
+              Zusätzliche Informationen
               <Badge variant="default" className="text-xs bg-green-600">
                 Änderbar
               </Badge>
@@ -392,7 +389,7 @@ export function ProfileSettings() {
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                ✏️ Diese Information kann jederzeit geändert werden
+                Diese Information kann jederzeit geändert werden
               </p>
             </div>
 
@@ -423,7 +420,7 @@ export function ProfileSettings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
-              ⚙️ Präferenzen & Einstellungen
+              Präferenzen & Einstellungen
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -462,7 +459,7 @@ export function ProfileSettings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              🛡️ Verifizierung
+              Verifizierung
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -471,8 +468,8 @@ export function ProfileSettings() {
                 <p className="font-medium">Account Verifizierung</p>
                 <p className="text-sm text-muted-foreground">
                   {profile?.verified 
-                    ? "✅ Ihr Account ist verifiziert. Sie können Anzeigen erstellen."
-                    : "❌ Verifizieren Sie Ihren Account, um Anzeigen erstellen zu können."
+                    ? "Ihr Account ist verifiziert. Sie können Anzeigen erstellen."
+                    : "Verifizieren Sie Ihren Account, um Anzeigen erstellen zu können."
                   }
                 </p>
               </div>
@@ -496,7 +493,7 @@ export function ProfileSettings() {
             onClick={fetchProfileData}
             disabled={loading}
           >
-            🔄 Neu laden
+            Neu laden
           </Button>
           <Button type="submit" disabled={loading} className="min-w-[140px]">
             {loading ? (
@@ -504,7 +501,7 @@ export function ProfileSettings() {
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                💾 Änderungen speichern
+                Änderungen speichern
               </>
             )}
           </Button>
