@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Zap, Target, TrendingUp, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { EnhancedSolanaPayment } from './EnhancedSolanaPayment';
+import { SolanaPaymentFlow } from './SolanaPaymentFlow';
 
 interface BoostPackage {
   id: number;
@@ -72,6 +72,11 @@ const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) =>
       description: `Ihre Anzeige wird für ${selectedPackage?.duration_days} Tage hervorgehoben.`,
     });
     onClose();
+    
+    // Refresh the page to show updated boost status
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
 
   const handleBackToPackages = () => {
@@ -99,14 +104,14 @@ const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) =>
           </DialogTitle>
           <DialogDescription>
             {showPayment
-              ? 'Scannen Sie einfach den QR-Code mit Ihrer Solana Wallet'
+              ? 'Scannen Sie einfach den QR-Code mit Ihrer Solana Wallet - vollautomatisch!'
               : 'Erhöhen Sie die Sichtbarkeit Ihrer Anzeige und erreichen Sie mehr potenzielle Käufer.'
             }
           </DialogDescription>
         </DialogHeader>
 
         {showPayment && selectedPackage ? (
-          <EnhancedSolanaPayment
+          <SolanaPaymentFlow
             adId={adId}
             boostPackage={selectedPackage}
             onPaymentSuccess={handlePaymentSuccess}
@@ -123,11 +128,12 @@ const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) =>
                 <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-green-400 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">SOL</span>
                 </div>
-                <span className="font-medium">Automatische Krypto-Zahlungen</span>
+                <span className="font-medium">Vollautomatische Krypto-Zahlungen</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Einfach QR-Code scannen und bezahlen - vollautomatisch mit Solana (SOL). 
-                Keine manuelle Eingabe von Transaktions-IDs erforderlich!
+                Keine manuelle Eingabe von Transaktions-IDs erforderlich! 
+                Automatische Blockchain-Verifikation und sofortige Boost-Aktivierung.
               </p>
             </div>
 

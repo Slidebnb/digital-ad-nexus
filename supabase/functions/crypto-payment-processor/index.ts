@@ -33,7 +33,16 @@ serve(async (req) => {
       throw new Error('Payment not found')
     }
 
-    // Verify Solana transaction automatically
+    // Update status to processing
+    await supabaseClient
+      .from('crypto_payments')
+      .update({
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', paymentId)
+
+    // Verify blockchain transaction automatically
     let verificationResult;
     if (blockchain === 'solana') {
       verificationResult = await verifySolanaTransactionByAmount(
@@ -50,8 +59,14 @@ serve(async (req) => {
 
     if (!verificationResult.success) {
       console.log('Payment verification failed:', verificationResult.error);
+      
+      // Don't immediately fail - transaction might still be pending
       return new Response(
-        JSON.stringify({ success: false, error: 'Transaction not found or invalid' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Transaction not found yet - still checking blockchain...',
+          status: 'processing'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -78,17 +93,20 @@ serve(async (req) => {
         confirmation_blocks: verificationResult.confirmations || 1
       })
 
-    // Process the payment action
+    // Process the payment action (boost the ad)
     await processPaymentAction(supabaseClient, payment)
 
     // Send success notification
     await sendPaymentNotification(supabaseClient, payment, 'confirmed')
 
+    console.log(`Payment ${paymentId} successfully processed and confirmed`)
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         status: 'confirmed',
-        transactionHash: verificationResult.transactionHash
+        transactionHash: verificationResult.transactionHash,
+        message: 'Payment confirmed and boost activated!'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -104,6 +122,8 @@ serve(async (req) => {
 
 async function verifySolanaTransactionByAmount(walletAddress: string, expectedAmount: number, since: string) {
   try {
+    console.log(`Verifying Solana payment: ${expectedAmount} SOL to ${walletAddress} since ${since}`)
+    
     // Get recent transactions for the wallet
     const response = await fetch('https://api.mainnet-beta.solana.com', {
       method: 'POST',
@@ -117,7 +137,7 @@ async function verifySolanaTransactionByAmount(walletAddress: string, expectedAm
         params: [
           walletAddress,
           {
-            limit: 10,
+            limit: 20, // Increased limit to catch more transactions
             before: null
           }
         ]
@@ -127,11 +147,16 @@ async function verifySolanaTransactionByAmount(walletAddress: string, expectedAm
     const signaturesData = await response.json();
     
     if (!signaturesData.result) {
-      return { success: false, error: 'No transactions found' };
+      return { success: false, error: 'No transactions found for wallet' };
     }
+
+    console.log(`Found ${signaturesData.result.length} recent transactions`)
 
     // Check each transaction for the expected amount
     for (const sigInfo of signaturesData.result) {
+      // Skip error transactions
+      if (sigInfo.err) continue;
+
       const txResponse = await fetch('https://api.mainnet-beta.solana.com', {
         method: 'POST',
         headers: {
@@ -145,7 +170,8 @@ async function verifySolanaTransactionByAmount(walletAddress: string, expectedAm
             sigInfo.signature,
             {
               encoding: 'json',
-              commitment: 'confirmed'
+              commitment: 'confirmed',
+              maxSupportedTransactionVersion: 0
             }
           ]
         })
@@ -154,34 +180,41 @@ async function verifySolanaTransactionByAmount(walletAddress: string, expectedAm
       const txData = await txResponse.json();
       
       if (txData.result && txData.result.meta && txData.result.meta.err === null) {
-        // Check if transaction amount matches expected amount (within tolerance)
+        // Check if transaction is recent enough
+        const txTime = txData.result.blockTime * 1000;
+        const paymentTime = new Date(since).getTime();
+        
+        if (txTime < paymentTime - 60000) { // Skip transactions older than payment creation (with 1 min tolerance)
+          continue;
+        }
+
+        // Check transaction amount
         const postBalances = txData.result.meta.postBalances;
         const preBalances = txData.result.meta.preBalances;
         
         if (postBalances && preBalances && postBalances.length > 1 && preBalances.length > 1) {
-          const receivedAmount = (postBalances[1] - preBalances[1]) / 1000000000; // Convert lamports to SOL
-          const tolerance = 0.0001; // Allow small differences due to fees
+          // Calculate received amount (convert lamports to SOL)
+          const receivedAmount = (postBalances[1] - preBalances[1]) / 1000000000;
+          const tolerance = 0.001; // Allow small differences due to fees/rounding
           
-          if (Math.abs(receivedAmount - expectedAmount) <= tolerance) {
-            // Check if transaction is recent enough
-            const txTime = txData.result.blockTime * 1000;
-            const paymentTime = new Date(since).getTime();
-            
-            if (txTime >= paymentTime - 60000) { // 1 minute tolerance
-              return {
-                success: true,
-                transactionHash: sigInfo.signature,
-                confirmations: 1,
-                blockTime: txTime,
-                amount: receivedAmount
-              };
-            }
+          console.log(`Transaction ${sigInfo.signature}: received ${receivedAmount} SOL, expected ${expectedAmount} SOL`)
+          
+          if (Math.abs(receivedAmount - expectedAmount) <= tolerance && receivedAmount > 0) {
+            console.log(`✅ Found matching transaction: ${sigInfo.signature}`)
+            return {
+              success: true,
+              transactionHash: sigInfo.signature,
+              confirmations: 1,
+              blockTime: txTime,
+              amount: receivedAmount
+            };
           }
         }
       }
     }
     
-    return { success: false, error: 'No matching transaction found' };
+    console.log('❌ No matching transaction found')
+    return { success: false, error: 'No matching transaction found for the expected amount' };
   } catch (error) {
     console.error('Solana verification error:', error);
     return { success: false, error: error.message };
@@ -189,6 +222,8 @@ async function verifySolanaTransactionByAmount(walletAddress: string, expectedAm
 }
 
 async function processPaymentAction(supabaseClient: any, payment: any) {
+  console.log(`Processing payment action for type: ${payment.payment_type}`)
+  
   switch (payment.payment_type) {
     case 'boost':
       if (payment.ad_id && payment.boost_package_id) {
@@ -204,6 +239,8 @@ async function processPaymentAction(supabaseClient: any, payment: any) {
 }
 
 async function processBoostPayment(supabaseClient: any, payment: any) {
+  console.log(`Processing boost payment for ad ${payment.ad_id}`)
+  
   // Get boost package details
   const { data: boostPackage } = await supabaseClient
     .from('boost_packages')
@@ -216,13 +253,19 @@ async function processBoostPayment(supabaseClient: any, payment: any) {
     boostEnd.setDate(boostEnd.getDate() + boostPackage.duration_days)
 
     // Update ad with boost
-    await supabaseClient
+    const { error: adError } = await supabaseClient
       .from('ads')
       .update({
         boosted_until: boostEnd.toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', payment.ad_id)
+
+    if (adError) {
+      console.error('Error updating ad boost:', adError)
+    } else {
+      console.log(`✅ Ad ${payment.ad_id} boosted until ${boostEnd.toISOString()}`)
+    }
 
     // Create boost record
     await supabaseClient
@@ -250,17 +293,22 @@ async function processPremiumPayment(supabaseClient: any, payment: any) {
 
 async function sendPaymentNotification(supabaseClient: any, payment: any, status: string) {
   // Create notification record
-  await supabaseClient
-    .from('notifications')
-    .insert({
-      user_id: payment.user_id,
-      type: 'payment_update',
-      title: `Automatische ${payment.cryptocurrency} Zahlung ${status === 'confirmed' ? 'bestätigt' : 'fehlgeschlagen'}`,
-      message: `Ihre automatische ${payment.cryptocurrency} Zahlung über €${payment.amount_eur} wurde ${status === 'confirmed' ? 'erfolgreich verarbeitet' : 'nicht bestätigt'}.`,
-      data: {
-        payment_id: payment.id,
-        amount: payment.amount_crypto,
-        cryptocurrency: payment.cryptocurrency
-      }
-    })
+  try {
+    await supabaseClient
+      .from('notifications')
+      .insert({
+        user_id: payment.user_id,
+        type: 'payment_update',
+        title: `Automatische ${payment.cryptocurrency} Zahlung ${status === 'confirmed' ? 'bestätigt' : 'fehlgeschlagen'}`,
+        message: `Ihre automatische ${payment.cryptocurrency} Zahlung über €${payment.amount_eur} wurde ${status === 'confirmed' ? 'erfolgreich verarbeitet und Ihr Boost aktiviert' : 'nicht bestätigt'}.`,
+        data: {
+          payment_id: payment.id,
+          amount: payment.amount_crypto,
+          cryptocurrency: payment.cryptocurrency,
+          status: status
+        }
+      })
+  } catch (error) {
+    console.error('Error creating notification:', error)
+  }
 }
