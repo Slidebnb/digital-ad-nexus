@@ -11,6 +11,8 @@ interface LazyImageProps {
   priority?: boolean;
   onLoad?: () => void;
   onError?: () => void;
+  onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export function LazyImage({
@@ -21,7 +23,9 @@ export function LazyImage({
   blurDataURL,
   priority = false,
   onLoad,
-  onError
+  onError,
+  onClick,
+  style
 }: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -60,7 +64,11 @@ export function LazyImage({
   };
 
   return (
-    <div className={cn("relative overflow-hidden bg-muted", className)}>
+    <div 
+      className={cn("relative overflow-hidden bg-muted", className)}
+      style={style}
+      onClick={onClick}
+    >
       {/* Blur Placeholder */}
       {blurDataURL && !isLoaded && (
         <img
@@ -78,7 +86,8 @@ export function LazyImage({
           alt={alt}
           className={cn(
             "w-full h-full object-cover transition-opacity duration-500",
-            isLoaded ? "opacity-100" : "opacity-0"
+            isLoaded ? "opacity-100" : "opacity-0",
+            onClick && "cursor-pointer"
           )}
           onLoad={handleLoad}
           onError={handleError}

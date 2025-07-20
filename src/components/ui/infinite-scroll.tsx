@@ -1,5 +1,6 @@
 
 import { useEffect, useRef, useCallback, ReactNode } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { SkeletonLoader } from "./skeleton-loader";
 
 interface InfiniteScrollProps {
