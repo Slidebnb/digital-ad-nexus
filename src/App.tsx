@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { EnhancedNotificationSystem } from "@/components/EnhancedNotificationSystem";
 import { AuthContext, useAuthProvider } from "@/hooks/useAuth";
 
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
+import { NetworkMonitor } from "@/components/NetworkMonitor";
 import { CookieConsentManager } from "@/components/CookieConsentManager";
 import Index from "./pages/Index";
 import Login from "./pages/LoginSimple";
@@ -28,10 +29,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <ErrorBoundary>
+  <GlobalErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <NetworkMonitor />
           <EnhancedNotificationSystem />
           <BrowserRouter>
             <Routes>
@@ -54,7 +56,7 @@ const App = () => (
         <Sonner />
       </TooltipProvider>
     </QueryClientProvider>
-  </ErrorBoundary>
+  </GlobalErrorBoundary>
 );
 
 export default App;
