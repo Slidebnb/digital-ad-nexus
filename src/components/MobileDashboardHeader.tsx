@@ -24,15 +24,24 @@ export function MobileDashboardHeader() {
   const { user, signOut, isAdmin, userRole } = useAuth();
   const device = useDeviceDetection();
 
-  // Show header for touch devices (mobile + tablet) - Debug logging
-  const showMobileHeader = device.isTouchDevice || device.isMobile || device.isTablet;
+  // Show header for touch devices (mobile + tablet) with fallback
+  const showMobileHeader = device.isTouchDevice || device.isMobile || device.isTablet || device.isIPad;
+  
+  // Additional fallback for small screens
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const fallbackShow = windowWidth < 1024;
+  
+  const finalShowHeader = showMobileHeader || fallbackShow;
   
   console.log('MobileDashboardHeader Debug:', {
     showMobileHeader,
+    fallbackShow,  
+    finalShowHeader,
+    windowWidth,
     device
   });
 
-  if (!showMobileHeader) {
+  if (!finalShowHeader) {
     return null;
   }
 
@@ -50,8 +59,10 @@ export function MobileDashboardHeader() {
         device.isMobile && "px-4 py-3"
       )}>
         <div className="flex items-center gap-3">
-          {/* Responsive Navigation Menu */}
-          <ResponsiveNavigation />
+          {/* Responsive Navigation Menu - Now with enhanced visibility */}
+          <div className="relative z-50">
+            <ResponsiveNavigation />
+          </div>
           
           <div className="flex items-center gap-2">
             <h1 className={cn(
