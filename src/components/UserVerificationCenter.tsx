@@ -40,41 +40,106 @@ export function UserVerificationCenter() {
   useEffect(() => {
     if (user) {
       fetchVerificationStatus();
+      setupRealtimeSubscriptions();
     }
+
+    return () => {
+      // Cleanup subscriptions
+      supabase.removeAllChannels();
+    };
   }, [user]);
+
+  // Real-time Updates alle 10 Sekunden
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      console.log('🔄 Live Status Update - Verifikation');
+      fetchVerificationStatus();
+    }, 10000); // Alle 10 Sekunden
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const setupRealtimeSubscriptions = () => {
+    if (!user) return;
+
+    // Real-time Updates für Verifikationsanträge
+    const verificationsChannel = supabase
+      .channel('verification_requests_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'verification_requests',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🚀 Real-time Verifikationsantrag Update:', payload);
+          fetchVerificationStatus();
+        }
+      )
+      .subscribe();
+
+    // Real-time Updates für Profile
+    const profilesChannel = supabase
+      .channel('profiles_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🚀 Real-time Profil Update:', payload);
+          fetchVerificationStatus();
+        }
+      )
+      .subscribe();
+  };
 
   const fetchVerificationStatus = async () => {
     if (!user) return;
 
     try {
+      console.log('📡 Live-Abfrage: Verifikationsstatus für User:', user.id);
       setFetchLoading(true);
 
       // User-Profile abrufen
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('verified, verification_level, full_name')
         .eq('user_id', user.id)
         .single();
 
-      if (profile) {
+      if (profileError) {
+        console.error('Fehler beim Laden des Profils:', profileError);
+      } else {
+        console.log('✅ Profil geladen:', profile);
         setUserProfile(profile);
       }
 
       // Aktuellste Verifikationsanfrage abrufen
-      const { data: request } = await supabase
+      const { data: request, error: requestError } = await supabase
         .from('verification_requests')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle(); // Verwende maybeSingle() statt single()
 
-      if (request) {
+      if (requestError) {
+        console.error('Fehler beim Laden der Verifikationsanfrage:', requestError);
+      } else {
+        console.log('✅ Verifikationsanfrage geladen:', request);
         setVerificationRequest(request);
       }
 
     } catch (error) {
-      console.error('Fehler beim Laden des Verifikationsstatus:', error);
+      console.error('❌ Fehler beim Laden des Verifikationsstatus:', error);
     } finally {
       setFetchLoading(false);
     }
@@ -129,7 +194,9 @@ export function UserVerificationCenter() {
         description: "Ihr Verifizierungsantrag wurde erfolgreich eingereicht.",
       });
 
-      // Status neu laden
+      // Status sofort neu laden
+      console.log('🔄 Antrag eingereicht - Live-Update wird ausgelöst');
+      setTimeout(() => fetchVerificationStatus(), 500);
       fetchVerificationStatus();
     } catch (error) {
       toast({
@@ -166,7 +233,7 @@ export function UserVerificationCenter() {
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-2">Verifikationsstatus wird geladen...</span>
+            <span className="ml-2">🔄 Live-Status wird abgerufen...</span>
           </div>
         </CardContent>
       </Card>
@@ -180,7 +247,10 @@ export function UserVerificationCenter() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Verifikationsstatus
+            🔴 Live-Verifikationsstatus
+            <Badge variant="outline" className="text-xs animate-pulse">
+              🔄 Live Updates
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -246,7 +316,10 @@ export function UserVerificationCenter() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Ihr Verifikationsantrag
+              🔴 Live-Antrags-Status
+              <Badge variant="outline" className="text-xs animate-pulse">
+                🔄 Auto-Refresh
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -298,12 +371,13 @@ export function UserVerificationCenter() {
             </div>
 
             {verificationRequest.status === 'pending' && (
-              <Alert className="border-yellow-200 bg-yellow-50">
-                <Clock className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-800">
-                  Ihr Antrag wird bearbeitet. Dies kann 1-3 Werktage dauern. Sie erhalten eine E-Mail, sobald die Prüfung abgeschlossen ist.
-                </AlertDescription>
-              </Alert>
+                <Alert className="border-yellow-200 bg-yellow-50">
+                  <Clock className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    🔄 <strong>Live-Status:</strong> Ihr Antrag wird bearbeitet. Updates erfolgen automatisch alle 10 Sekunden. 
+                    Sie erhalten eine E-Mail, sobald die Prüfung abgeschlossen ist.
+                  </AlertDescription>
+                </Alert>
             )}
 
             {verificationRequest.status === 'rejected' && !userProfile?.verified && (
@@ -316,10 +390,14 @@ export function UserVerificationCenter() {
                 </Alert>
                 <Button 
                   variant="outline" 
-                  onClick={() => setVerificationRequest(null)}
+                  onClick={() => {
+                    console.log('🔄 Neuer Antrag - Live-Update wird vorbereitet');
+                    setVerificationRequest(null);
+                    fetchVerificationStatus();
+                  }}
                   className="w-full"
                 >
-                  Neuen Antrag stellen
+                  🔄 Neuen Antrag stellen
                 </Button>
               </div>
             )}
