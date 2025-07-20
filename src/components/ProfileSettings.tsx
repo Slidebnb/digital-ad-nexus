@@ -315,7 +315,15 @@ export function ProfileSettings() {
 
       console.log('Profile update result:', { updateData, updateError });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ UPDATE FAILED:', updateError);
+        throw updateError;
+      }
+
+      if (!updateData || updateData.length === 0) {
+        console.error('❌ NO ROWS UPDATED - RLS Policy Problem!');
+        throw new Error('Profile update failed - no rows affected');
+      }
 
       toast({
         title: "Erfolgreich",
