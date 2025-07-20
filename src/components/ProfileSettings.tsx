@@ -323,10 +323,14 @@ export function ProfileSettings() {
       });
 
       // Sofort die Komponente mit neuer URL aktualisieren
+      console.log('🔄 Updating UI immediately with new avatar URL:', publicUrl);
       setProfile(prev => prev ? {...prev, avatar_url: publicUrl} : null);
       
-      // Zusätzlich Daten neu laden
-      await fetchProfileData();
+      // Warte kurz, dann lade Daten neu
+      setTimeout(async () => {
+        console.log('🔄 Delayed profile reload...');
+        await fetchProfileData();
+      }, 2000);
 
     } catch (error) {
       console.error('❌ Avatar upload failed - Full error details:', {
