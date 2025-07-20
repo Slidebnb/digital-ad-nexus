@@ -77,17 +77,23 @@ export function ProfileSettings() {
     };
   }, [user]);
 
-  // Real-time Updates alle 15 Sekunden
+  // Real-time Updates alle 15 Sekunden - TEMPORÄR DEAKTIVIERT für Avatar-Upload
   useEffect(() => {
     if (!user) return;
 
     const interval = setInterval(() => {
-      console.log('Profile Update');
-      fetchProfileData();
+      console.log('Profile Update - checking if safe to update...');
+      // Nur updaten wenn nicht gerade ein Upload läuft
+      if (!uploadingAvatar) {
+        console.log('Safe to update - refreshing profile');
+        fetchProfileData();
+      } else {
+        console.log('Upload in progress - skipping auto-refresh');
+      }
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, uploadingAvatar]); // uploadingAvatar als Dependency hinzufügen
 
   const setupRealtimeSubscriptions = () => {
     if (!user) return;
@@ -334,11 +340,11 @@ export function ProfileSettings() {
       console.log('🔄 Updating UI immediately with new avatar URL:', publicUrl);
       setProfile(prev => prev ? {...prev, avatar_url: publicUrl} : null);
       
-      // Warte kurz, dann lade Daten neu
+      // Länger warten für DB-Konsistenz und Auto-Refresh stoppen
       setTimeout(async () => {
-        console.log('🔄 Delayed profile reload...');
+        console.log('🔄 Final profile reload after avatar upload...');
         await fetchProfileData();
-      }, 2000);
+      }, 5000); // 5 Sekunden statt 2
 
     } catch (error) {
       console.error('❌ Avatar upload failed - Full error details:', {
