@@ -46,6 +46,14 @@ export function UserDashboard() {
   const { currentTab, setCurrentTab } = useDashboardNavigation('overview');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Debug-Informationen
+  console.log('🎯 UserDashboard rendered', { 
+    user: user?.id, 
+    userRole, 
+    currentTab,
+    device: { isMobile: device.isMobile, isTablet: device.isTablet, isTouchDevice: device.isTouchDevice }
+  });
+
   // Auto-scroll to top when tab changes
   useEffect(() => {
     if (containerRef.current) {
@@ -87,6 +95,9 @@ export function UserDashboard() {
               </Badge>
               <Badge variant="secondary" className="text-xs">
                 Live Updates Aktiv
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                📊 {tabsConfig.length} Funktionen verfügbar
               </Badge>
             </div>
             <DashboardBreadcrumb currentTab={currentTab} />
@@ -136,6 +147,7 @@ export function UserDashboard() {
           >
             {tabsConfig.map((tab) => {
               const Component = tab.component;
+              console.log(`🔧 Rendering tab: ${tab.value}, Component:`, Component.name);
               return (
                 <TabsContent 
                   key={tab.value}
@@ -143,6 +155,12 @@ export function UserDashboard() {
                   className="space-y-6 mt-0 focus-visible:outline-none"
                 >
                   <div className="animate-fade-in">
+                    {/* Debug-Info für aktiven Tab */}
+                    {currentTab === tab.value && (
+                      <div className="mb-4 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
+                        🚀 Aktiver Tab: {tab.label} | Komponente: {Component.name}
+                      </div>
+                    )}
                     <Component />
                   </div>
                 </TabsContent>
