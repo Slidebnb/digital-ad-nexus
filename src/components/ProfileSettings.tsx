@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useProfile } from "@/hooks/useProfile";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { VerificationModal, VerificationBadge } from "@/components/VerificationModal";
 import { 
@@ -21,49 +24,177 @@ import {
   Palette,
   Wallet,
   Save,
-  Upload
+  Upload,
+  Lock,
+  Info,
+  HelpCircle
 } from "lucide-react";
 
+interface UserProfile {
+  full_name: string;
+  bio: string;
+  city: string;
+  phone: string;
+  website: string;
+  telegram_username: string;
+  preferred_language: string;
+  timezone: string;
+  avatar_url: string;
+  verified: boolean;
+  verification_level: string;
+  email: string;
+  created_at: string;
+}
+
 export function ProfileSettings() {
-  const { profile, updateProfile, getUserStats } = useProfile();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: profile?.full_name || '',
-    bio: profile?.bio || '',
-    city: profile?.city || '',
-    phone: profile?.phone || '',
-    website: profile?.website || '',
-    telegram_username: profile?.telegram_username || '',
-    preferred_language: profile?.preferred_language || 'de',
-    timezone: profile?.timezone || 'Europe/Berlin'
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  
+  // Trenne veränderbare und unveränderbare Daten
+  const [editableData, setEditableData] = useState({
+    bio: '',
+    website: '',
+    telegram_username: '',
+    preferred_language: 'de',
+    timezone: 'Europe/Berlin'
   });
 
-  const stats = getUserStats();
+  useEffect(() => {
+    if (user) {
+      fetchProfileData();
+      setupRealtimeSubscriptions();
+    }
+
+    return () => {
+      supabase.removeAllChannels();
+    };
+  }, [user]);
+
+  // Real-time Updates alle 15 Sekunden
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      console.log('🔄 Live Profile Update');
+      fetchProfileData();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const setupRealtimeSubscriptions = () => {
+    if (!user) return;
+
+    // Real-time Updates für Profile
+    const profileChannel = supabase
+      .channel('profile_settings_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🚀 Real-time Profil-Einstellungen Update:', payload);
+          fetchProfileData();
+        }
+      )
+      .subscribe();
+  };
+
+  const fetchProfileData = async () => {
+    if (!user) return;
+
+    try {
+      console.log('📡 Live-Abfrage: Profil-Einstellungen für User:', user.id);
+      setFetchLoading(true);
+
+      // Profil-Daten abrufen
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Fehler beim Laden des Profils:', profileError);
+        return;
+      }
+
+      // User Auth-Daten abrufen (Email, created_at)
+      const authUser = user;
+
+      const fullProfile = {
+        full_name: profileData?.full_name || '',
+        bio: profileData?.bio || '',
+        city: profileData?.city || '',
+        phone: profileData?.phone || '',
+        website: profileData?.website || '',
+        telegram_username: profileData?.telegram_username || '',
+        preferred_language: profileData?.preferred_language || 'de',
+        timezone: profileData?.timezone || 'Europe/Berlin',
+        avatar_url: profileData?.avatar_url || '',
+        verified: profileData?.verified || false,
+        verification_level: profileData?.verification_level || 'none',
+        email: authUser.email || '',
+        created_at: authUser.created_at || ''
+      };
+
+      console.log('✅ Profil-Daten geladen:', fullProfile);
+      setProfile(fullProfile);
+
+      // Editierbare Daten setzen
+      setEditableData({
+        bio: fullProfile.bio,
+        website: fullProfile.website,
+        telegram_username: fullProfile.telegram_username,
+        preferred_language: fullProfile.preferred_language,
+        timezone: fullProfile.timezone
+      });
+
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der Profil-Daten:', error);
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!user) return;
 
+    setLoading(true);
     try {
-      const { error } = await updateProfile(formData);
-      
-      if (error) {
-        toast({
-          title: "Fehler",
-          description: "Profil konnte nicht gespeichert werden.",
-          variant: "destructive"
+      console.log('💾 Speichere editierbare Profil-Daten:', editableData);
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          ...editableData,
+          updated_at: new Date().toISOString()
         });
-      } else {
-        toast({
-          title: "Gespeichert",
-          description: "Ihre Profileinstellungen wurden erfolgreich gespeichert."
-        });
-      }
-    } catch (error) {
+
+      if (error) throw error;
+
       toast({
-        title: "Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        title: "✅ Gespeichert",
+        description: "Ihre Profileinstellungen wurden erfolgreich aktualisiert."
+      });
+
+      // Daten sofort neu laden
+      setTimeout(() => fetchProfileData(), 500);
+      
+    } catch (error) {
+      console.error('Fehler beim Speichern:', error);
+      toast({
+        title: "❌ Fehler",
+        description: "Profil konnte nicht gespeichert werden.",
         variant: "destructive"
       });
     } finally {
@@ -72,136 +203,234 @@ export function ProfileSettings() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setEditableData(prev => ({ ...prev, [field]: value }));
   };
+
+  if (fetchLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">🔄 Live-Profildaten werden geladen...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Profileinstellungen</h2>
-        <VerificationBadge 
-          verified={stats.verified} 
-          verificationLevel={stats.verificationLevel} 
-        />
+        <div>
+          <h2 className="text-xl font-semibold">🔴 Live-Profileinstellungen</h2>
+          <p className="text-sm text-muted-foreground">
+            📡 Automatische Updates alle 15 Sekunden
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="animate-pulse">
+            🔄 Live Updates
+          </Badge>
+          <VerificationBadge 
+            verified={profile?.verified || false} 
+            verificationLevel={profile?.verification_level || 'none'} 
+          />
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Profile Picture and Basic Info */}
-        <Card className="gradient-card">
+        
+        {/* UNVERÄNDERBARE GRUNDINFORMATIONEN */}
+        <Card className="border-blue-200 bg-blue-50/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Grundinformationen
+              <Lock className="h-5 w-5 text-blue-600" />
+              🔒 Grundinformationen (Registrierung)
+              <Badge variant="outline" className="text-xs">
+                Unveränderbar
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Alert className="border-blue-200 bg-blue-50">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Diese Daten stammen aus Ihrer Registrierung und können nur über den Support geändert werden.
+              </AlertDescription>
+            </Alert>
+
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={profile?.avatar_url || "/placeholder-avatar.jpg"} />
                 <AvatarFallback className="text-lg">
-                  {formData.full_name?.[0] || 'U'}
+                  {profile?.full_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
-                <Button variant="outline" size="sm" type="button">
+                <Button variant="outline" size="sm" type="button" disabled>
                   <Upload className="h-4 w-4 mr-2" />
-                  Profilbild ändern
+                  Profilbild (Support)
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  JPG, PNG bis zu 2MB
+                  Änderungen nur über Support möglich
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* UNVERÄNDERBARE FELDER */}
               <div className="space-y-2">
-                <Label htmlFor="full_name">Vollständiger Name</Label>
+                <Label className="flex items-center gap-2">
+                  <Lock className="h-3 w-3 text-blue-600" />
+                  E-Mail-Adresse
+                </Label>
                 <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => handleInputChange('full_name', e.target.value)}
-                  placeholder="Max Mustermann"
+                  value={profile?.email || ''}
+                  disabled
+                  className="bg-muted cursor-not-allowed"
                 />
+                <p className="text-xs text-muted-foreground">
+                  📧 Aus Registrierung - Support für Änderungen
+                </p>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="city">Stadt</Label>
+                <Label className="flex items-center gap-2">
+                  <Lock className="h-3 w-3 text-blue-600" />
+                  Vollständiger Name
+                </Label>
                 <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  placeholder="Berlin"
+                  value={profile?.full_name || 'Nicht gesetzt'}
+                  disabled
+                  className="bg-muted cursor-not-allowed"
                 />
+                <p className="text-xs text-muted-foreground">
+                  👤 Aus Registrierung - Support für Änderungen
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Lock className="h-3 w-3 text-blue-600" />
+                  Stadt
+                </Label>
+                <Input
+                  value={profile?.city || 'Nicht gesetzt'}
+                  disabled
+                  className="bg-muted cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground">
+                  🏙️ Aus Registrierung - Support für Änderungen
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Lock className="h-3 w-3 text-blue-600" />
+                  Telefonnummer
+                </Label>
+                <Input
+                  value={profile?.phone || 'Nicht gesetzt'}
+                  disabled
+                  className="bg-muted cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground">
+                  📱 Aus Registrierung - Support für Änderungen
+                </p>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Lock className="h-3 w-3 text-blue-600" />
+                Registriert seit
+              </Label>
+              <Input
+                value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString('de-DE', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : 'Unbekannt'}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+            </div>
+
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <HelpCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                💬 <strong>Support kontaktieren:</strong> Für Änderungen der Grunddaten wenden Sie sich an unser Support-Team.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        <Separator />
+
+        {/* ÄNDERBARE ZUSÄTZLICHE INFORMATIONEN */}
+        <Card className="border-green-200 bg-green-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-green-600" />
+              ✏️ Zusätzliche Informationen
+              <Badge variant="default" className="text-xs bg-green-600">
+                Änderbar
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
 
             <div className="space-y-2">
               <Label htmlFor="bio">Über mich</Label>
               <Textarea
                 id="bio"
-                value={formData.bio}
+                value={editableData.bio}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
                 placeholder="Erzählen Sie etwas über sich..."
                 rows={3}
               />
+              <p className="text-xs text-muted-foreground">
+                ✏️ Diese Information kann jederzeit geändert werden
+              </p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Contact Information */}
-        <Card className="gradient-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Kontaktinformationen
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefonnummer</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="+49 123 456789"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="telegram">Telegram Username</Label>
-                <Input
-                  id="telegram"
-                  value={formData.telegram_username}
-                  onChange={(e) => handleInputChange('telegram_username', e.target.value)}
-                  placeholder="@username"
-                />
-              </div>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
               <Input
                 id="website"
-                value={formData.website}
+                value={editableData.website}
                 onChange={(e) => handleInputChange('website', e.target.value)}
                 placeholder="https://example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="telegram">Telegram Username</Label>
+              <Input
+                id="telegram"
+                value={editableData.telegram_username}
+                onChange={(e) => handleInputChange('telegram_username', e.target.value)}
+                placeholder="@username"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Preferences */}
+        {/* EINSTELLUNGEN UND PRÄFERENZEN */}
         <Card className="gradient-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
-              Einstellungen
+              ⚙️ Präferenzen & Einstellungen
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="language">Sprache</Label>
-                <Select value={formData.preferred_language} onValueChange={(value) => handleInputChange('preferred_language', value)}>
+                <Select value={editableData.preferred_language} onValueChange={(value) => handleInputChange('preferred_language', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -213,7 +442,7 @@ export function ProfileSettings() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="timezone">Zeitzone</Label>
-                <Select value={formData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
+                <Select value={editableData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -228,12 +457,12 @@ export function ProfileSettings() {
           </CardContent>
         </Card>
 
-        {/* Verification */}
+        {/* VERIFIKATION */}
         <Card className="gradient-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Verifizierung
+              🛡️ Verifizierung
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -241,13 +470,13 @@ export function ProfileSettings() {
               <div>
                 <p className="font-medium">Account Verifizierung</p>
                 <p className="text-sm text-muted-foreground">
-                  {stats.verified 
-                    ? "Ihr Account ist verifiziert. Sie können Anzeigen erstellen."
-                    : "Verifizieren Sie Ihren Account, um Anzeigen erstellen zu können."
+                  {profile?.verified 
+                    ? "✅ Ihr Account ist verifiziert. Sie können Anzeigen erstellen."
+                    : "❌ Verifizieren Sie Ihren Account, um Anzeigen erstellen zu können."
                   }
                 </p>
               </div>
-              {!stats.verified && (
+              {!profile?.verified && (
                 <VerificationModal>
                   <Button variant="outline">
                     <Shield className="h-4 w-4 mr-2" />
@@ -259,15 +488,23 @@ export function ProfileSettings() {
           </CardContent>
         </Card>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={loading} className="min-w-[120px]">
+        {/* SPEICHERN BUTTON */}
+        <div className="flex justify-end gap-4">
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={fetchProfileData}
+            disabled={loading}
+          >
+            🔄 Neu laden
+          </Button>
+          <Button type="submit" disabled={loading} className="min-w-[140px]">
             {loading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Speichern
+                💾 Änderungen speichern
               </>
             )}
           </Button>
