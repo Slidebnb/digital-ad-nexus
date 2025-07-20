@@ -93,8 +93,8 @@ export function ResponsiveNavigation() {
               "shadow-sm hover:shadow-md"
             )}
             style={{ 
-              display: 'flex !important',
-              visibility: 'visible !important',
+              display: 'flex',
+              visibility: 'visible',
               opacity: 1,
               zIndex: 999
             }}
