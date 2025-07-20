@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useMessages } from "@/hooks/useMessages";
-import { useUserData } from "@/hooks/useUserData";
+import { useRealtimeUserStats } from "@/hooks/useRealtimeUserStats";
+import { ModernMessageSystem } from "@/components/ModernMessageSystem";
 import { VerificationModal, VerificationBadge } from "@/components/VerificationModal";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { UserAds } from "@/components/UserAds";
@@ -48,12 +48,11 @@ import {
 export function UserDashboard() {
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, getUserStats } = useProfile();
-  const { unreadCount } = useMessages();
-  const { stats: userStats, userAds, recentMessages, loading: userDataLoading, boostAd, deleteAd } = useUserData();
+  const { stats: realtimeStats, loading: statsLoading } = useRealtimeUserStats();
   const [activeTab, setActiveTab] = useState("overview");
   
-  const stats = getUserStats();
-  const loading = profileLoading || userDataLoading;
+  const profileStats = getUserStats();
+  const loading = profileLoading || statsLoading;
 
   if (loading) {
     return (
@@ -69,7 +68,7 @@ export function UserDashboard() {
     );
   }
 
-  const canCreateAds = stats.verified;
+  const canCreateAds = profileStats.verified;
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,8 +90,8 @@ export function UserDashboard() {
                   Willkommen, {profile?.full_name || user?.user_metadata?.display_name || 'Nutzer'}!
                 </h1>
                 <VerificationBadge 
-                  verified={stats.verified} 
-                  verificationLevel={stats.verificationLevel} 
+                  verified={profileStats.verified} 
+                  verificationLevel={profileStats.verificationLevel} 
                 />
               </div>
               <p className="text-muted-foreground text-sm md:text-base">
@@ -109,7 +108,7 @@ export function UserDashboard() {
         </div>
 
         {/* Verification Alert */}
-        {!stats.verified && (
+        {!profileStats.verified && (
           <Alert className="mb-6 border-warning">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
@@ -181,32 +180,35 @@ export function UserDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
               <Card className="gradient-card">
                 <CardContent className="p-3 md:p-4 text-center">
-                  <div className="text-lg md:text-2xl font-bold text-primary">{userStats.totalAds}</div>
+                  <div className="text-lg md:text-2xl font-bold text-primary">{realtimeStats.totalAds}</div>
                   <div className="text-xs md:text-sm text-muted-foreground">Anzeigen gesamt</div>
                   <Badge variant="secondary" className="mt-1 text-xs">
-                    {userStats.activeAds} aktiv
+                    {realtimeStats.activeAds} aktiv
                   </Badge>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-success">{userStats.activeAds}</div>
-                  <div className="text-sm text-muted-foreground">Aktive Anzeigen</div>
+                  <div className="text-2xl font-bold text-success">{realtimeStats.todayViews}</div>
+                  <div className="text-sm text-muted-foreground">Aufrufe heute</div>
+                  <Badge variant="outline" className="mt-1 text-xs">
+                    +{realtimeStats.weeklyViews} diese Woche
+                  </Badge>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-secondary">{userStats.totalViews}</div>
-                  <div className="text-sm text-muted-foreground">Gesamtaufrufe</div>
+                  <div className="text-2xl font-bold text-secondary">{realtimeStats.totalViews}</div>
+                  <div className="text-sm text-muted-foreground">Aufrufe gesamt</div>
                 </CardContent>
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-accent">{userStats.totalMessages}</div>
+                  <div className="text-2xl font-bold text-accent">{realtimeStats.totalMessages}</div>
                   <div className="text-sm text-muted-foreground">Nachrichten</div>
-                  {userStats.unreadMessages > 0 && (
+                  {realtimeStats.unreadMessages > 0 && (
                     <Badge variant="destructive" className="mt-1 text-xs">
-                      {userStats.unreadMessages} neu
+                      {realtimeStats.unreadMessages} ungelesen
                     </Badge>
                   )}
                 </CardContent>
@@ -214,14 +216,14 @@ export function UserDashboard() {
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-warning">
-                    {userStats.rating > 0 ? userStats.rating.toFixed(1) : '—'}
+                    {realtimeStats.rating > 0 ? realtimeStats.rating.toFixed(1) : '—'}
                   </div>
                   <div className="text-sm text-muted-foreground">Bewertung</div>
                   <div className="flex justify-center mt-1">
                     {[...Array(5)].map((_, i) => (
                       <Star 
                         key={i} 
-                        className={`h-3 w-3 ${i < Math.floor(userStats.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+                        className={`h-3 w-3 ${i < Math.floor(realtimeStats.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
                       />
                     ))}
                   </div>
@@ -229,10 +231,10 @@ export function UserDashboard() {
               </Card>
               <Card className="gradient-card">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-primary">{userStats.totalTrades}</div>
-                  <div className="text-sm text-muted-foreground">Erfolgreiche Trades</div>
+                  <div className="text-2xl font-bold text-primary">{realtimeStats.favoriteCount}</div>
+                  <div className="text-sm text-muted-foreground">Favoriten</div>
                   <Badge variant="outline" className="mt-1 text-xs">
-                    Vertrauen: {userStats.trustScore}%
+                    Vertrauen: {realtimeStats.trustScore}%
                   </Badge>
                 </CardContent>
               </Card>
@@ -271,14 +273,14 @@ export function UserDashboard() {
                     <MessageCircle className="h-6 w-6 mb-2" />
                     Nachrichten
                     <span className="text-xs text-muted-foreground">
-                      ({unreadCount > 0 ? unreadCount : stats.totalMessages})
+                      ({realtimeStats.unreadMessages > 0 ? realtimeStats.unreadMessages : realtimeStats.totalMessages})
                     </span>
-                    {unreadCount > 0 && (
+                    {realtimeStats.unreadMessages > 0 && (
                       <Badge 
                         variant="destructive" 
                         className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                       >
-                        {unreadCount}
+                        {realtimeStats.unreadMessages}
                       </Badge>
                     )}
                   </Button>
@@ -288,7 +290,7 @@ export function UserDashboard() {
                       <TrendingUp className="h-6 w-6 mb-2" />
                       Anzeige boosten
                       <span className="text-xs text-muted-foreground">
-                        {stats.activeAds} verfügbar
+                        {realtimeStats.activeAds} verfügbar
                       </span>
                     </Button>
                   </BoostAdModal>
@@ -311,25 +313,12 @@ export function UserDashboard() {
 
           {/* Ads Tab */}
           <TabsContent value="ads" className="space-y-6">
-            <RealTimeAdStats 
-              ads={userAds}
-              onBoostAd={boostAd}
-              onDeleteAd={deleteAd}
-              loading={loading}
-            />
+            <UserAds />
           </TabsContent>
 
           {/* Messages Tab */}
           <TabsContent value="messages" className="space-y-6">
-            <RealTimeMessagePreview 
-              messages={recentMessages}
-              unreadCount={userStats.unreadMessages}
-              loading={loading}
-            />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <UserMessages />
-              <ChatSystem />
-            </div>
+            <ModernMessageSystem />
           </TabsContent>
         
         <TabsContent value="favorites">
