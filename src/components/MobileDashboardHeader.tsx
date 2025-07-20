@@ -17,6 +17,7 @@ import {
   Bell,
   Menu
 } from "lucide-react";
+import { MainNavigationMenu } from "@/components/MainNavigationMenu";
 
 export function MobileDashboardHeader() {
   const { user, signOut, isAdmin, userRole } = useAuth();
@@ -25,8 +26,18 @@ export function MobileDashboardHeader() {
     <div className="md:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold">Dashboard</h1>
+          {/* Main Navigation Menu */}
+          <MainNavigationMenu
+            trigger={
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            }
+            align="start"
+          />
+          
           <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold">Dashboard</h1>
             {isAdmin && (
               <Badge variant="destructive" className="text-xs">
                 <Shield className="h-3 w-3 mr-1" />

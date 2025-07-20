@@ -47,13 +47,7 @@ export function MobileBottomNavigation() {
       icon: Search,
       showAlways: true
     },
-    {
-      label: "Erstellen",
-      href: "/create-ad", 
-      icon: PlusCircle,
-      requireAuth: true
-    },
-    // Dynamic dashboard navigation based on current context
+    // Show dashboard navigation when on dashboard, otherwise show general navigation
     ...(user && isDashboard ? [
       {
         label: "Übersicht",
@@ -74,22 +68,20 @@ export function MobileBottomNavigation() {
         active: currentDashboardTab === 'messages'
       },
       {
-        label: "Anzeigen",
-        href: "/dashboard?tab=ads",
-        icon: ShoppingBag,
+        label: "Profil",
+        href: "/dashboard?tab=settings",
+        icon: User,
         requireAuth: true,
         isDashboardTab: true,
-        active: currentDashboardTab === 'ads'
-      },
-      {
-        label: "Favoriten",
-        href: "/dashboard?tab=favorites",
-        icon: Heart,
-        requireAuth: true,
-        isDashboardTab: true,
-        active: currentDashboardTab === 'favorites'
+        active: currentDashboardTab === 'settings'
       }
     ] : [
+      {
+        label: "Erstellen",
+        href: "/create-ad", 
+        icon: PlusCircle,
+        requireAuth: true
+      },
       {
         label: "Chats",
         href: "/dashboard",

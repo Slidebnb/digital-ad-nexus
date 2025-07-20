@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
 import { MobileDashboardHeader } from "@/components/MobileDashboardHeader";
 import { MobileTabNavigation } from "@/components/MobileTabNavigation";
+import { DashboardBreadcrumb } from "@/components/DashboardBreadcrumb";
 import { RealTimeUserDashboard } from "@/components/RealTimeUserDashboard";
 import { EnhancedMessageSystem } from "@/components/EnhancedMessageSystem";
 import { UserAds } from "@/components/UserAds";
@@ -61,7 +62,7 @@ export function UserDashboard() {
       <div className="container mx-auto px-4 py-8 hidden md:block">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <Badge variant="outline" className="flex items-center gap-2">
               <User className="h-3 w-3" />
               {userRole || 'user'}
@@ -70,6 +71,7 @@ export function UserDashboard() {
               Live Updates Aktiv
             </Badge>
           </div>
+          <DashboardBreadcrumb currentTab={currentTab} />
         </div>
       </div>
 
