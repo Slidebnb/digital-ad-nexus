@@ -18,7 +18,7 @@ import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import CreateAd from "./pages/CreateAd";
 import AdDetail from "./pages/AdDetail";
-import CryptoHub from "./pages/CryptoHub";
+
 import { AuthGuard } from "./components/AuthGuard";
 
 const queryClient = new QueryClient();
@@ -40,7 +40,6 @@ const App = () => (
               <Route path="/browse" element={<Browse />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/favorites" element={<AuthGuard requireAuth><Favorites /></AuthGuard>} />
-              <Route path="/crypto-hub" element={<AuthGuard requireAuth><CryptoHub /></AuthGuard>} />
               <Route path="/create-ad" element={<AuthGuard requireAuth><CreateAd /></AuthGuard>} />
               <Route path="/ad/:id" element={<AdDetail />} />
               <Route path="*" element={<NotFound />} />

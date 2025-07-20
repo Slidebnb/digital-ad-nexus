@@ -15,6 +15,7 @@ import { ProfileSettings } from "@/components/ProfileSettings";
 import { FavoritesManager } from "@/components/FavoritesManager";
 import { TradingHistory } from "@/components/TradingHistory";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { CryptoDashboardSection } from "@/components/CryptoDashboardSection";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { 
@@ -26,7 +27,9 @@ import {
   Heart,
   TrendingUp,
   Bell,
-  User
+  User,
+  Coins,
+  CreditCard
 } from "lucide-react";
 
 export function UserDashboard() {
@@ -44,6 +47,7 @@ export function UserDashboard() {
 
   const tabsConfig = [
     { value: "overview", label: "Übersicht", icon: BarChart3, component: RealTimeUserDashboard },
+    { value: "crypto", label: "Krypto", icon: Coins, component: CryptoDashboardSection },
     { value: "messages", label: "Nachrichten", icon: MessageSquare, component: EnhancedMessageSystem },
     { value: "ads", label: "Anzeigen", icon: ShoppingBag, component: UserAds },
     { value: "favorites", label: "Favoriten", icon: Heart, component: FavoritesManager },
