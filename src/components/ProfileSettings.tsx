@@ -69,7 +69,8 @@ export function ProfileSettings() {
   useEffect(() => {
     if (user) {
       fetchProfileData();
-      setupRealtimeSubscriptions();
+      // Real-time subscriptions TEMPORÄR DEAKTIVIERT für Avatar-Testing
+      // setupRealtimeSubscriptions();
     }
 
     return () => {
@@ -77,23 +78,11 @@ export function ProfileSettings() {
     };
   }, [user]);
 
-  // Real-time Updates alle 15 Sekunden - TEMPORÄR DEAKTIVIERT für Avatar-Upload
+  // Real-time Updates KOMPLETT DEAKTIVIERT für Avatar-Testing
   useEffect(() => {
-    if (!user) return;
-
-    const interval = setInterval(() => {
-      console.log('Profile Update - checking if safe to update...');
-      // Nur updaten wenn nicht gerade ein Upload läuft
-      if (!uploadingAvatar) {
-        console.log('Safe to update - refreshing profile');
-        fetchProfileData();
-      } else {
-        console.log('Upload in progress - skipping auto-refresh');
-      }
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [user, uploadingAvatar]); // uploadingAvatar als Dependency hinzufügen
+    // DEAKTIVIERT - kein automatisches Polling
+    console.log('Auto-refresh DISABLED for avatar testing');
+  }, [user, uploadingAvatar]);
 
   const setupRealtimeSubscriptions = () => {
     if (!user) return;
@@ -336,15 +325,11 @@ export function ProfileSettings() {
         description: "Profilbild wurde erfolgreich hochgeladen."
       });
 
-      // Sofort die Komponente mit neuer URL aktualisieren
-      console.log('🔄 Updating UI immediately with new avatar URL:', publicUrl);
+      // Sofort die Komponente mit neuer URL aktualisieren - KEINE weiteren DB-Calls
+      console.log('🔄 FINAL UI update with avatar URL:', publicUrl);
       setProfile(prev => prev ? {...prev, avatar_url: publicUrl} : null);
       
-      // Länger warten für DB-Konsistenz und Auto-Refresh stoppen
-      setTimeout(async () => {
-        console.log('🔄 Final profile reload after avatar upload...');
-        await fetchProfileData();
-      }, 5000); // 5 Sekunden statt 2
+      // KEIN fetchProfileData() mehr - UI bleibt so!
 
     } catch (error) {
       console.error('❌ Avatar upload failed - Full error details:', {
