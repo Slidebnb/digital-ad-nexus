@@ -13,6 +13,7 @@ import {
   Heart
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useMessagesRealtime } from "@/hooks/useMessagesRealtime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { logger } from "@/utils/logger";
 export function MobileBottomNavigation() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const device = useDeviceDetection();
   const { unreadCount, loading: messagesLoading } = useMessagesRealtime();
 
   logger.debug('MobileBottomNavigation render', 'Navigation', { 
@@ -28,6 +30,13 @@ export function MobileBottomNavigation() {
     messagesLoading, 
     userId: user?.id 
   });
+
+  // Only show for touch devices
+  const showBottomNav = device.isTouchDevice || device.isMobile || device.isTablet;
+
+  if (!showBottomNav) {
+    return null;
+  }
 
   // Check if we're on dashboard and extract current tab
   const isDashboard = location.pathname === '/dashboard';
@@ -123,9 +132,42 @@ export function MobileBottomNavigation() {
     }
   };
 
+  // Dynamic sizing based on device
+  const getNavHeight = () => {
+    if (device.isIPad) return "h-20";
+    if (device.isTablet) return "h-16";
+    return "h-16";
+  };
+
+  const getButtonSize = () => {
+    if (device.isIPad) return "max-w-[90px]";
+    if (device.isTablet) return "max-w-[80px]";
+    return "max-w-[70px]";
+  };
+
+  const getIconSize = () => {
+    if (device.isIPad) return "h-6 w-6";
+    if (device.isTablet) return "h-5 w-5";
+    return "h-5 w-5";
+  };
+
+  const getTextSize = () => {
+    if (device.isIPad) return "text-sm";
+    if (device.isTablet) return "text-xs";
+    return "text-xs";
+  };
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border z-50 safe-area-pb">
-      <div className="flex items-center justify-around px-1 py-2">
+    <nav className={cn(
+      "fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border z-50 safe-area-pb",
+      getNavHeight()
+    )}>
+      <div className={cn(
+        "flex items-center justify-around",
+        device.isIPad && "px-2 py-3",
+        device.isTablet && "px-1 py-2",
+        device.isMobile && "px-1 py-2"
+      )}>
         {visibleItems.slice(0, 5).map((item, index) => {
           const Icon = item.icon;
           const active = isActive(item.href, item);
@@ -135,8 +177,12 @@ export function MobileBottomNavigation() {
               key={`${item.href}-${index}`}
               to={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all duration-200",
-                "min-w-0 flex-1 max-w-[70px] relative",
+                "flex flex-col items-center gap-1 rounded-lg transition-all duration-200",
+                "min-w-0 flex-1 relative",
+                device.isIPad && "px-3 py-3",
+                device.isTablet && "px-2 py-2",
+                device.isMobile && "px-2 py-2",
+                getButtonSize(),
                 active 
                   ? "text-primary bg-primary/10 scale-105" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -145,14 +191,20 @@ export function MobileBottomNavigation() {
             >
               <div className="relative">
                 <Icon className={cn(
-                  "h-5 w-5 transition-transform duration-200",
+                  getIconSize(),
+                  "transition-transform duration-200",
                   active && "scale-110"
                 )} />
                 
                 {item.badge !== undefined && item.badge > 0 && !item.loading && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-xs animate-pulse"
+                    className={cn(
+                      "absolute -top-2 -right-2 p-0 flex items-center justify-center animate-pulse",
+                      device.isIPad && "h-5 w-5 text-xs",
+                      device.isTablet && "h-4 w-4 text-xs",
+                      device.isMobile && "h-4 w-4 text-xs"
+                    )}
                     aria-label={`${item.badge} ungelesene Nachrichten`}
                   >
                     {item.badge > 99 ? "99+" : item.badge}
@@ -160,12 +212,18 @@ export function MobileBottomNavigation() {
                 )}
 
                 {item.loading && (
-                  <div className="absolute -top-2 -right-2 h-4 w-4 rounded-full bg-muted animate-pulse" />
+                  <div className={cn(
+                    "absolute -top-2 -right-2 rounded-full bg-muted animate-pulse",
+                    device.isIPad && "h-5 w-5",
+                    device.isTablet && "h-4 w-4",
+                    device.isMobile && "h-4 w-4"
+                  )} />
                 )}
               </div>
               
               <span className={cn(
-                "text-xs font-medium truncate leading-tight",
+                "font-medium truncate leading-tight",
+                getTextSize(),
                 active && "font-semibold"
               )}>
                 {item.label}
@@ -181,13 +239,20 @@ export function MobileBottomNavigation() {
             size="sm"
             onClick={handleSignOut}
             className={cn(
-              "flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all duration-200",
-              "min-w-0 flex-1 max-w-[70px] text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              "flex flex-col items-center gap-1 rounded-lg transition-all duration-200",
+              "min-w-0 flex-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+              device.isIPad && "px-3 py-3",
+              device.isTablet && "px-2 py-2",
+              device.isMobile && "px-2 py-2",
+              getButtonSize()
             )}
             aria-label="Abmelden"
           >
-            <LogOut className="h-5 w-5" />
-            <span className="text-xs font-medium truncate leading-tight">
+            <LogOut className={getIconSize()} />
+            <span className={cn(
+              "font-medium truncate leading-tight",
+              getTextSize()
+            )}>
               Abmelden
             </span>
           </Button>
