@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
+import BoostAdModal from "@/components/BoostAdModal";
 import { 
   Eye,
   Heart,
@@ -13,7 +15,8 @@ import {
   Trash2,
   PlusCircle,
   Search,
-  Filter
+  Filter,
+  Zap
 } from "lucide-react";
 
 export function UserAds() {
@@ -21,6 +24,8 @@ export function UserAds() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [boostModalOpen, setBoostModalOpen] = useState(false);
+  const [selectedAdId, setSelectedAdId] = useState<string>("");
   
   const stats = getUserStats();
 
@@ -47,6 +52,11 @@ export function UserAds() {
     });
   };
 
+  const handleBoostAd = (adId: string) => {
+    setSelectedAdId(adId);
+    setBoostModalOpen(true);
+  };
+
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'active':
@@ -64,12 +74,22 @@ export function UserAds() {
 
   const getBoostStatus = (ad: any) => {
     if (ad.boosted_until && new Date(ad.boosted_until) > new Date()) {
-      return <Badge className="bg-accent/10 text-accent border-accent/20">Geboostet</Badge>;
+      const daysLeft = Math.ceil((new Date(ad.boosted_until).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      return (
+        <Badge className="bg-accent/10 text-accent border-accent/20 flex items-center gap-1">
+          <Zap className="h-3 w-3" />
+          Geboostet ({daysLeft}d)
+        </Badge>
+      );
     }
     if (ad.featured) {
       return <Badge className="bg-primary/10 text-primary border-primary/20">Featured</Badge>;
     }
     return null;
+  };
+
+  const isAdBoosted = (ad: any) => {
+    return ad.boosted_until && new Date(ad.boosted_until) > new Date();
   };
 
   return (
@@ -179,7 +199,7 @@ export function UserAds() {
       ) : (
         <div className="grid gap-4">
           {filteredAds.map((ad) => (
-            <Card key={ad.id} className="gradient-card hover:shadow-lg transition-shadow">
+            <Card key={ad.id} className={`gradient-card hover:shadow-lg transition-shadow ${isAdBoosted(ad) ? 'ring-2 ring-primary/30 bg-primary/5' : ''}`}>
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row gap-4">
                   {/* Image placeholder */}
@@ -199,7 +219,12 @@ export function UserAds() {
                     {/* Title and Status */}
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{ad.title}</h3>
+                        <h3 className="font-semibold text-lg mb-1 flex items-center gap-2">
+                          {ad.title}
+                          {isAdBoosted(ad) && (
+                            <Zap className="h-4 w-4 text-primary animate-pulse" />
+                          )}
+                        </h3>
                         <div className="flex flex-wrap gap-2">
                           {getStatusBadge(ad.status)}
                           {getBoostStatus(ad)}
@@ -247,6 +272,15 @@ export function UserAds() {
                       
                       <div className="flex gap-2">
                         <Button 
+                          variant={isAdBoosted(ad) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleBoostAd(ad.id)}
+                          className={isAdBoosted(ad) ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" : ""}
+                        >
+                          <Zap className="h-4 w-4 mr-1" />
+                          {isAdBoosted(ad) ? "Verlängern" : "Boost"}
+                        </Button>
+                        <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleEditAd(ad.id)}
@@ -269,6 +303,16 @@ export function UserAds() {
           ))}
         </div>
       )}
+
+      {/* Boost Modal */}
+      <BoostAdModal
+        isOpen={boostModalOpen}
+        onClose={() => {
+          setBoostModalOpen(false);
+          setSelectedAdId("");
+        }}
+        adId={selectedAdId}
+      />
     </div>
   );
 }
