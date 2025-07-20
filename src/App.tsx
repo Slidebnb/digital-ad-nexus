@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { EnhancedNotificationSystem } from "@/components/EnhancedNotificationSystem";
-import { AuthContext, useAuthProvider } from "@/hooks/useAuth";
+import { AuthProvider } from "@/hooks/useAuth";
 
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 import { NetworkMonitor } from "@/components/NetworkMonitor";
@@ -23,10 +23,6 @@ import { AuthGuard } from "./components/AuthGuard";
 
 const queryClient = new QueryClient();
 
-function AuthProvider({ children }: { children: React.ReactNode }) {
-  const auth = useAuthProvider();
-  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
-}
 
 const App = () => (
   <GlobalErrorBoundary>

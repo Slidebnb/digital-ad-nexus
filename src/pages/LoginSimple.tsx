@@ -69,7 +69,7 @@ export default function LoginSimple() {
       return;
     }
 
-    const { error } = await signUp(registerForm.email, registerForm.password, registerForm.displayName);
+    const { error } = await signUp(registerForm.email, registerForm.password);
     
     if (!error) {
       setActiveTab('login');

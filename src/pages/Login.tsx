@@ -92,8 +92,7 @@ export default function Login() {
 
     const { error } = await signUp(
       registerForm.email, 
-      registerForm.password, 
-      registerForm.displayName
+      registerForm.password
     );
     
     if (!error) {
