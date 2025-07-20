@@ -2,6 +2,7 @@
 import { CategoryDisplayFix } from "@/components/CategoryDisplayFix";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 
 export default function Categories() {
   return (
@@ -11,6 +12,7 @@ export default function Categories() {
         <CategoryDisplayFix />
       </div>
       <Footer />
+      <MobileBottomNavigation />
     </div>
   );
 }

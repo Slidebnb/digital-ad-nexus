@@ -2,10 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { UserDashboard } from "@/components/UserDashboard";
 import { AdminDashboard } from "@/components/AdminDashboard";
-import { UserVerificationCenter } from "@/components/UserVerificationCenter";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, BarChart3, MessageSquare, Settings } from "lucide-react";
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 
 export default function Dashboard() {
   const { user, loading, isAdmin, userRole } = useAuth();
@@ -41,5 +38,10 @@ export default function Dashboard() {
   }
 
   // User Dashboard - simplified without duplicate tabs
-  return <UserDashboard />;
+  return (
+    <div className="min-h-screen bg-background">
+      {isAdmin ? <AdminDashboard /> : <UserDashboard />}
+      <MobileBottomNavigation />
+    </div>
+  );
 }

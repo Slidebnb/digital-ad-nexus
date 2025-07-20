@@ -1,9 +1,8 @@
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { MobileDashboardHeader } from "@/components/MobileDashboardHeader";
+import { MobileTabNavigation } from "@/components/MobileTabNavigation";
 import { RealTimeUserDashboard } from "@/components/RealTimeUserDashboard";
 import { EnhancedMessageSystem } from "@/components/EnhancedMessageSystem";
 import { UserAds } from "@/components/UserAds";
@@ -12,6 +11,9 @@ import { ProfileSettings } from "@/components/ProfileSettings";
 import { FavoritesManager } from "@/components/FavoritesManager";
 import { TradingHistory } from "@/components/TradingHistory";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart3, 
   MessageSquare, 
@@ -26,14 +28,16 @@ import {
 
 export function UserDashboard() {
   const { user, userRole } = useAuth();
+  const [currentTab, setCurrentTab] = useState("overview");
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <MobileDashboardHeader />
+      
+      <div className="container mx-auto px-4 py-8 hidden md:block">
+        {/* Desktop Header - only show on desktop */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="flex items-center gap-2">
               <User className="h-3 w-3" />
@@ -44,8 +48,20 @@ export function UserDashboard() {
             </Badge>
           </div>
         </div>
+      </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+        {/* Mobile Tab Navigation */}
+        <div className="md:hidden">
+          <MobileTabNavigation 
+            value={currentTab} 
+            onValueChange={setCurrentTab}
+            isAdmin={false}
+          />
+        </div>
+
+        {/* Desktop Tab Navigation - keep existing code */}
+        <div className="hidden md:block container mx-auto px-4">
           <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -80,7 +96,9 @@ export function UserDashboard() {
               <span className="hidden sm:inline">Einstellungen</span>
             </TabsTrigger>
           </TabsList>
+        </div>
 
+        <div className="container mx-auto px-4">
           <TabsContent value="overview" className="space-y-6">
             <RealTimeUserDashboard />
           </TabsContent>
@@ -112,8 +130,8 @@ export function UserDashboard() {
           <TabsContent value="settings" className="space-y-6">
             <ProfileSettings />
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   );
 }

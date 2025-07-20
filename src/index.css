@@ -164,6 +164,30 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
+
+  /* Mobile-specific utilities */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Improve mobile touch targets */
+  @media (max-width: 768px) {
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Improve mobile scrolling */
+    .mobile-scroll {
+      -webkit-overflow-scrolling: touch;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    
+    .mobile-scroll::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }
 
 @layer components {

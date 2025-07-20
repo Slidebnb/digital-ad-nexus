@@ -27,6 +27,8 @@ import { Tables } from "@/integrations/supabase/types";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { AdvancedFilters, SearchFilters } from "@/components/AdvancedFilters";
 
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
+
 type Ad = Tables<'ads'> & {
   categories?: { name: string } | null;
   profiles?: { 
@@ -516,6 +518,7 @@ export default function Browse() {
       </div>
 
       <Footer />
+      <MobileBottomNavigation />
     </div>
   );
 }

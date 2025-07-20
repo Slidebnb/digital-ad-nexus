@@ -11,10 +11,11 @@ import { QuickActionWidget } from "@/components/QuickActionWidget";
 import { FloatingChatWidget } from "@/components/FloatingChatWidget";
 import { MobileQuickActions } from "@/components/MobileQuickActions";
 import { RealTimeStatsWidget } from "@/components/RealTimeStatsWidget";
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <MobilePerformanceOptimizer />
       <MobileOptimizedNavigation />
       <main>
@@ -42,6 +43,4 @@ const Index = () => {
       <MobileQuickActions />
     </div>
   );
-};
-
-export default Index;
+}
