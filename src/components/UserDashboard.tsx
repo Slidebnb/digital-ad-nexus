@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
-import { MobileDashboardHeader } from "@/components/MobileDashboardHeader";
+import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
 import { MobileTabNavigation } from "@/components/MobileTabNavigation";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 import { DashboardBreadcrumb } from "@/components/DashboardBreadcrumb";
@@ -17,6 +17,7 @@ import { FavoritesManager } from "@/components/FavoritesManager";
 import { TradingHistory } from "@/components/TradingHistory";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CryptoDashboardSection } from "@/components/CryptoDashboardSection";
+import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { 
@@ -62,7 +63,8 @@ export function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Einheitliche Navigation für alle Seiten */}
+      {/* Einheitliche Navigation wie auf der Startseite */}
+      <MobileOptimizedNavigation />
       {/* Hauptinhalt Container */}
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Desktop Header */}
@@ -143,6 +145,9 @@ export function UserDashboard() {
 
       {/* Mobile Bottom Navigation - einheitlich auf allen Seiten */}
       {showMobileLayout && <MobileBottomNavigation />}
+      
+      {/* Footer wie auf der Startseite */}
+      <Footer />
     </div>
   );
 }

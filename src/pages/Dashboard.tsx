@@ -36,8 +36,8 @@ export default function Dashboard() {
   logger.debug('Rendering dashboard for role', 'Dashboard', { userRole, isAdmin });
   
   return (
-    <PageLayout>
+    <>
       {isAdmin ? <AdminDashboard /> : <UserDashboard />}
-    </PageLayout>
+    </>
   );
 }
