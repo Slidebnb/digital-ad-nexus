@@ -15,7 +15,8 @@ import {
   Eye,
   MessageSquare,
   Shield,
-  Target
+  Target,
+  UserCheck
 } from "lucide-react";
 
 export function RealTimeBusinessDashboard() {
