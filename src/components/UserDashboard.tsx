@@ -17,6 +17,9 @@ import { FavoritesManager } from "@/components/FavoritesManager";
 import { TradingHistory } from "@/components/TradingHistory";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CryptoDashboardSection } from "@/components/CryptoDashboardSection";
+import { WalletManagement } from "@/components/WalletManagement";
+import { SecurityDashboard } from "@/components/SecurityDashboard";
+import { ReportsAnalytics } from "@/components/ReportsAnalytics";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -31,7 +34,10 @@ import {
   Bell,
   User,
   Coins,
-  CreditCard
+  CreditCard,
+  Wallet,
+  FileText,
+  BarChart
 } from "lucide-react";
 
 export function UserDashboard() {
@@ -50,11 +56,14 @@ export function UserDashboard() {
   const tabsConfig = [
     { value: "overview", label: "Übersicht", icon: BarChart3, component: RealTimeUserDashboard },
     { value: "crypto", label: "Krypto", icon: Coins, component: CryptoDashboardSection },
+    { value: "wallet", label: "Wallet", icon: Wallet, component: WalletManagement },
     { value: "messages", label: "Nachrichten", icon: MessageSquare, component: EnhancedMessageSystem },
     { value: "ads", label: "Anzeigen", icon: ShoppingBag, component: UserAds },
     { value: "favorites", label: "Favoriten", icon: Heart, component: FavoritesManager },
     { value: "trades", label: "Trades", icon: TrendingUp, component: TradingHistory },
+    { value: "analytics", label: "Analytics", icon: BarChart, component: ReportsAnalytics },
     { value: "verification", label: "Verifikation", icon: Shield, component: UserVerificationCenter },
+    { value: "security", label: "Sicherheit", icon: Shield, component: SecurityDashboard },
     { value: "notifications", label: "Benachrichtigungen", icon: Bell, component: NotificationCenter },
     { value: "settings", label: "Einstellungen", icon: Settings, component: ProfileSettings }
   ];
@@ -97,7 +106,7 @@ export function UserDashboard() {
           {/* Desktop Tab Navigation */}
           {!showMobileLayout && (
             <div className="mb-6">
-              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 h-12 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 h-12 bg-muted/50">
                 {tabsConfig.map((tab) => (
                   <TabsTrigger 
                     key={tab.value}
