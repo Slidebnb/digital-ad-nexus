@@ -6,115 +6,213 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, Search, Filter, Download, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Search, Download, Calendar, CreditCard, ArrowLeftRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-interface Trade {
+interface CombinedTransaction {
   id: string;
   coin: string;
-  type: 'buy' | 'sell';
+  type: 'payment' | 'trade';
+  subtype?: 'buy' | 'sell';
   amount: number;
   price_eur: number;
   total_eur: number;
-  status: 'completed' | 'pending' | 'cancelled';
+  status: 'completed' | 'pending' | 'cancelled' | 'failed' | 'confirmed';
   partner_name: string;
   created_at: string;
   completed_at: string | null;
+  description: string;
 }
 
 export function TradingHistory() {
   const { user } = useAuth();
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [filteredTrades, setFilteredTrades] = useState<Trade[]>([]);
+  const { toast } = useToast();
+  const [transactions, setTransactions] = useState<CombinedTransaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<CombinedTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  // Mock data - in einer echten App würde das von der API kommen
-  const mockTrades: Trade[] = [
-    {
-      id: '1',
-      coin: 'BTC',
-      type: 'buy',
-      amount: 0.5,
-      price_eur: 42000,
-      total_eur: 21000,
-      status: 'completed',
-      partner_name: 'Max Mustermann',
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      completed_at: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString()
-    },
-    {
-      id: '2',
-      coin: 'ETH',
-      type: 'sell',
-      amount: 2.5,
-      price_eur: 2580,
-      total_eur: 6450,
-      status: 'completed',
-      partner_name: 'Anna Schmidt',
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-      completed_at: new Date(Date.now() - 1000 * 60 * 60 * 46).toISOString()
-    },
-    {
-      id: '3',
-      coin: 'SOL',
-      type: 'buy',
-      amount: 10,
-      price_eur: 98.5,
-      total_eur: 985,
-      status: 'pending',
-      partner_name: 'Peter Weber',
-      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      completed_at: null
-    },
-    {
-      id: '4',
-      coin: 'BTC',
-      type: 'sell',
-      amount: 0.1,
-      price_eur: 41500,
-      total_eur: 4150,
-      status: 'cancelled',
-      partner_name: 'Lisa Mueller',
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-      completed_at: null
+  useEffect(() => {
+    if (user) {
+      fetchUserTransactions();
     }
-  ];
+  }, [user]);
 
-  useEffect(() => {
-    // Simuliere API-Aufruf
-    setTimeout(() => {
-      setTrades(mockTrades);
-      setFilteredTrades(mockTrades);
+  const fetchUserTransactions = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      console.log('🔍 Fetching user transactions...');
+
+      // Hole Crypto-Payments (Zahlungen für Boosts, etc.)
+      const { data: cryptoPayments, error: cryptoError } = await supabase
+        .from('crypto_payments')
+        .select(`
+          id,
+          cryptocurrency,
+          amount_crypto,
+          amount_eur,
+          status,
+          payment_type,
+          created_at,
+          confirmed_at,
+          metadata
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (cryptoError) {
+        console.error('❌ Error fetching crypto payments:', cryptoError);
+      }
+
+      // Hole Trades (Handel zwischen Usern)
+      const { data: trades, error: tradesError } = await supabase
+        .from('trades')
+        .select(`
+          id,
+          currency,
+          amount,
+          price_eur,
+          status,
+          buyer_id,
+          seller_id,
+          created_at,
+          ad_id
+        `)
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (tradesError) {
+        console.error('❌ Error fetching trades:', tradesError);
+      }
+
+      // Kombiniere und transformiere Daten
+      const combinedTransactions: CombinedTransaction[] = [];
+
+      // Crypto Payments hinzufügen
+      if (cryptoPayments) {
+        cryptoPayments.forEach(payment => {
+          combinedTransactions.push({
+            id: payment.id,
+            coin: payment.cryptocurrency || 'N/A',
+            type: 'payment',
+            amount: payment.amount_crypto || 0,
+            price_eur: payment.amount_eur / (payment.amount_crypto || 1),
+            total_eur: payment.amount_eur || 0,
+            status: payment.status === 'confirmed' ? 'completed' : payment.status as any,
+            partner_name: getPaymentDescription(payment.payment_type),
+            created_at: payment.created_at,
+            completed_at: payment.confirmed_at,
+            description: `${payment.payment_type} - ${payment.cryptocurrency}`
+          });
+        });
+      }
+
+      // Trades hinzufügen
+      if (trades) {
+        trades.forEach(trade => {
+          const isUserBuyer = trade.buyer_id === user.id;
+          combinedTransactions.push({
+            id: trade.id,
+            coin: trade.currency || 'N/A',
+            type: 'trade',
+            subtype: isUserBuyer ? 'buy' : 'sell',
+            amount: trade.amount || 0,
+            price_eur: trade.price_eur || 0,
+            total_eur: (trade.amount || 0) * (trade.price_eur || 0),
+            status: mapTradeStatus(trade.status),
+            partner_name: isUserBuyer ? 'Verkäufer' : 'Käufer',
+            created_at: trade.created_at,
+            completed_at: trade.status === 'completed' ? trade.created_at : null,
+            description: `${isUserBuyer ? 'Kauf' : 'Verkauf'} - ${trade.currency}`
+          });
+        });
+      }
+
+      // Sortiere nach Datum (neueste zuerst)
+      combinedTransactions.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      console.log('✅ Transactions loaded:', {
+        cryptoPayments: cryptoPayments?.length || 0,
+        trades: trades?.length || 0,
+        total: combinedTransactions.length
+      });
+
+      setTransactions(combinedTransactions);
+      setFilteredTransactions(combinedTransactions);
+
+    } catch (error) {
+      console.error('❌ Error fetching transactions:', error);
+      toast({
+        title: "Fehler beim Laden",
+        description: "Transaktionen konnten nicht geladen werden.",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
+
+  const getPaymentDescription = (paymentType: string | null): string => {
+    switch (paymentType) {
+      case 'boost': return 'Anzeigen-Boost';
+      case 'subscription': return 'Abonnement';
+      case 'premium': return 'Premium-Feature';
+      default: return 'Zahlung';
+    }
+  };
+
+  const mapTradeStatus = (status: string): 'completed' | 'pending' | 'cancelled' => {
+    switch (status) {
+      case 'completed': return 'completed';
+      case 'cancelled': return 'cancelled';
+      default: return 'pending';
+    }
+  };
 
   useEffect(() => {
-    let filtered = trades;
+    let filtered = transactions;
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(trade => 
-        trade.coin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.partner_name.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(transaction => 
+        transaction.coin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaction.partner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(trade => trade.status === statusFilter);
+      filtered = filtered.filter(transaction => transaction.status === statusFilter);
     }
 
     // Type filter
     if (typeFilter !== 'all') {
-      filtered = filtered.filter(trade => trade.type === typeFilter);
+      if (typeFilter === 'payment') {
+        filtered = filtered.filter(transaction => transaction.type === 'payment');
+      } else if (typeFilter === 'trade') {
+        filtered = filtered.filter(transaction => transaction.type === 'trade');
+      } else if (typeFilter === 'buy') {
+        filtered = filtered.filter(transaction => 
+          transaction.type === 'trade' && transaction.subtype === 'buy'
+        );
+      } else if (typeFilter === 'sell') {
+        filtered = filtered.filter(transaction => 
+          transaction.type === 'trade' && transaction.subtype === 'sell'
+        );
+      }
     }
 
-    setFilteredTrades(filtered);
-  }, [trades, searchTerm, statusFilter, typeFilter]);
+    setFilteredTransactions(filtered);
+  }, [transactions, searchTerm, statusFilter, typeFilter]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -124,15 +222,33 @@ export function TradingHistory() {
         return <Badge variant="secondary">Ausstehend</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Storniert</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Fehlgeschlagen</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    return type === 'buy' ? 
-      <TrendingUp className="h-4 w-4 text-success" /> : 
-      <TrendingDown className="h-4 w-4 text-destructive" />;
+  const getTypeIcon = (transaction: CombinedTransaction) => {
+    if (transaction.type === 'payment') {
+      return <CreditCard className="h-4 w-4 text-primary" />;
+    } else if (transaction.type === 'trade') {
+      if (transaction.subtype === 'buy') {
+        return <TrendingUp className="h-4 w-4 text-success" />;
+      } else {
+        return <TrendingDown className="h-4 w-4 text-destructive" />;
+      }
+    }
+    return <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  const getTypeLabel = (transaction: CombinedTransaction) => {
+    if (transaction.type === 'payment') {
+      return 'Zahlung';
+    } else if (transaction.type === 'trade') {
+      return transaction.subtype === 'buy' ? 'Kauf' : 'Verkauf';
+    }
+    return 'Transaktion';
   };
 
   const formatDate = (dateString: string) => {
@@ -152,21 +268,24 @@ export function TradingHistory() {
     }).format(amount);
   };
 
-  const exportTrades = () => {
-    // In einer echten App würde hier ein CSV/Excel Export implementiert
-    console.log('Exporting trades...', filteredTrades);
+  const exportTransactions = () => {
+    console.log('Exporting transactions...', filteredTransactions);
+    toast({
+      title: "Export",
+      description: "Export-Feature wird demnächst verfügbar sein.",
+    });
   };
 
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Trading-Verlauf</CardTitle>
+          <CardTitle>Transaktions-Verlauf</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Lade Trading-Verlauf...</p>
+            <p className="mt-2 text-muted-foreground">Lade Transaktions-Verlauf...</p>
           </div>
         </CardContent>
       </Card>
@@ -179,9 +298,9 @@ export function TradingHistory() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Trading-Verlauf
+            Transaktions-Verlauf
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={exportTrades}>
+          <Button variant="outline" size="sm" onClick={exportTransactions}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -193,7 +312,7 @@ export function TradingHistory() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Nach Coin oder Partner suchen..."
+              placeholder="Nach Coin, Partner oder Beschreibung suchen..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -208,6 +327,7 @@ export function TradingHistory() {
               <SelectItem value="completed">Abgeschlossen</SelectItem>
               <SelectItem value="pending">Ausstehend</SelectItem>
               <SelectItem value="cancelled">Storniert</SelectItem>
+              <SelectItem value="failed">Fehlgeschlagen</SelectItem>
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -216,8 +336,10 @@ export function TradingHistory() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Alle Typen</SelectItem>
-              <SelectItem value="buy">Kauf</SelectItem>
-              <SelectItem value="sell">Verkauf</SelectItem>
+              <SelectItem value="payment">Zahlungen</SelectItem>
+              <SelectItem value="trade">Handel</SelectItem>
+              <SelectItem value="buy">Käufe</SelectItem>
+              <SelectItem value="sell">Verkäufe</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -232,42 +354,52 @@ export function TradingHistory() {
                 <TableHead>Menge</TableHead>
                 <TableHead>Preis</TableHead>
                 <TableHead>Gesamt</TableHead>
-                <TableHead>Partner</TableHead>
+                <TableHead>Beschreibung</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Datum</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTrades.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    Keine Trades gefunden
+                    {transactions.length === 0 
+                      ? "Noch keine Transaktionen vorhanden. Tätige deine erste Transaktion!"
+                      : "Keine Transaktionen entsprechen den Filterkriterien."
+                    }
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTrades.map((trade) => (
-                  <TableRow key={trade.id}>
+                filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getTypeIcon(trade.type)}
+                        {getTypeIcon(transaction)}
                         <span className="capitalize font-medium">
-                          {trade.type === 'buy' ? 'Kauf' : 'Verkauf'}
+                          {getTypeLabel(transaction)}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{trade.coin}</div>
+                      <div className="font-medium">{transaction.coin}</div>
                     </TableCell>
-                    <TableCell>{trade.amount}</TableCell>
-                    <TableCell>{formatCurrency(trade.price_eur)}</TableCell>
+                    <TableCell>
+                      {transaction.amount.toLocaleString('de-DE', { 
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 8 
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.price_eur > 0 ? formatCurrency(transaction.price_eur) : '-'}
+                    </TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(trade.total_eur)}
+                      {formatCurrency(transaction.total_eur)}
                     </TableCell>
-                    <TableCell>{trade.partner_name}</TableCell>
-                    <TableCell>{getStatusBadge(trade.status)}</TableCell>
+                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        {formatDate(trade.created_at)}
+                        {formatDate(transaction.created_at)}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -278,36 +410,36 @@ export function TradingHistory() {
         </ScrollArea>
 
         {/* Summary */}
-        {filteredTrades.length > 0 && (
+        {filteredTransactions.length > 0 && (
           <div className="mt-6 pt-4 border-t">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-primary">
-                  {filteredTrades.length}
+                  {filteredTransactions.length}
                 </div>
-                <div className="text-sm text-muted-foreground">Trades gesamt</div>
+                <div className="text-sm text-muted-foreground">Transaktionen</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-success">
-                  {filteredTrades.filter(t => t.status === 'completed').length}
+                  {filteredTransactions.filter(t => t.status === 'completed').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Abgeschlossen</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-warning">
-                  {filteredTrades.filter(t => t.status === 'pending').length}
+                  {filteredTransactions.filter(t => t.status === 'pending').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Ausstehend</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-primary">
                   {formatCurrency(
-                    filteredTrades
+                    filteredTransactions
                       .filter(t => t.status === 'completed')
                       .reduce((sum, t) => sum + t.total_eur, 0)
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">Handelsvolumen</div>
+                <div className="text-sm text-muted-foreground">Gesamtvolumen</div>
               </div>
             </div>
           </div>
