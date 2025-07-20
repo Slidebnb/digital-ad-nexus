@@ -69,8 +69,7 @@ export function ProfileSettings() {
   useEffect(() => {
     if (user) {
       fetchProfileData();
-      // Real-time subscriptions TEMPORÄR DEAKTIVIERT für Avatar-Testing
-      // setupRealtimeSubscriptions();
+      setupRealtimeSubscriptions();
     }
 
     return () => {
