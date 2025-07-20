@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Zap, Target, TrendingUp, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { SolanaBoostPayment } from './SolanaBoostPayment';
+import { EnhancedSolanaPayment } from './EnhancedSolanaPayment';
 
 interface BoostPackage {
   id: number;
@@ -94,18 +95,18 @@ const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) =>
               </Button>
             )}
             <Zap className="h-5 w-5 text-yellow-500" />
-            {showPayment ? 'Krypto-Zahlung' : 'Anzeige boosten'}
+            {showPayment ? 'Automatische Solana-Zahlung' : 'Anzeige boosten'}
           </DialogTitle>
           <DialogDescription>
             {showPayment
-              ? 'Bezahlen Sie sicher mit Solana (SOL)'
+              ? 'Scannen Sie einfach den QR-Code mit Ihrer Solana Wallet'
               : 'Erhöhen Sie die Sichtbarkeit Ihrer Anzeige und erreichen Sie mehr potenzielle Käufer.'
             }
           </DialogDescription>
         </DialogHeader>
 
         {showPayment && selectedPackage ? (
-          <SolanaBoostPayment
+          <EnhancedSolanaPayment
             adId={adId}
             boostPackage={selectedPackage}
             onPaymentSuccess={handlePaymentSuccess}
@@ -122,11 +123,11 @@ const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) =>
                 <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-green-400 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">SOL</span>
                 </div>
-                <span className="font-medium">Nur Krypto-Zahlungen akzeptiert</span>
+                <span className="font-medium">Automatische Krypto-Zahlungen</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Alle Boost-Pakete werden ausschließlich mit Solana (SOL) bezahlt. 
-                Sichere, schnelle und dezentrale Transaktionen.
+                Einfach QR-Code scannen und bezahlen - vollautomatisch mit Solana (SOL). 
+                Keine manuelle Eingabe von Transaktions-IDs erforderlich!
               </p>
             </div>
 
@@ -168,7 +169,8 @@ const BoostAdModal: React.FC<BoostAdModalProps> = ({ isOpen, onClose, adId }) =>
                         className="w-full"
                         variant={pkg.name === 'Ultimate Boost' ? 'default' : 'outline'}
                       >
-                        Mit SOL bezahlen
+                        <Zap className="h-4 w-4 mr-2" />
+                        Jetzt automatisch bezahlen
                       </Button>
                     </div>
                   </CardContent>

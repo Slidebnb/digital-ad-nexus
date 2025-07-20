@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -12,95 +13,88 @@ serve(async (req) => {
   }
 
   try {
-    const { paymentId, transactionHash, cryptocurrency, confirmations } = await req.json()
+    const { paymentId, blockchain, amount, walletAddress } = await req.json()
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log(`Processing payment: ${paymentId}, TX: ${transactionHash}`)
+    console.log(`Auto-processing payment: ${paymentId} on ${blockchain}`)
 
-    // Verify Solana transaction
+    // Get payment details
+    const { data: payment } = await supabaseClient
+      .from('crypto_payments')
+      .select('*')
+      .eq('id', paymentId)
+      .single()
+
+    if (!payment) {
+      throw new Error('Payment not found')
+    }
+
+    // Verify Solana transaction automatically
     let verificationResult;
-    if (cryptocurrency === 'SOL') {
-      verificationResult = await verifySolanaTransaction(transactionHash);
+    if (blockchain === 'solana') {
+      verificationResult = await verifySolanaTransactionByAmount(
+        payment.wallet_address, 
+        payment.amount_crypto,
+        payment.created_at
+      );
     } else {
-      // For other cryptocurrencies, use existing simulation
       verificationResult = {
-        success: Math.random() > 0.1,
-        confirmations: Math.floor(Math.random() * 10) + 1,
-        blockHeight: Math.floor(Math.random() * 1000000),
-        verified: true
+        success: false,
+        error: 'Unsupported blockchain'
       };
     }
 
     if (!verificationResult.success) {
-      // Update payment as failed
-      await supabaseClient
-        .from('crypto_payments')
-        .update({
-          status: 'failed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', paymentId)
-
+      console.log('Payment verification failed:', verificationResult.error);
       return new Response(
-        JSON.stringify({ success: false, error: 'Transaction verification failed' }),
+        JSON.stringify({ success: false, error: 'Transaction not found or invalid' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update confirmation count
+    // Update payment as confirmed
     await supabaseClient
-      .from('payment_transactions')
+      .from('crypto_payments')
       .update({
-        confirmation_blocks: verificationResult.confirmations,
-        blockchain_status: verificationResult.confirmations >= 3 ? 'confirmed' : 'pending',
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+        transaction_hash: verificationResult.transactionHash,
+        confirmation_count: verificationResult.confirmations || 1,
         updated_at: new Date().toISOString()
       })
-      .eq('crypto_payment_id', paymentId)
+      .eq('id', paymentId)
 
-    // If enough confirmations, confirm the payment (Solana needs fewer confirmations)
-    const requiredConfirmations = cryptocurrency === 'SOL' ? 1 : 3;
-    if (verificationResult.confirmations >= requiredConfirmations) {
-      const { data: payment } = await supabaseClient
-        .from('crypto_payments')
-        .select('*')
-        .eq('id', paymentId)
-        .single()
+    // Create transaction record
+    await supabaseClient
+      .from('payment_transactions')
+      .insert({
+        crypto_payment_id: paymentId,
+        transaction_hash: verificationResult.transactionHash,
+        blockchain_status: 'confirmed',
+        confirmation_blocks: verificationResult.confirmations || 1
+      })
 
-      if (payment) {
-        // Update payment status
-        await supabaseClient
-          .from('crypto_payments')
-          .update({
-            status: 'confirmed',
-            confirmed_at: new Date().toISOString(),
-            confirmation_count: verificationResult.confirmations,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', paymentId)
+    // Process the payment action
+    await processPaymentAction(supabaseClient, payment)
 
-        // Process the payment action
-        await processPaymentAction(supabaseClient, payment)
-
-        // Send notification
-        await sendPaymentNotification(supabaseClient, payment, 'confirmed')
-      }
-    }
+    // Send success notification
+    await sendPaymentNotification(supabaseClient, payment, 'confirmed')
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        confirmations: verificationResult.confirmations,
-        status: verificationResult.confirmations >= 3 ? 'confirmed' : 'pending'
+        status: 'confirmed',
+        transactionHash: verificationResult.transactionHash
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Payment processing error:', error)
+    console.error('Auto payment processing error:', error)
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -108,9 +102,9 @@ serve(async (req) => {
   }
 })
 
-async function verifySolanaTransaction(txHash: string) {
+async function verifySolanaTransactionByAmount(walletAddress: string, expectedAmount: number, since: string) {
   try {
-    // Use Solana RPC endpoint to verify transaction
+    // Get recent transactions for the wallet
     const response = await fetch('https://api.mainnet-beta.solana.com', {
       method: 'POST',
       headers: {
@@ -119,25 +113,26 @@ async function verifySolanaTransaction(txHash: string) {
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
-        method: 'getTransaction',
+        method: 'getSignaturesForAddress',
         params: [
-          txHash,
+          walletAddress,
           {
-            encoding: 'json',
-            commitment: 'confirmed'
+            limit: 10,
+            before: null
           }
         ]
       })
     });
 
-    const data = await response.json();
+    const signaturesData = await response.json();
     
-    if (data.result && data.result.meta && data.result.meta.err === null) {
-      // Transaction exists and is successful
-      const slot = data.result.slot;
-      
-      // Get current slot to calculate confirmations
-      const currentSlotResponse = await fetch('https://api.mainnet-beta.solana.com', {
+    if (!signaturesData.result) {
+      return { success: false, error: 'No transactions found' };
+    }
+
+    // Check each transaction for the expected amount
+    for (const sigInfo of signaturesData.result) {
+      const txResponse = await fetch('https://api.mainnet-beta.solana.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,37 +140,51 @@ async function verifySolanaTransaction(txHash: string) {
         body: JSON.stringify({
           jsonrpc: '2.0',
           id: 1,
-          method: 'getSlot',
-          params: [{ commitment: 'confirmed' }]
+          method: 'getTransaction',
+          params: [
+            sigInfo.signature,
+            {
+              encoding: 'json',
+              commitment: 'confirmed'
+            }
+          ]
         })
       });
 
-      const currentSlotData = await currentSlotResponse.json();
-      const confirmations = currentSlotData.result - slot;
-
-      return {
-        success: true,
-        confirmations: Math.max(1, confirmations),
-        blockHeight: slot,
-        verified: true,
-        amount: data.result.meta.postBalances?.[1] - data.result.meta.preBalances?.[1] || 0
-      };
+      const txData = await txResponse.json();
+      
+      if (txData.result && txData.result.meta && txData.result.meta.err === null) {
+        // Check if transaction amount matches expected amount (within tolerance)
+        const postBalances = txData.result.meta.postBalances;
+        const preBalances = txData.result.meta.preBalances;
+        
+        if (postBalances && preBalances && postBalances.length > 1 && preBalances.length > 1) {
+          const receivedAmount = (postBalances[1] - preBalances[1]) / 1000000000; // Convert lamports to SOL
+          const tolerance = 0.0001; // Allow small differences due to fees
+          
+          if (Math.abs(receivedAmount - expectedAmount) <= tolerance) {
+            // Check if transaction is recent enough
+            const txTime = txData.result.blockTime * 1000;
+            const paymentTime = new Date(since).getTime();
+            
+            if (txTime >= paymentTime - 60000) { // 1 minute tolerance
+              return {
+                success: true,
+                transactionHash: sigInfo.signature,
+                confirmations: 1,
+                blockTime: txTime,
+                amount: receivedAmount
+              };
+            }
+          }
+        }
+      }
     }
     
-    return {
-      success: false,
-      confirmations: 0,
-      blockHeight: 0,
-      verified: false
-    };
+    return { success: false, error: 'No matching transaction found' };
   } catch (error) {
     console.error('Solana verification error:', error);
-    return {
-      success: false,
-      confirmations: 0,
-      blockHeight: 0,
-      verified: false
-    };
+    return { success: false, error: error.message };
   }
 }
 
@@ -191,7 +200,6 @@ async function processPaymentAction(supabaseClient: any, payment: any) {
         await processPremiumPayment(supabaseClient, payment)
       }
       break
-    // Escrow removed per user request
   }
 }
 
@@ -240,7 +248,6 @@ async function processPremiumPayment(supabaseClient: any, payment: any) {
     .eq('id', payment.subscription_id)
 }
 
-
 async function sendPaymentNotification(supabaseClient: any, payment: any, status: string) {
   // Create notification record
   await supabaseClient
@@ -248,11 +255,10 @@ async function sendPaymentNotification(supabaseClient: any, payment: any, status
     .insert({
       user_id: payment.user_id,
       type: 'payment_update',
-      title: `Crypto-Zahlung ${status === 'confirmed' ? 'bestätigt' : 'fehlgeschlagen'}`,
-      message: `Ihre ${payment.cryptocurrency} Zahlung über €${payment.amount_eur} wurde ${status === 'confirmed' ? 'erfolgreich bestätigt' : 'nicht bestätigt'}.`,
+      title: `Automatische ${payment.cryptocurrency} Zahlung ${status === 'confirmed' ? 'bestätigt' : 'fehlgeschlagen'}`,
+      message: `Ihre automatische ${payment.cryptocurrency} Zahlung über €${payment.amount_eur} wurde ${status === 'confirmed' ? 'erfolgreich verarbeitet' : 'nicht bestätigt'}.`,
       data: {
         payment_id: payment.id,
-        transaction_hash: payment.transaction_hash,
         amount: payment.amount_crypto,
         cryptocurrency: payment.cryptocurrency
       }
