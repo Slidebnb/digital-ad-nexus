@@ -991,6 +991,105 @@ export type Database = {
           },
         ]
       }
+      premium_plans: {
+        Row: {
+          active: boolean | null
+          benefits: string[] | null
+          created_at: string
+          description: string | null
+          duration_days: number
+          features: Json
+          id: string
+          name: string
+          popular: boolean | null
+          price_eur: number
+          price_sol: number
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          benefits?: string[] | null
+          created_at?: string
+          description?: string | null
+          duration_days: number
+          features?: Json
+          id?: string
+          name: string
+          popular?: boolean | null
+          price_eur: number
+          price_sol: number
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          benefits?: string[] | null
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          features?: Json
+          id?: string
+          name?: string
+          popular?: boolean | null
+          price_eur?: number
+          price_sol?: number
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      premium_subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string
+          expires_at: string
+          features: Json | null
+          id: string
+          plan_type: string
+          price_eur: number
+          price_sol: number
+          solana_wallet_from: string | null
+          solana_wallet_to: string
+          starts_at: string
+          status: string
+          transaction_signature: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string
+          expires_at: string
+          features?: Json | null
+          id?: string
+          plan_type?: string
+          price_eur: number
+          price_sol: number
+          solana_wallet_from?: string | null
+          solana_wallet_to: string
+          starts_at?: string
+          status?: string
+          transaction_signature?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string
+          expires_at?: string
+          features?: Json | null
+          id?: string
+          plan_type?: string
+          price_eur?: number
+          price_sol?: number
+          solana_wallet_from?: string | null
+          solana_wallet_to?: string
+          starts_at?: string
+          status?: string
+          transaction_signature?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_alerts: {
         Row: {
           coin: string
@@ -1968,6 +2067,10 @@ export type Database = {
       }
       is_admin: {
         Args: { user_id?: string }
+        Returns: boolean
+      }
+      is_premium_user: {
+        Args: { user_uuid: string }
         Returns: boolean
       }
       promote_to_admin: {
