@@ -15,6 +15,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { LiveUserCounter } from "@/components/LiveUserCounter";
+import { PremiumButton } from "@/components/PremiumButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -76,6 +77,7 @@ export function Navigation() {
             
             {user ? (
               <>
+                <PremiumButton size="sm" />
                 <NotificationCenter />
                 <Link to="/profile">
                   <Button variant="ghost" size="icon">
@@ -104,6 +106,7 @@ export function Navigation() {
               </>
             ) : (
               <div className="flex items-center space-x-2">
+                <PremiumButton size="sm" variant="outline" />
                 <Link to="/login">
                   <Button variant="ghost" size="sm">
                     Anmelden
