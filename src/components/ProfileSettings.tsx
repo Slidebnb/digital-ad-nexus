@@ -211,11 +211,23 @@ export function ProfileSettings() {
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🎯 Avatar upload triggered');
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user) {
+      console.log('❌ No file selected or no user:', { file: !!file, user: !!user });
+      return;
+    }
+
+    console.log('📋 File validation started:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      maxSize: 5 * 1024 * 1024
+    });
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.log('❌ Invalid file type:', file.type);
       toast({
         title: "Fehler",
         description: "Bitte wählen Sie eine gültige Bilddatei aus.",
@@ -226,6 +238,7 @@ export function ProfileSettings() {
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      console.log('❌ File too large:', file.size);
       toast({
         title: "Fehler", 
         description: "Die Datei ist zu groß. Maximale Größe: 5MB.",
@@ -234,6 +247,7 @@ export function ProfileSettings() {
       return;
     }
 
+    console.log('✅ File validation passed');
     setUploadingAvatar(true);
 
     try {
@@ -310,10 +324,18 @@ export function ProfileSettings() {
       await fetchProfileData();
 
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      console.error('❌ Avatar upload failed - Full error details:', {
+        error: error,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        userId: user.id,
+        fileName: file.name
+      });
+      
       toast({
         title: "Fehler",
-        description: "Profilbild konnte nicht hochgeladen werden.",
+        description: `Profilbild konnte nicht hochgeladen werden: ${error.message || 'Unbekannter Fehler'}`,
         variant: "destructive"
       });
     } finally {
