@@ -301,15 +301,15 @@ export function ProfileSettings() {
 
       console.log('Generated public URL:', publicUrl);
 
-      // Update profile in database
+      // Update profile in database - UPDATE statt UPSERT verwenden
       console.log('Updating profile with new avatar URL...');
       const { data: updateData, error: updateError } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
+        .update({
           avatar_url: publicUrl,
           updated_at: new Date().toISOString()
         })
+        .eq('user_id', user.id)
         .select();
 
       console.log('Profile update result:', { updateData, updateError });
