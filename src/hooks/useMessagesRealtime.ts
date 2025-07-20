@@ -121,7 +121,7 @@ export const useMessagesRealtime = () => {
         }, (payload) => {
           logger.debug('Realtime message update', 'useMessagesRealtime', { 
             event: payload.eventType,
-            messageId: payload.new?.id || payload.old?.id
+            messageId: (payload.new as any)?.id || (payload.old as any)?.id
           });
 
           // Debounce rapid updates
@@ -140,7 +140,7 @@ export const useMessagesRealtime = () => {
         }, (payload) => {
           logger.debug('Realtime conversation update', 'useMessagesRealtime', { 
             event: payload.eventType,
-            conversationId: payload.new?.id || payload.old?.id
+            conversationId: (payload.new as any)?.id || (payload.old as any)?.id
           });
 
           // Refresh messages when conversations change

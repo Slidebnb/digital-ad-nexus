@@ -155,7 +155,7 @@ export const useUserStats = () => {
         }, (payload) => {
           logger.debug('Realtime ads update', 'useUserStats', { 
             event: payload.eventType,
-            adId: payload.new?.id || payload.old?.id
+            adId: (payload.new as any)?.id || (payload.old as any)?.id
           });
           
           // Debounce rapid updates
@@ -173,11 +173,11 @@ export const useUserStats = () => {
         }, (payload) => {
           logger.debug('Realtime messages update', 'useUserStats', { 
             event: payload.eventType,
-            messageId: payload.new?.id || payload.old?.id
+            messageId: (payload.new as any)?.id || (payload.old as any)?.id
           });
           
           // Only update if it affects this user
-          const message = payload.new || payload.old;
+          const message = (payload.new || payload.old) as any;
           if (message && (message.sender_id === user.id || 
               // Check if message is in user's conversations - simplified check
               message.conversation_id)) {
