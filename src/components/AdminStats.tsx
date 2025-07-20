@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAdminRealTimeMetrics } from "@/hooks/useAdminRealTimeMetrics";
-import { SkeletonCard } from "@/components/ui/loading-states";
+import { DashboardSkeleton } from "@/components/ui/loading-states";
 import { 
   Users, 
   ShieldAlert, 
@@ -36,15 +36,7 @@ export function AdminStats() {
   } = useAdminRealTimeMetrics();
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(12)].map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
