@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import {
 export function UserAds() {
   const { userAds, getUserStats } = useProfile();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [boostModalOpen, setBoostModalOpen] = useState(false);
@@ -92,6 +93,18 @@ export function UserAds() {
     return ad.boosted_until && new Date(ad.boosted_until) > new Date();
   };
 
+  const handleCreateAd = () => {
+    if (!stats.verified) {
+      toast({
+        title: "Verifizierung erforderlich",
+        description: "Sie müssen Ihren Account verifizieren, um Anzeigen zu erstellen.",
+        variant: "destructive"
+      });
+      return;
+    }
+    navigate('/create-ad');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Stats */}
@@ -105,21 +118,7 @@ export function UserAds() {
         <Button 
           variant="gradient"
           disabled={!stats.verified}
-          onClick={() => {
-            if (!stats.verified) {
-              toast({
-                title: "Verifizierung erforderlich",
-                description: "Sie müssen Ihren Account verifizieren, um Anzeigen zu erstellen.",
-                variant: "destructive"
-              });
-              return;
-            }
-            // TODO: Navigate to create ad page
-            toast({
-              title: "Feature wird implementiert",
-              description: "Die Anzeigenerstellung wird bald verfügbar sein.",
-            });
-          }}
+          onClick={handleCreateAd}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
           Neue Anzeige
@@ -186,9 +185,7 @@ export function UserAds() {
               <Button 
                 variant="gradient"
                 disabled={!stats.verified}
-                onClick={() => {
-                  // TODO: Navigate to create ad or verification
-                }}
+                onClick={stats.verified ? handleCreateAd : () => navigate('/dashboard?tab=verification')}
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 {stats.verified ? "Erste Anzeige erstellen" : "Account verifizieren"}
