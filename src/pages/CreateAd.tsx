@@ -27,7 +27,7 @@ const CRYPTO_CURRENCIES = ['BTC', 'ETH', 'USDT', 'USDC', 'EUR', 'USD'];
 type Category = Tables<'categories'>;
 
 export default function CreateAd() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -145,6 +145,17 @@ export default function CreateAd() {
       return;
     }
 
+    // Check verification status
+    if (!userProfile?.verified || !['id', 'full'].includes(userProfile.verification_level || 'none')) {
+      toast({
+        title: "Verifizierung erforderlich",
+        description: "Um Anzeigen zu erstellen, müssen Sie Ihr Konto verifizieren.",
+        variant: "destructive",
+        action: <Button onClick={() => navigate('/dashboard?tab=verification')} variant="outline" size="sm">Jetzt verifizieren</Button>
+      });
+      return;
+    }
+
     if (!formData.category_id) {
       toast({
         title: "Fehler",
@@ -251,6 +262,35 @@ export default function CreateAd() {
               Handeln Sie sicher mit Kryptowährungen - erstellen Sie Ihre Anzeige und erreichen Sie tausende von Händlern
             </p>
           </div>
+
+          {/* Verification Required Banner */}
+          {(!userProfile?.verified || !['id', 'full'].includes(userProfile?.verification_level || 'none')) && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Verifizierung erforderlich
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>
+                      Um Anzeigen zu erstellen, müssen Sie Ihr Konto verifizieren. 
+                      <button 
+                        onClick={() => navigate('/dashboard?tab=verification')}
+                        className="font-medium underline hover:text-yellow-600 ml-1"
+                      >
+                        Jetzt verifizieren
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
