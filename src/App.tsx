@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { EnhancedNotificationSystem } from "@/components/EnhancedNotificationSystem";
 import { AuthContext, useAuthProvider } from "@/hooks/useAuth";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -31,6 +32,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <EnhancedNotificationSystem />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
