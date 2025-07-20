@@ -150,6 +150,7 @@ export function ProfileSettings() {
       };
 
       console.log('Profil-Daten geladen:', fullProfile);
+      console.log('🖼️ Avatar URL from database:', fullProfile.avatar_url);
       setProfile(fullProfile);
 
       // Editierbare Daten setzen
@@ -442,7 +443,12 @@ export function ProfileSettings() {
             {/* Avatar Upload */}
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={profile?.avatar_url} />
+                <AvatarImage 
+                  src={profile?.avatar_url} 
+                  key={profile?.avatar_url} // Force re-render when URL changes
+                  onLoad={() => console.log('✅ Avatar image loaded:', profile?.avatar_url)}
+                  onError={() => console.log('❌ Avatar image failed to load:', profile?.avatar_url)}
+                />
                 <AvatarFallback className="text-lg">
                   {profile?.full_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
