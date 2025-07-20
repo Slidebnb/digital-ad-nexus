@@ -56,10 +56,23 @@ export function useDeviceDetection(): DeviceInfo {
       else if (width < 1440) screenSize = 'large';
       else screenSize = 'xlarge';
       
-      // Device type logic
+      // Device type logic - Debug logging
       const isMobile = width < 640 || isIPhone;
       const isTablet = (width >= 640 && width < 1024) || isIPad || (isAndroid && width >= 600);
       const isDesktop = width >= 1024 && !isIPad && !isTouchDevice;
+      
+      // Debug logging
+      console.log('Device Detection:', {
+        width,
+        height,
+        userAgent: userAgent.substring(0, 50),
+        isMobile,
+        isTablet,
+        isDesktop,
+        isIPad,
+        isTouchDevice,
+        screenSize
+      });
       
       const orientation = height > width ? 'portrait' : 'landscape';
       

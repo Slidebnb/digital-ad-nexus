@@ -24,8 +24,13 @@ export function MobileDashboardHeader() {
   const { user, signOut, isAdmin, userRole } = useAuth();
   const device = useDeviceDetection();
 
-  // Show header for touch devices (mobile + tablet)
+  // Show header for touch devices (mobile + tablet) - Debug logging
   const showMobileHeader = device.isTouchDevice || device.isMobile || device.isTablet;
+  
+  console.log('MobileDashboardHeader Debug:', {
+    showMobileHeader,
+    device
+  });
 
   if (!showMobileHeader) {
     return null;
