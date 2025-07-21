@@ -1,5 +1,5 @@
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
@@ -22,6 +22,8 @@ import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ReportsAnalytics } from "@/components/ReportsAnalytics";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { LazyLoadingWrapper } from "@/components/LazyLoadingWrapper";
 import { cn } from "@/lib/utils";
 import { 
   BarChart3, 
@@ -156,12 +158,24 @@ export function UserDashboard() {
                 >
                   <div className="animate-fade-in">
                     {/* Debug-Info für aktiven Tab */}
-                    {currentTab === tab.value && (
+                    {process.env.NODE_ENV === 'development' && currentTab === tab.value && (
                       <div className="mb-4 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
                         🚀 Aktiver Tab: {tab.label} | Komponente: {Component.name}
                       </div>
                     )}
-                    <Component />
+                    
+                    {/* Spezielle Behandlung für Krypto-Tab mit Error Boundary */}
+                    {tab.value === 'crypto' ? (
+                      <ErrorBoundary>
+                        <LazyLoadingWrapper>
+                          <Component />
+                        </LazyLoadingWrapper>
+                      </ErrorBoundary>
+                    ) : (
+                      <ErrorBoundary>
+                        <Component />
+                      </ErrorBoundary>
+                    )}
                   </div>
                 </TabsContent>
               );

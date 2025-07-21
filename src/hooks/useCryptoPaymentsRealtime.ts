@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -27,9 +28,13 @@ export function useCryptoPaymentsRealtime() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchPayments = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
+      setError(null);
       const { data, error } = await supabase
         .from('crypto_payments')
         .select('*')
@@ -41,14 +46,19 @@ export function useCryptoPaymentsRealtime() {
 
       setPayments(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch payments');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch payments';
+      console.error('Crypto payments fetch error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     fetchPayments();
     
@@ -82,6 +92,10 @@ export function useCryptoPaymentsRealtime() {
       )
       .subscribe((status) => {
         console.log('Crypto payments realtime status:', status);
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to crypto payments');
+          setError('Realtime connection failed');
+        }
       });
     
     return () => {

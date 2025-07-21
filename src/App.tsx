@@ -1,8 +1,9 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { EnhancedNotificationSystem } from "@/components/EnhancedNotificationSystem";
 import { AuthProvider } from "@/hooks/useAuth";
 
@@ -21,8 +22,15 @@ import AdDetail from "./pages/AdDetail";
 
 import { AuthGuard } from "./components/AuthGuard";
 
-const queryClient = new QueryClient();
-
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      retryDelay: 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <GlobalErrorBoundary>
@@ -35,7 +43,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/profile" element={<AuthGuard requireAuth><Dashboard /></AuthGuard>} />
+              {/* Redirect /profile to /dashboard for consistency */}
+              <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<AuthGuard requireAuth><Dashboard /></AuthGuard>} />
               <Route path="/browse" element={<Browse />} />
               <Route path="/categories" element={<Categories />} />

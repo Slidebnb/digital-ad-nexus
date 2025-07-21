@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +20,7 @@ export function useCryptoPrices() {
 
   const fetchPrices = async () => {
     try {
+      setError(null);
       const { data, error } = await supabase
         .from('crypto_prices')
         .select('*')
@@ -33,7 +35,9 @@ export function useCryptoPrices() {
 
       setPrices(pricesMap);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to fetch prices');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch prices';
+      console.error('Crypto prices fetch error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -103,6 +107,9 @@ export function useCryptoPrices() {
         console.log('Crypto prices realtime status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to crypto prices');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to crypto prices');
+          setError('Realtime connection failed');
         }
       });
     
