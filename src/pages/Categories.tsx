@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,9 +52,16 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export default function Categories() {
-  const navigate = useNavigate();
-  const { categories, loading } = useCategoriesWithCounts();
   const [searchTerm, setSearchTerm] = useState("");
+  const { categories, loading } = useCategoriesWithCounts();
+  
+  let navigate;
+  try {
+    navigate = useNavigate();
+  } catch (error) {
+    console.error("Router context not available:", error);
+    navigate = () => {};
+  }
 
   const getIconComponent = (iconName: string) => {
     const normalizedIconName = iconName?.toLowerCase() || 'default';
