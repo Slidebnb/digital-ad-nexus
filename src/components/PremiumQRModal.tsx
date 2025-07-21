@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { useCryptoPrices } from '@/hooks/useCryptoPrices';
 import { usePremium } from '@/hooks/usePremium';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import QRCode from 'qrcode.react';
+import QRCode from 'qrcode';
 
 interface PremiumQRModalProps {
   open: boolean;
@@ -37,6 +37,7 @@ export function PremiumQRModal({ open, onOpenChange, selectedPlan }: PremiumQRMo
   const [processing, setProcessing] = useState(false);
   const [step, setStep] = useState<'qr' | 'verify'>('qr');
   const [transactionSignature, setTransactionSignature] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   if (!selectedPlan) return null;
 
@@ -45,6 +46,13 @@ export function PremiumQRModal({ open, onOpenChange, selectedPlan }: PremiumQRMo
   const memo = user?.id || 'unknown';
 
   const qrValue = `solana:${PLATFORM_WALLET}?amount=${solAmount}&reference=${memo}&label=Premium%20Subscription`;
+
+  // Generate QR code on mount or when qrValue changes
+  useEffect(() => {
+    QRCode.toDataURL(qrValue, { width: 200, margin: 2 })
+      .then(setQrDataUrl)
+      .catch(console.error);
+  }, [qrValue]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -125,12 +133,13 @@ export function PremiumQRModal({ open, onOpenChange, selectedPlan }: PremiumQRMo
                 </div>
                 
                 <div className="bg-white p-4 rounded-lg inline-block">
-                  <QRCode
-                    value={qrValue}
-                    size={200}
-                    level="M"
-                    includeMargin={true}
-                  />
+                  {qrDataUrl && (
+                    <img 
+                      src={qrDataUrl} 
+                      alt="QR Code for Solana payment" 
+                      className="w-[200px] h-[200px]"
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>
