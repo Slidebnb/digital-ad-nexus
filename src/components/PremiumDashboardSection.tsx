@@ -4,18 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { Crown, Star, Zap, Calendar, TrendingUp, Shield, Eye, Heart, MessageCircle } from 'lucide-react';
 import { usePremium } from '@/hooks/usePremium';
 import { useProfile } from '@/hooks/useProfile';
 import { useCryptoPrices } from '@/hooks/useCryptoPrices';
-import { PremiumButton } from '@/components/PremiumButton';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { PremiumSubscriptionModal } from '@/components/PremiumSubscriptionModal';
 import BoostAdModal from '@/components/BoostAdModal';
-import { QRCodeSVG } from 'qrcode.react';
-
-const OUR_SOLANA_WALLET = '6rGVhxNk6LrR9SDnVX3aKMYLEYFG7q6KMiKVj6CCsqWz';
 
 export function PremiumDashboardSection() {
   const { isPremium, subscription, plans, features, getDaysRemaining } = usePremium();
@@ -47,9 +42,8 @@ export function PremiumDashboardSection() {
     setBoostModalOpen(true);
   };
 
-  const generatePaymentQR = (amount: number, memo: string) => {
-    const paymentUrl = `solana:${OUR_SOLANA_WALLET}?amount=${amount}&memo=${encodeURIComponent(memo)}`;
-    return paymentUrl;
+  const handlePremiumPurchase = () => {
+    setPremiumModalOpen(true);
   };
 
   return (
@@ -76,7 +70,7 @@ export function PremiumDashboardSection() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setPremiumModalOpen(true)}
+                  onClick={handlePremiumPurchase}
                   className="border-orange-500 text-orange-600 hover:bg-orange-50"
                 >
                   Verlängern
@@ -84,13 +78,19 @@ export function PremiumDashboardSection() {
               )}
             </div>
           ) : (
-            <PremiumButton />
+            <Button 
+              onClick={handlePremiumPurchase}
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold px-6 py-2"
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              Premium kaufen
+            </Button>
           )}
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Crown className="h-4 w-4" />
             Übersicht
@@ -102,10 +102,6 @@ export function PremiumDashboardSection() {
           <TabsTrigger value="boost" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Boost Anzeigen
-          </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" />
-            Zahlung
           </TabsTrigger>
         </TabsList>
 
@@ -156,7 +152,14 @@ export function PremiumDashboardSection() {
                 <p className="text-muted-foreground mb-6">
                   Erhalten Sie Zugang zu exklusiven Features und priorisiertem Support
                 </p>
-                <PremiumButton size="lg" />
+                <Button 
+                  onClick={handlePremiumPurchase}
+                  size="lg"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold px-8 py-3"
+                >
+                  <Crown className="h-5 w-5 mr-2" />
+                  Jetzt Premium werden
+                </Button>
               </CardContent>
             </Card>
           )}
@@ -251,9 +254,10 @@ export function PremiumDashboardSection() {
                       <Button 
                         className="w-full" 
                         variant={plan.popular ? "default" : "outline"}
-                        onClick={() => setPremiumModalOpen(true)}
+                        onClick={handlePremiumPurchase}
                       >
-                        Plan wählen
+                        <Crown className="h-4 w-4 mr-2" />
+                        Jetzt kaufen
                       </Button>
                     </CardContent>
                   </Card>
@@ -350,7 +354,7 @@ export function PremiumDashboardSection() {
                                   className={isBoosted ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" : ""}
                                 >
                                   <Zap className="h-4 w-4 mr-1" />
-                                  {isBoosted ? "Verlängern" : "Boost buchen"}
+                                  {isBoosted ? "Verlängern" : "Jetzt boosten"}
                                 </Button>
                               </div>
                             </div>
@@ -361,71 +365,6 @@ export function PremiumDashboardSection() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payment Tab */}
-        <TabsContent value="payment" className="space-y-6">
-          <Card className="gradient-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
-                Solana Zahlung
-              </CardTitle>
-              <p className="text-muted-foreground">
-                Bezahlen Sie mit SOL direkt an unsere Wallet-Adresse
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Unsere Wallet-Adresse */}
-              <div className="text-center space-y-4">
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-2">Unsere Solana Wallet-Adresse:</p>
-                  <p className="font-mono text-sm break-all bg-background p-2 rounded border">
-                    {OUR_SOLANA_WALLET}
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => navigator.clipboard.writeText(OUR_SOLANA_WALLET)}
-                  >
-                    Adresse kopieren
-                  </Button>
-                </div>
-
-                {/* QR Code für unsere Wallet */}
-                <div className="flex justify-center">
-                  <div className="bg-white p-4 rounded-lg border">
-                    <QRCodeSVG 
-                      value={OUR_SOLANA_WALLET}
-                      size={200}
-                      level="M"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">Zahlungshinweise:</h4>
-                  <ul className="text-sm space-y-1 text-left">
-                    <li>• Verwenden Sie die Premium-Modals für automatische Verarbeitung</li>
-                    <li>• Bei manueller Zahlung: Fügen Sie Ihre User-ID als Memo hinzu</li>
-                    <li>• Zahlungen werden innerhalb von 10 Minuten verarbeitet</li>
-                    <li>• Bei Problemen kontaktieren Sie den Support</li>
-                  </ul>
-                </div>
-
-                {/* SOL Preis Anzeige */}
-                {prices.SOL && (
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Aktueller SOL Preis:</p>
-                    <p className="text-lg font-semibold">
-                      1 SOL = €{prices.SOL.price_eur.toFixed(2)}
-                    </p>
-                  </div>
-                )}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
