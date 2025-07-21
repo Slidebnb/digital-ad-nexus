@@ -32,65 +32,47 @@ interface Ad {
   tags: string[];
 }
 
-export default function Browse() {
-  // Sichere URL-Parameter-Extraktion
-  const getUrlParams = () => {
-    try {
-      return new URLSearchParams(window.location.search);
-    } catch (error) {
-      console.warn('Error parsing URL parameters:', error);
-      return new URLSearchParams();
-    }
-  };
-
+export default function BrowseFixed() {
+  // Sichere URL-Parameter-Extraktion mit lazy initialization
+  const [urlInitialized, setUrlInitialized] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [boostedOnly, setBoostedOnly] = useState(() => {
-    try {
-      return getUrlParams().get("boosted") === "true";
-    } catch {
-      return false;
-    }
-  });
-  
-  const [search, setSearch] = useState(() => {
-    try {
-      return getUrlParams().get("search") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
-    try {
-      return getUrlParams().getAll("category") || [];
-    } catch {
-      return [];
-    }
-  });
-  const [selectedLocations, setSelectedLocations] = useState<string[]>(() => {
-    try {
-      return getUrlParams().getAll("location") || [];
-    } catch {
-      return [];
-    }
-  });
-  const [priceRange, setPriceRange] = useState<number[]>(() => {
-    try {
-      const params = getUrlParams();
-      return [
-        Number(params.get("priceMin")) || 0,
-        Number(params.get("priceMax")) || 10000
-      ];
-    } catch {
-      return [0, 10000];
-    }
-  });
+  const [boostedOnly, setBoostedOnly] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<number[]>([0, 10000]);
   
   const [ads, setAds] = useState<Ad[]>([]);
   const [boostedAds, setBoostedAds] = useState<Ad[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+
+  // URL-Parameter beim ersten Laden auslesen
+  useEffect(() => {
+    if (!urlInitialized) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("boosted") === "true") setBoostedOnly(true);
+        if (params.get("search")) setSearch(params.get("search") || "");
+        if (params.getAll("category").length > 0) setSelectedCategories(params.getAll("category"));
+        if (params.getAll("location").length > 0) setSelectedLocations(params.getAll("location"));
+        
+        const minPrice = params.get("priceMin");
+        const maxPrice = params.get("priceMax");
+        if (minPrice || maxPrice) {
+          setPriceRange([
+            minPrice ? Number(minPrice) : 0,
+            maxPrice ? Number(maxPrice) : 10000
+          ]);
+        }
+      } catch (error) {
+        console.warn('Error parsing URL parameters:', error);
+      }
+      setUrlInitialized(true);
+    }
+  }, [urlInitialized]);
 
   // Lade Kategorien
   useEffect(() => {
@@ -151,6 +133,8 @@ export default function Browse() {
 
   // Lade Anzeigen basierend auf Filtern
   useEffect(() => {
+    if (!urlInitialized || categoriesLoading) return;
+    
     const fetchAds = async () => {
       setLoading(true);
       
@@ -237,10 +221,8 @@ export default function Browse() {
       setLoading(false);
     };
 
-    if (!categoriesLoading) {
-      fetchAds();
-    }
-  }, [search, selectedCategories, selectedLocations, priceRange, categories, categoriesLoading, boostedOnly]);
+    fetchAds();
+  }, [urlInitialized, search, selectedCategories, selectedLocations, priceRange, categories, categoriesLoading, boostedOnly]);
 
   const handleCategoryChange = (categorySlug: string) => {
     setSelectedCategories(prev =>
@@ -264,28 +246,44 @@ export default function Browse() {
     setSelectedLocations([]);
     setPriceRange([0, 10000]);
     setBoostedOnly(false);
-    window.history.replaceState({}, '', window.location.pathname);
+    try {
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch (error) {
+      console.warn('Error updating URL:', error);
+    }
   };
 
   const applyFilters = () => {
-    const params = new URLSearchParams();
-    
-    if (search) params.set("search", search);
-    if (priceRange[0] > 0) params.set("priceMin", String(priceRange[0]));
-    if (priceRange[1] < 10000) params.set("priceMax", String(priceRange[1]));
-    if (boostedOnly) params.set("boosted", "true");
-    
-    selectedCategories.forEach(category => params.append("category", category));
-    selectedLocations.forEach(location => params.append("location", location));
-    
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState({}, '', newUrl);
+    try {
+      const params = new URLSearchParams();
+      
+      if (search) params.set("search", search);
+      if (priceRange[0] > 0) params.set("priceMin", String(priceRange[0]));
+      if (priceRange[1] < 10000) params.set("priceMax", String(priceRange[1]));
+      if (boostedOnly) params.set("boosted", "true");
+      
+      selectedCategories.forEach(category => params.append("category", category));
+      selectedLocations.forEach(location => params.append("location", location));
+      
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, '', newUrl);
+    } catch (error) {
+      console.warn('Error updating URL:', error);
+    }
   };
 
   const activeFiltersCount = selectedCategories.length + selectedLocations.length + 
     (search ? 1 : 0) + (priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0) + (boostedOnly ? 1 : 0);
 
   const totalAds = boostedAds.length + ads.length;
+
+  if (!urlInitialized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -494,270 +492,198 @@ export default function Browse() {
                         </p>
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                      {boostedAds.slice(0, 6).map((ad) => (
-                        <div key={`boosted-${ad.id}`} onClick={() => window.location.href = `/ad/${ad.id}`}>
-                          <Card className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 border-primary/50 bg-gradient-to-br from-primary/5 via-purple-50 to-pink-50 relative">
-                            {/* Boost Badge */}
-                            <div className="absolute top-3 left-3 z-10">
-                              <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white font-semibold">
-                                <Zap className="h-3 w-3 mr-1" />
-                                GESPONSERT
-                              </Badge>
-                            </div>
 
-                            <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {boostedAds.map((ad) => (
+                        <Card key={ad.id} className="group hover:shadow-lg transition-all duration-200 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-yellow-500/5">
+                          <CardContent className="p-0">
+                            <div className="relative">
+                              <div className="absolute top-2 left-2 z-10">
+                                <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-none">
+                                  <Crown className="h-3 w-3 mr-1" />
+                                  Sponsored
+                                </Badge>
+                              </div>
                               {ad.images && ad.images.length > 0 ? (
                                 <img
                                   src={ad.images[0]}
                                   alt={ad.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-48 object-cover rounded-t-lg"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                  <ShoppingBag className="h-12 w-12" />
+                                <div className="w-full h-48 bg-gradient-to-br from-muted to-muted/70 rounded-t-lg flex items-center justify-center">
+                                  <ShoppingBag className="h-16 w-16 text-muted-foreground/40" />
                                 </div>
                               )}
                             </div>
                             
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-2">
-                                  {ad.title}
-                                </h3>
-                                <div className="text-right flex-shrink-0 ml-2">
-                                  <div className="text-xl font-bold text-primary">
-                                    {ad.price}€
+                            <div className="p-4 space-y-3">
+                              <div className="space-y-2">
+                                <h3 className="font-semibold text-lg line-clamp-1">{ad.title}</h3>
+                                <p className="text-muted-foreground text-sm line-clamp-2">{ad.description}</p>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <Euro className="h-4 w-4 text-primary" />
+                                  <span className="font-bold text-lg text-primary">
+                                    {ad.price.toLocaleString('de-DE')} {ad.currency}
+                                  </span>
+                                </div>
+                                <Badge variant={ad.condition === 'new' ? 'default' : 'secondary'}>
+                                  {ad.condition === 'new' ? 'Neu' : 'Gebraucht'}
+                                </Badge>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{ad.location}</span>
+                                  <Calendar className="h-4 w-4 ml-auto" />
+                                  <span>{formatDistanceToNow(new Date(ad.created_at), { addSuffix: true, locale: de })}</span>
+                                </div>
+                                
+                                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <Eye className="h-3 w-3" />
+                                      <span>{ad.view_count || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Heart className="h-3 w-3" />
+                                      <span>{ad.favorite_count || 0}</span>
+                                    </div>
                                   </div>
+                                  
+                                  <Button size="sm" variant="outline">
+                                    Details
+                                  </Button>
                                 </div>
                               </div>
                               
-                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                {ad.description}
-                              </p>
-                              
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <div className="flex items-center">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {ad.location || 'Keine Angabe'}
+                              {/* Tags */}
+                              {ad.tags && ad.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {ad.tags.slice(0, 3).map((tag, index) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                  {ad.tags.length > 3 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{ad.tags.length - 3} mehr
+                                    </Badge>
+                                  )}
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className="flex items-center">
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    {ad.view_count || 0}
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Heart className="h-3 w-3 mr-1" />
-                                    {ad.favorite_count || 0}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between mt-3">
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  {formatDistanceToNow(new Date(ad.created_at), { 
-                                    addSuffix: true, 
-                                    locale: de 
-                                  })}
-                                </div>
-                                {ad.condition && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {ad.condition}
-                                  </Badge>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Normale Anzeigen Sektion */}
-                {!boostedOnly && ads.length > 0 && (
-                  <>
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h2 className="text-xl font-semibold">
-                          {search ? `Weitere Ergebnisse für "${search}"` : "Weitere Anzeigen"}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          {ads.length} Anzeige{ads.length !== 1 ? 'n' : ''} gefunden
-                        </p>
+                {/* Reguläre Anzeigen */}
+                {ads.length > 0 && (
+                  <div>
+                    {!boostedOnly && (
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-full bg-gradient-to-r from-primary to-secondary text-white">
+                          <ShoppingBag className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold">Alle Anzeigen</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {ads.length} Anzeige{ads.length !== 1 ? 'n' : ''}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {ads.map((ad) => (
-                        <div key={ad.id} onClick={() => window.location.href = `/ad/${ad.id}`}>
-                          <Card className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50">
-                            <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                        <Card key={ad.id} className="group hover:shadow-lg transition-all duration-200">
+                          <CardContent className="p-0">
+                            <div className="relative">
                               {ad.images && ad.images.length > 0 ? (
                                 <img
                                   src={ad.images[0]}
                                   alt={ad.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-48 object-cover rounded-t-lg"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                  <ShoppingBag className="h-12 w-12" />
+                                <div className="w-full h-48 bg-gradient-to-br from-muted to-muted/70 rounded-t-lg flex items-center justify-center">
+                                  <ShoppingBag className="h-16 w-16 text-muted-foreground/40" />
                                 </div>
                               )}
                             </div>
                             
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-2">
-                                  {ad.title}
-                                </h3>
-                                <div className="text-right flex-shrink-0 ml-2">
-                                  <div className="text-xl font-bold text-primary">
-                                    {ad.price}€
+                            <div className="p-4 space-y-3">
+                              <div className="space-y-2">
+                                <h3 className="font-semibold text-lg line-clamp-1">{ad.title}</h3>
+                                <p className="text-muted-foreground text-sm line-clamp-2">{ad.description}</p>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <Euro className="h-4 w-4 text-primary" />
+                                  <span className="font-bold text-lg text-primary">
+                                    {ad.price.toLocaleString('de-DE')} {ad.currency}
+                                  </span>
+                                </div>
+                                <Badge variant={ad.condition === 'new' ? 'default' : 'secondary'}>
+                                  {ad.condition === 'new' ? 'Neu' : 'Gebraucht'}
+                                </Badge>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{ad.location}</span>
+                                  <Calendar className="h-4 w-4 ml-auto" />
+                                  <span>{formatDistanceToNow(new Date(ad.created_at), { addSuffix: true, locale: de })}</span>
+                                </div>
+                                
+                                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <Eye className="h-3 w-3" />
+                                      <span>{ad.view_count || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Heart className="h-3 w-3" />
+                                      <span>{ad.favorite_count || 0}</span>
+                                    </div>
                                   </div>
+                                  
+                                  <Button size="sm" variant="outline">
+                                    Details
+                                  </Button>
                                 </div>
                               </div>
                               
-                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                {ad.description}
-                              </p>
-                              
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <div className="flex items-center">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {ad.location || 'Keine Angabe'}
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className="flex items-center">
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    {ad.view_count || 0}
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Heart className="h-3 w-3 mr-1" />
-                                    {ad.favorite_count || 0}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between mt-3">
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  {formatDistanceToNow(new Date(ad.created_at), { 
-                                    addSuffix: true, 
-                                    locale: de 
-                                  })}
-                                </div>
-                                {ad.condition && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {ad.condition}
-                                  </Badge>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* Nur geboostete Anzeigen */}
-                {boostedOnly && (
-                  <>
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h2 className="text-xl font-semibold flex items-center gap-2">
-                          <Crown className="h-5 w-5 text-primary" />
-                          Gesponserte Anzeigen
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          {boostedAds.length} premium Anzeige{boostedAds.length !== 1 ? 'n' : ''} gefunden
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {boostedAds.map((ad) => (
-                        <div key={`boosted-only-${ad.id}`} onClick={() => window.location.href = `/ad/${ad.id}`}>
-                          {/* Same boosted card design as above */}
-                          <Card className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 border-primary/50 bg-gradient-to-br from-primary/5 via-purple-50 to-pink-50 relative">
-                            {/* Boost Badge */}
-                            <div className="absolute top-3 left-3 z-10">
-                              <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white font-semibold">
-                                <Zap className="h-3 w-3 mr-1" />
-                                GESPONSERT
-                              </Badge>
-                            </div>
-
-                            <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                              {ad.images && ad.images.length > 0 ? (
-                                <img
-                                  src={ad.images[0]}
-                                  alt={ad.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                  <ShoppingBag className="h-12 w-12" />
+                              {/* Tags */}
+                              {ad.tags && ad.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {ad.tags.slice(0, 3).map((tag, index) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                  {ad.tags.length > 3 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{ad.tags.length - 3} mehr
+                                    </Badge>
+                                  )}
                                 </div>
                               )}
                             </div>
-                            
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-2">
-                                  {ad.title}
-                                </h3>
-                                <div className="text-right flex-shrink-0 ml-2">
-                                  <div className="text-xl font-bold text-primary">
-                                    {ad.price}€
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                {ad.description}
-                              </p>
-                              
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <div className="flex items-center">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {ad.location || 'Keine Angabe'}
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className="flex items-center">
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    {ad.view_count || 0}
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Heart className="h-3 w-3 mr-1" />
-                                    {ad.favorite_count || 0}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between mt-3">
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  {formatDistanceToNow(new Date(ad.created_at), { 
-                                    addSuffix: true, 
-                                    locale: de 
-                                  })}
-                                </div>
-                                {ad.condition && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {ad.condition}
-                                  </Badge>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
               </>
             )}
@@ -765,8 +691,8 @@ export default function Browse() {
         </div>
       </div>
 
-      <MobileBottomNavigation />
       <Footer />
+      <MobileBottomNavigation />
     </div>
   );
 }
