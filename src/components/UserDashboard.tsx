@@ -16,7 +16,7 @@ import { ProfileSettings } from "@/components/ProfileSettings";
 import { FavoritesManager } from "@/components/FavoritesManager";
 import { TradingHistory } from "@/components/TradingHistory";
 import { NotificationCenter } from "@/components/NotificationCenter";
-import { CryptoDashboardSection } from "@/components/CryptoDashboardSection";
+import { PremiumDashboardSection } from "@/components/PremiumDashboardSection";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ReportsAnalytics } from "@/components/ReportsAnalytics";
 import { Footer } from "@/components/Footer";
@@ -34,7 +34,7 @@ import {
   TrendingUp,
   Bell,
   User,
-  Coins,
+  Crown,
   BarChart
 } from "lucide-react";
 
@@ -70,7 +70,7 @@ export function UserDashboard() {
     }
   }, [currentTab]);
 
-  // Reduzierte Tab-Konfiguration (WALLET ENTFERNT)
+  // Updated Tab-Konfiguration (KRYPTO DURCH PREMIUM ERSETZT)
   const tabsConfig = [
     { 
       value: "overview", 
@@ -80,10 +80,10 @@ export function UserDashboard() {
       stable: true 
     },
     { 
-      value: "crypto", 
-      label: "Krypto", 
-      icon: Coins, 
-      component: CryptoDashboardSection,
+      value: "premium", 
+      label: "Premium", 
+      icon: Crown, 
+      component: PremiumDashboardSection,
       stable: true 
     },
     { 
