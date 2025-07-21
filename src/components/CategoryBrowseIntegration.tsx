@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
@@ -9,26 +8,42 @@ interface CategoryBrowseIntegrationProps {
   selectedCategory: string | null;
 }
 
+// Sichere URL-Parameter-Extraktion
+const getUrlParams = () => {
+  try {
+    return new URLSearchParams(window.location.search);
+  } catch (error) {
+    console.warn('Error parsing URL parameters:', error);
+    return new URLSearchParams();
+  }
+};
+
 export function CategoryBrowseIntegration({ 
   onCategoryFilter, 
   selectedCategory 
 }: CategoryBrowseIntegrationProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
   useEffect(() => {
-    const categoryFilter = searchParams.get('filter') || searchParams.get('category');
-    if (categoryFilter) {
-      onCategoryFilter(categoryFilter);
+    try {
+      const params = getUrlParams();
+      const categoryFilter = params.get('filter') || params.get('category');
+      if (categoryFilter) {
+        onCategoryFilter(categoryFilter);
+      }
+    } catch (error) {
+      console.warn('Error reading URL parameters:', error);
     }
-  }, [searchParams, onCategoryFilter]);
+  }, [onCategoryFilter]);
 
   const clearCategoryFilter = () => {
     onCategoryFilter(null);
-    setSearchParams(prev => {
-      prev.delete('filter');
-      prev.delete('category');
-      return prev;
-    });
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('filter');
+      url.searchParams.delete('category');
+      window.history.replaceState({}, '', url.toString());
+    } catch (error) {
+      console.warn('Error updating URL:', error);
+    }
   };
 
   if (!selectedCategory) return null;

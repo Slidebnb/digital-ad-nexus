@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ type Category = Tables<'categories'>;
 export default function CreateAd() {
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
@@ -37,8 +36,18 @@ export default function CreateAd() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   
-  // Check if we're editing an existing ad
-  const editAdId = searchParams.get('edit');
+  // Check if we're editing an existing ad - sichere URL-Parameter-Extraktion
+  const getEditAdId = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('edit');
+    } catch (error) {
+      console.warn('Error parsing URL parameters:', error);
+      return null;
+    }
+  };
+  
+  const editAdId = getEditAdId();
   const isEditing = !!editAdId;
   
   const [formData, setFormData] = useState({
