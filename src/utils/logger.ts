@@ -25,7 +25,7 @@ class Logger {
   private sessionId: string;
   private logQueue: LogEntry[] = [];
   private isFlushingLogs = false;
-  private isDevelopment = process.env.NODE_ENV === 'development';
+  private isDevelopment = import.meta.env.DEV;
 
   constructor() {
     this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

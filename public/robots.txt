@@ -1,8 +1,32 @@
+# KryptoAnzeigen.de - Robots.txt
+User-agent: *
+Allow: /
+Allow: /browse
+Allow: /categories
+Allow: /ad/
+Allow: /login
+
+# Block admin areas and private content
+Disallow: /dashboard
+Disallow: /create-ad
+Disallow: /favorites
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# Block duplicate content parameters
+Disallow: /*?sort=*
+Disallow: /*?filter=*
+Disallow: /*?page=*
+
+# Allow specific bots
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
-User-agent: Bingbot
+User-agent: Bingbot  
 Allow: /
+Crawl-delay: 1
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +34,5 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Sitemap location
+Sitemap: https://kryptoanzeigen.de/sitemap.xml
