@@ -13,6 +13,7 @@ import { ProductionSecurityWrapper } from "@/components/ProductionSecurityWrappe
 import { PerformanceOptimizer } from "@/components/PerformanceOptimizer";
 import { NetworkMonitor } from "@/components/NetworkMonitor";
 import { CookieConsentManager } from "@/components/CookieConsentManager";
+import { ProductionReadyBanner } from "@/components/ProductionReadyBanner";
 import Index from "./pages/Index";
 import Login from "./pages/LoginSimple";
 import Dashboard from "./pages/Dashboard";
@@ -44,6 +45,7 @@ const App = () => (
             <AuthProvider>
               <NetworkMonitor />
               <EnhancedNotificationSystem />
+              <ProductionReadyBanner />
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<Index />} />
