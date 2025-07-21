@@ -7,13 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
 import { Footer } from "@/components/Footer";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Filter, X, Heart, Eye, MapPin, Euro, Calendar, Loader2, ShoppingBag } from "lucide-react";
-import { useCategoriesWithCounts } from "@/hooks/useCategoriesWithCounts";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -36,26 +34,65 @@ interface Ad {
 }
 
 export default function Browse() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { categories, loading: categoriesLoading } = useCategoriesWithCounts();
+  const urlParams = new URLSearchParams(window.location.search);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   
-  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [search, setSearch] = useState(urlParams.get("search") || "");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    searchParams.getAll("category") || []
+    urlParams.getAll("category") || []
   );
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
-    searchParams.getAll("location") || []
+    urlParams.getAll("location") || []
   );
   const [priceRange, setPriceRange] = useState<number[]>([
-    Number(searchParams.get("priceMin")) || 0,
-    Number(searchParams.get("priceMax")) || 10000
+    Number(urlParams.get("priceMin")) || 0,
+    Number(urlParams.get("priceMax")) || 10000
   ]);
   
   const [ads, setAds] = useState<Ad[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Lade Kategorien
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('active', true)
+          .order('sort_order');
+
+        if (error) throw error;
+        
+        const categoriesWithCounts = await Promise.all(
+          (data || []).map(async (category) => {
+            const { count } = await supabase
+              .from('ads')
+              .select('*', { count: 'exact', head: true })
+              .eq('category_id', category.id)
+              .eq('status', 'active');
+            
+            return {
+              ...category,
+              count: count || 0
+            };
+          })
+        );
+        
+        setCategories(categoriesWithCounts);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Lade verfügbare Standorte aus der Datenbank
   useEffect(() => {
@@ -143,7 +180,7 @@ export default function Browse() {
     setSelectedCategories([]);
     setSelectedLocations([]);
     setPriceRange([0, 10000]);
-    setSearchParams({});
+    window.history.replaceState({}, '', window.location.pathname);
   };
 
   const applyFilters = () => {
@@ -156,7 +193,8 @@ export default function Browse() {
     selectedCategories.forEach(category => params.append("category", category));
     selectedLocations.forEach(location => params.append("location", location));
     
-    setSearchParams(params);
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
   };
 
   const activeFiltersCount = selectedCategories.length + selectedLocations.length + 
@@ -345,7 +383,7 @@ export default function Browse() {
                 {/* Anzeigen Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {ads.map((ad) => (
-                    <Link key={ad.id} to={`/ad/${ad.id}`}>
+                    <div key={ad.id} onClick={() => window.location.href = `/ad/${ad.id}`}>
                       <Card className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50">
                         <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
                           {ad.images && ad.images.length > 0 ? (
@@ -410,7 +448,7 @@ export default function Browse() {
                           </div>
                         </CardContent>
                       </Card>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               </>

@@ -1,6 +1,5 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Search, ArrowRight, Loader2 } from "lucide-react";
 import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
 import { Footer } from "@/components/Footer";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
-import { useCategoriesWithCounts } from "@/hooks/useCategoriesWithCounts";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Coins,
   TrendingUp,
@@ -53,15 +52,46 @@ const CATEGORY_ICONS: Record<string, any> = {
 
 export default function Categories() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { categories, loading } = useCategoriesWithCounts();
-  
-  let navigate;
-  try {
-    navigate = useNavigate();
-  } catch (error) {
-    console.error("Router context not available:", error);
-    navigate = () => {};
-  }
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*, count:ads(count)')
+        .eq('active', true)
+        .order('sort_order');
+
+      if (error) throw error;
+      
+      const categoriesWithCounts = await Promise.all(
+        (data || []).map(async (category) => {
+          const { count } = await supabase
+            .from('ads')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', category.id)
+            .eq('status', 'active');
+          
+          return {
+            ...category,
+            count: count || 0
+          };
+        })
+      );
+      
+      setCategories(categoriesWithCounts);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getIconComponent = (iconName: string) => {
     const normalizedIconName = iconName?.toLowerCase() || 'default';
@@ -69,7 +99,7 @@ export default function Categories() {
   };
 
   const handleCategoryClick = (category: any) => {
-    navigate(`/browse?category=${category.slug}`);
+    window.location.href = `/browse?category=${category.slug}`;
   };
 
   const filteredCategories = categories.filter((category) =>
