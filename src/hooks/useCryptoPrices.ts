@@ -77,6 +77,13 @@ export function useCryptoPrices() {
     }
   };
 
+  // Real-time price updates
+  const formatSolPrice = (eurAmount: number): string => {
+    const solPrice = prices['SOL']?.price_eur || 164;
+    const solAmount = eurAmount / solPrice;
+    return formatCryptoAmount(solAmount, 'SOL');
+  };
+
   useEffect(() => {
     fetchPrices();
     
@@ -133,6 +140,7 @@ export function useCryptoPrices() {
     convertEurToCrypto,
     convertCryptoToEur,
     formatCryptoAmount,
+    formatSolPrice,
     getCryptoSymbol
   };
 }

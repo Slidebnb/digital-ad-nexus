@@ -10,7 +10,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useCryptoPrices } from '@/hooks/useCryptoPrices';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { PremiumSubscriptionModal } from '@/components/PremiumSubscriptionModal';
-import BoostAdModal from '@/components/BoostAdModal';
+import { BoostQRModal } from '@/components/BoostQRModal';
+import { supabase } from '@/integrations/supabase/client';
 
 export function PremiumDashboardSection() {
   const { isPremium, subscription, plans, features, getDaysRemaining } = usePremium();
@@ -19,10 +20,29 @@ export function PremiumDashboardSection() {
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedAdId, setSelectedAdId] = useState<string>('');
+  const [selectedBoostPackage, setSelectedBoostPackage] = useState<any>(null);
+  const [boostPackages, setBoostPackages] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
 
   const daysLeft = getDaysRemaining();
   const isExpiringSoon = daysLeft <= 7;
+
+  // Load boost packages
+  useEffect(() => {
+    const fetchBoostPackages = async () => {
+      const { data, error } = await supabase
+        .from('boost_packages')
+        .select('*')
+        .eq('active', true)
+        .order('price_eur');
+
+      if (!error && data) {
+        setBoostPackages(data);
+      }
+    };
+
+    fetchBoostPackages();
+  }, []);
 
   // Premium Plan Features für Anzeige
   const premiumFeatures = [
@@ -37,9 +57,15 @@ export function PremiumDashboardSection() {
 
   const boostableAds = userAds.filter(ad => ad.status === 'active');
 
-  const handleBoostAd = (adId: string) => {
+  const handleBoostAd = (adId: string, packageData?: any) => {
     setSelectedAdId(adId);
-    setBoostModalOpen(true);
+    if (packageData) {
+      setSelectedBoostPackage(packageData);
+      setBoostModalOpen(true);
+    } else if (boostPackages.length > 0) {
+      setSelectedBoostPackage(boostPackages[0]);
+      setBoostModalOpen(true);
+    }
   };
 
   const handlePremiumPurchase = () => {
@@ -90,14 +116,10 @@ export function PremiumDashboardSection() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Crown className="h-4 w-4" />
             Übersicht
-          </TabsTrigger>
-          <TabsTrigger value="plans" className="flex items-center gap-2">
-            <Star className="h-4 w-4" />
-            Pläne
           </TabsTrigger>
           <TabsTrigger value="boost" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
@@ -198,10 +220,8 @@ export function PremiumDashboardSection() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* Plans Tab */}
-        <TabsContent value="plans" className="space-y-6">
+          {/* Premium Plans */}
           <Card className="gradient-card">
             <CardHeader>
               <CardTitle>Premium Pläne</CardTitle>
@@ -211,57 +231,62 @@ export function PremiumDashboardSection() {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-3 gap-6">
-                {plans.map((plan) => (
-                  <Card 
-                    key={plan.id}
-                    className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}
-                  >
-                    {plan.popular && (
-                      <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
-                        Beliebt 🔥
-                      </Badge>
-                    )}
-                    <CardHeader className="text-center">
-                      <CardTitle className="flex items-center justify-center gap-2">
-                        {plan.name.includes('12') ? (
-                          <Crown className="h-6 w-6 text-yellow-500" />
-                        ) : (
-                          <Star className="h-6 w-6 text-purple-500" />
-                        )}
-                        {plan.name}
-                      </CardTitle>
-                      <div className="space-y-1">
-                        <div className="text-3xl font-bold text-primary">
-                          {plan.price_sol} SOL
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          ≈ {plan.price_eur}€
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground text-center">
-                        {plan.description}
-                      </p>
-                      <div className="space-y-2">
-                        {plan.benefits.map((benefit, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm">
-                            <div className="w-1 h-1 bg-success rounded-full" />
-                            <span>{benefit}</span>
+                {plans.map((plan) => {
+                  const solPrice = prices['SOL']?.price_eur || 164;
+                  const solAmount = (plan.price_eur / solPrice).toFixed(4);
+                  
+                  return (
+                    <Card 
+                      key={plan.id}
+                      className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}
+                    >
+                      {plan.popular && (
+                        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
+                          Beliebt 🔥
+                        </Badge>
+                      )}
+                      <CardHeader className="text-center">
+                        <CardTitle className="flex items-center justify-center gap-2">
+                          {plan.name.includes('12') ? (
+                            <Crown className="h-6 w-6 text-yellow-500" />
+                          ) : (
+                            <Star className="h-6 w-6 text-purple-500" />
+                          )}
+                          {plan.name}
+                        </CardTitle>
+                        <div className="space-y-1">
+                          <div className="text-3xl font-bold text-primary">
+                            {plan.price_eur}€
                           </div>
-                        ))}
-                      </div>
-                      <Button 
-                        className="w-full" 
-                        variant={plan.popular ? "default" : "outline"}
-                        onClick={handlePremiumPurchase}
-                      >
-                        <Crown className="h-4 w-4 mr-2" />
-                        Jetzt kaufen
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                          <div className="text-sm text-muted-foreground">
+                            ≈ {solAmount} SOL
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground text-center">
+                          {plan.description}
+                        </p>
+                        <div className="space-y-2">
+                          {plan.benefits.map((benefit: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              <div className="w-1 h-1 bg-success rounded-full" />
+                              <span>{benefit}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          variant={plan.popular ? "default" : "outline"}
+                          onClick={handlePremiumPurchase}
+                        >
+                          <Crown className="h-4 w-4 mr-2" />
+                          Jetzt kaufen
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -346,16 +371,24 @@ export function PremiumDashboardSection() {
                                 </span>
                               </div>
                               
-                              <div className="flex justify-end">
-                                <Button 
-                                  variant={isBoosted ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleBoostAd(ad.id)}
-                                  className={isBoosted ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" : ""}
-                                >
-                                  <Zap className="h-4 w-4 mr-1" />
-                                  {isBoosted ? "Verlängern" : "Jetzt boosten"}
-                                </Button>
+                              <div className="flex justify-end gap-2">
+                                {boostPackages.map((pkg) => {
+                                  const solPrice = prices['SOL']?.price_eur || 164;
+                                  const solAmount = (pkg.price_eur / solPrice).toFixed(4);
+                                  
+                                  return (
+                                    <Button 
+                                      key={pkg.id}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleBoostAd(ad.id, pkg)}
+                                      className="text-xs"
+                                    >
+                                      <Zap className="h-3 w-3 mr-1" />
+                                      {pkg.name} ({solAmount} SOL)
+                                    </Button>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -376,12 +409,10 @@ export function PremiumDashboardSection() {
         onOpenChange={setPremiumModalOpen} 
       />
       
-      <BoostAdModal
-        isOpen={boostModalOpen}
-        onClose={() => {
-          setBoostModalOpen(false);
-          setSelectedAdId('');
-        }}
+      <BoostQRModal
+        open={boostModalOpen}
+        onOpenChange={setBoostModalOpen}
+        selectedPackage={selectedBoostPackage}
         adId={selectedAdId}
       />
     </div>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BoostedAdCard } from "./BoostedAdCard";
 import { Zap, Crown, ArrowRight, TrendingUp } from "lucide-react";
@@ -30,6 +31,7 @@ interface BoostedAdsSectionProps {
 export function BoostedAdsSection({ maxAds = 6, showHeader = true, className = "" }: BoostedAdsSectionProps) {
   const [boostedAds, setBoostedAds] = useState<BoostedAd[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBoostedAds = async () => {
@@ -59,11 +61,15 @@ export function BoostedAdsSection({ maxAds = 6, showHeader = true, className = "
   }, [maxAds]);
 
   const handleAdClick = (adId: string) => {
-    window.location.href = `/ad/${adId}`;
+    navigate(`/ad/${adId}`);
   };
 
   const handleViewAllClick = () => {
-    window.location.href = '/browse?boosted=true';
+    navigate('/browse?boosted=true');
+  };
+
+  const handleBoostAdClick = () => {
+    navigate('/create-ad');
   };
 
   if (loading) {
@@ -135,7 +141,7 @@ export function BoostedAdsSection({ maxAds = 6, showHeader = true, className = "
               </div>
             </div>
             <Button 
-              onClick={() => window.location.href = '/create-ad'}
+              onClick={handleBoostAdClick}
               className="bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary"
             >
               <Zap className="h-4 w-4 mr-2" />
