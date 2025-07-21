@@ -33,22 +33,58 @@ interface Ad {
 }
 
 export default function Browse() {
-  const urlParams = new URLSearchParams(window.location.search);
+  // Sichere URL-Parameter-Extraktion
+  const getUrlParams = () => {
+    try {
+      return new URLSearchParams(window.location.search);
+    } catch (error) {
+      console.warn('Error parsing URL parameters:', error);
+      return new URLSearchParams();
+    }
+  };
+
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [boostedOnly, setBoostedOnly] = useState(urlParams.get("boosted") === "true");
+  const [boostedOnly, setBoostedOnly] = useState(() => {
+    try {
+      return getUrlParams().get("boosted") === "true";
+    } catch {
+      return false;
+    }
+  });
   
-  const [search, setSearch] = useState(urlParams.get("search") || "");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    urlParams.getAll("category") || []
-  );
-  const [selectedLocations, setSelectedLocations] = useState<string[]>(
-    urlParams.getAll("location") || []
-  );
-  const [priceRange, setPriceRange] = useState<number[]>([
-    Number(urlParams.get("priceMin")) || 0,
-    Number(urlParams.get("priceMax")) || 10000
-  ]);
+  const [search, setSearch] = useState(() => {
+    try {
+      return getUrlParams().get("search") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    try {
+      return getUrlParams().getAll("category") || [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedLocations, setSelectedLocations] = useState<string[]>(() => {
+    try {
+      return getUrlParams().getAll("location") || [];
+    } catch {
+      return [];
+    }
+  });
+  const [priceRange, setPriceRange] = useState<number[]>(() => {
+    try {
+      const params = getUrlParams();
+      return [
+        Number(params.get("priceMin")) || 0,
+        Number(params.get("priceMax")) || 10000
+      ];
+    } catch {
+      return [0, 10000];
+    }
+  });
   
   const [ads, setAds] = useState<Ad[]>([]);
   const [boostedAds, setBoostedAds] = useState<Ad[]>([]);
