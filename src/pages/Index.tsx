@@ -1,7 +1,9 @@
+
 import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
 import { HeroSection } from "@/components/HeroSection";
 import { CategoriesSection } from "@/components/CategoriesSection";
 import { FeaturedAdsSection } from "@/components/FeaturedAdsSection";
+import { BoostedAdsSection } from "@/components/BoostedAdsSection";
 import { Footer } from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
@@ -46,6 +48,12 @@ export default function Index() {
         </div>
         
         <CategoriesSection />
+        
+        {/* Gesponserte Anzeigen Sektion */}
+        <section className="container mx-auto px-4 py-12">
+          <BoostedAdsSection maxAds={6} showHeader={true} />
+        </section>
+        
         <FeaturedAdsSection />
         <HowItWorksSection />
       </main>
