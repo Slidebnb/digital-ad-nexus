@@ -24,8 +24,6 @@ export function CryptoDashboardSection() {
   const { payments, getPendingPayments, getConfirmedPayments, getTotalVolume } = useCryptoPaymentsRealtime();
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<'boost' | 'premium'>('boost');
 
-  const supportedCryptos = ['SOL', 'BTC', 'ETH'];
-
   const getSolanaAmount = (mode: string) => {
     const eurAmounts = { boost: 29.99, premium: 99.99 };
     const solPrice = prices.SOL?.price_eur || 150;
@@ -35,20 +33,26 @@ export function CryptoDashboardSection() {
     };
   };
 
-  const pendingPayments = getPendingPayments();
-  const confirmedPayments = getConfirmedPayments();
-  const totalVolume = getTotalVolume();
+  // Nur echte Zahlungen für Boost und Premium
+  const pendingPayments = getPendingPayments().filter(p => 
+    p.payment_type === 'boost' || p.payment_type === 'premium'
+  );
+  const confirmedPayments = getConfirmedPayments().filter(p => 
+    p.payment_type === 'boost' || p.payment_type === 'premium'
+  );
+  const totalServiceVolume = confirmedPayments.reduce((sum, p) => sum + (p.amount_eur || 0), 0);
 
   return (
     <div className="space-y-6">
-      {/* Crypto Overview Cards */}
+      {/* Service Payment Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="gradient-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Gesamt Volumen</p>
-                <p className="text-2xl font-bold">€{totalVolume.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Service Ausgaben</p>
+                <p className="text-2xl font-bold">€{totalServiceVolume.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">Boost & Premium</p>
               </div>
               <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
                 <CreditCard className="h-5 w-5 text-green-600" />
@@ -61,7 +65,7 @@ export function CryptoDashboardSection() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Bestätigte Zahlungen</p>
+                <p className="text-sm text-muted-foreground">Erfolgreiche Zahlungen</p>
                 <p className="text-2xl font-bold">{confirmedPayments.length}</p>
               </div>
               <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
@@ -86,12 +90,12 @@ export function CryptoDashboardSection() {
         </Card>
       </div>
 
-      {/* Live Crypto Prices */}
+      {/* SOL Kurs für Zahlungen */}
       <Card className="gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Live Krypto-Kurse
+            <Coins className="h-5 w-5" />
+            SOL Kurs
             <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full animate-pulse ml-auto">
               <Radio className="h-3 w-3" />
               LIVE
@@ -104,44 +108,35 @@ export function CryptoDashboardSection() {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {supportedCryptos.map((crypto) => {
-                const price = prices[crypto];
-                if (!price) return null;
-                
-                return (
-                  <div key={crypto} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                        crypto === 'BTC' ? 'bg-orange-500' :
-                        crypto === 'ETH' ? 'bg-blue-500' :
-                        'bg-purple-500'
-                      }`}>
-                        {getCryptoSymbol(crypto) || crypto}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">{crypto}</div>
-                        <div className="text-xs text-muted-foreground">
-                          €{price.price_eur.toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {price.change_24h && (
-                      <div className={`flex items-center gap-1 text-xs ${
-                        price.change_24h >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {price.change_24h >= 0 ? (
-                          <ArrowUpRight className="h-3 w-3" />
-                        ) : (
-                          <ArrowDownRight className="h-3 w-3" />
-                        )}
-                        {price.change_24h >= 0 ? '+' : ''}{price.change_24h.toFixed(1)}%
-                      </div>
-                    )}
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50 dark:bg-purple-950/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                  {getCryptoSymbol('SOL') || 'SOL'}
+                </div>
+                <div>
+                  <div className="font-medium">Solana (SOL)</div>
+                  <div className="text-sm text-muted-foreground">
+                    Für Boost & Premium Zahlungen
                   </div>
-                );
-              })}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-bold">
+                  €{prices.SOL?.price_eur?.toFixed(2) || '0.00'}
+                </div>
+                {prices.SOL?.change_24h && (
+                  <div className={`flex items-center gap-1 text-sm ${
+                    prices.SOL.change_24h >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {prices.SOL.change_24h >= 0 ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3" />
+                    )}
+                    {prices.SOL.change_24h >= 0 ? '+' : ''}{prices.SOL.change_24h.toFixed(1)}%
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
