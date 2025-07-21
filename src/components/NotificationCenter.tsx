@@ -3,18 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, MessageSquare, TrendingUp, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { Bell, MessageSquare, TrendingUp, AlertTriangle, CheckCircle, X, Zap, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface Notification {
   id: string;
-  type: 'message' | 'price_alert' | 'trade_update' | 'system';
+  type: 'message' | 'boost_completed' | 'premium_activated' | 'ad_view' | 'verification' | 'system';
   title: string;
   content: string;
   read: boolean;
   created_at: string;
+  metadata?: any;
 }
 
 export function NotificationCenter() {
@@ -24,55 +25,174 @@ export function NotificationCenter() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const mockNotifications: Notification[] = [
-    {
-      id: '1',
-      type: 'message',
-      title: 'Neue Nachricht',
-      content: 'Sie haben eine neue Nachricht zu Ihrer Bitcoin-Anzeige erhalten.',
-      read: false,
-      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 min ago
-    },
-    {
-      id: '2',
-      type: 'price_alert',
-      title: 'Preisalarm ausgelöst',
-      content: 'Bitcoin hat Ihr Zielpreis von 42.000€ erreicht.',
-      read: false,
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2h ago
-    },
-    {
-      id: '3',
-      type: 'trade_update',
-      title: 'Trade abgeschlossen',
-      content: 'Ihr Ethereum-Trade wurde erfolgreich abgeschlossen.',
-      read: true,
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
-    },
-    {
-      id: '4',
-      type: 'system',
-      title: 'Verifizierung genehmigt',
-      content: 'Ihre Identitätsverifizierung wurde erfolgreich abgeschlossen.',
-      read: true,
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() // 2 days ago
-    }
-  ];
-
   useEffect(() => {
-    // In einer echten App würden wir hier die Benachrichtigungen von der API laden
-    setNotifications(mockNotifications);
-    setUnreadCount(mockNotifications.filter(n => !n.read).length);
-    setLoading(false);
-  }, []);
+    if (user) {
+      fetchRealNotifications();
+      setupRealtimeSubscription();
+    }
+  }, [user]);
+
+  const fetchRealNotifications = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const realNotifications: Notification[] = [];
+
+      // Hole neue Nachrichten als Benachrichtigungen
+      const { data: messages } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          content,
+          created_at,
+          read_at,
+          conversation_id,
+          conversations!inner(recipient_id)
+        `)
+        .eq('conversations.recipient_id', user.id)
+        .is('read_at', null)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (messages) {
+        messages.forEach(message => {
+          realNotifications.push({
+            id: `msg_${message.id}`,
+            type: 'message',
+            title: 'Neue Nachricht',
+            content: `Sie haben eine neue Nachricht erhalten: "${message.content.slice(0, 50)}..."`,
+            read: false,
+            created_at: message.created_at,
+            metadata: { messageId: message.id, conversationId: message.conversation_id }
+          });
+        });
+      }
+
+      // Hole bestätigte Crypto-Payments als Benachrichtigungen
+      const { data: payments } = await supabase
+        .from('crypto_payments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'confirmed')
+        .order('confirmed_at', { ascending: false })
+        .limit(5);
+
+      if (payments) {
+        payments.forEach(payment => {
+          const isBoost = payment.payment_type === 'boost';
+          const isPremium = payment.payment_type === 'premium';
+          
+          realNotifications.push({
+            id: `payment_${payment.id}`,
+            type: isBoost ? 'boost_completed' : 'premium_activated',
+            title: isBoost ? 'Boost aktiviert' : 'Premium aktiviert',
+            content: isBoost 
+              ? `Ihr Anzeigen-Boost wurde erfolgreich aktiviert (${payment.amount_eur}€)`
+              : `Ihr Premium-Account wurde aktiviert (${payment.amount_eur}€)`,
+            read: true, // Da diese schon länger her sind
+            created_at: payment.confirmed_at || payment.created_at,
+            metadata: { paymentId: payment.id, amount: payment.amount_eur }
+          });
+        });
+      }
+
+      // Hole Views für User's Ads als Benachrichtigungen (nur die letzten)
+      const { data: userAds } = await supabase
+        .from('ads')
+        .select('id, title, views, updated_at')
+        .eq('user_id', user.id)
+        .gt('views', 0)
+        .order('updated_at', { ascending: false })
+        .limit(3);
+
+      if (userAds) {
+        userAds.forEach(ad => {
+          if (ad.views > 0) {
+            realNotifications.push({
+              id: `views_${ad.id}`,
+              type: 'ad_view',
+              title: 'Neue Aufrufe',
+              content: `Ihre Anzeige "${ad.title}" wurde ${ad.views} mal angesehen`,
+              read: true,
+              created_at: ad.updated_at,
+              metadata: { adId: ad.id, views: ad.views }
+            });
+          }
+        });
+      }
+
+      // Sortiere alle Benachrichtigungen nach Datum
+      realNotifications.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setNotifications(realNotifications);
+      setUnreadCount(realNotifications.filter(n => !n.read).length);
+
+    } catch (error) {
+      console.error('Fehler beim Laden der Benachrichtigungen:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!user) return;
+
+    // Höre auf neue Nachrichten
+    const messageChannel = supabase
+      .channel('new_messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversations.recipient_id=eq.${user.id}`
+        },
+        () => {
+          fetchRealNotifications(); // Aktualisiere Benachrichtigungen
+        }
+      )
+      .subscribe();
+
+    // Höre auf bestätigte Zahlungen
+    const paymentChannel = supabase
+      .channel('confirmed_payments')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'crypto_payments',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (payload.new.status === 'confirmed') {
+            fetchRealNotifications();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messageChannel);
+      supabase.removeChannel(paymentChannel);
+    };
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
       case 'message':
         return <MessageSquare className="h-4 w-4 text-primary" />;
-      case 'price_alert':
-        return <TrendingUp className="h-4 w-4 text-warning" />;
-      case 'trade_update':
+      case 'boost_completed':
+        return <Zap className="h-4 w-4 text-warning" />;
+      case 'premium_activated':
+        return <Star className="h-4 w-4 text-warning" />;
+      case 'ad_view':
+        return <TrendingUp className="h-4 w-4 text-success" />;
+      case 'verification':
         return <CheckCircle className="h-4 w-4 text-success" />;
       case 'system':
         return <AlertTriangle className="h-4 w-4 text-info" />;
@@ -159,6 +279,13 @@ export function NotificationCenter() {
             <div className="text-center py-8 text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Keine Benachrichtigungen vorhanden</p>
+              <p className="text-xs mt-2">Benachrichtigungen erscheinen hier wenn:</p>
+              <ul className="text-xs mt-1 space-y-1">
+                <li>• Sie neue Nachrichten erhalten</li>
+                <li>• Ihre Boost-Zahlungen bestätigt werden</li>
+                <li>• Premium-Abonnements aktiviert werden</li>
+                <li>• Ihre Anzeigen angesehen werden</li>
+              </ul>
             </div>
           ) : (
             <div className="space-y-3">

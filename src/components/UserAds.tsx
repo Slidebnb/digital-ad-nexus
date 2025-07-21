@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import BoostAdModal from "@/components/BoostAdModal";
 import { 
   Eye,
@@ -21,6 +23,7 @@ import {
 
 export function UserAds() {
   const { userAds, getUserStats } = useProfile();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,19 +41,33 @@ export function UserAds() {
   });
 
   const handleDeleteAd = async (adId: string) => {
-    // TODO: Implement delete ad functionality
-    toast({
-      title: "Feature wird implementiert",
-      description: "Die Löschfunktion wird bald verfügbar sein.",
-    });
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .delete()
+        .eq('id', adId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Anzeige gelöscht",
+        description: "Die Anzeige wurde erfolgreich gelöscht.",
+      });
+      
+      // Refresh ads list
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Anzeige konnte nicht gelöscht werden.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditAd = (adId: string) => {
-    // TODO: Navigate to edit ad page
-    toast({
-      title: "Feature wird implementiert", 
-      description: "Die Bearbeitungsfunktion wird bald verfügbar sein.",
-    });
+    navigate(`/create-ad?edit=${adId}`);
   };
 
   const handleBoostAd = (adId: string) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,17 @@ type Category = Tables<'categories'>;
 export default function CreateAd() {
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  
+  // Check if we're editing an existing ad
+  const editAdId = searchParams.get('edit');
+  const isEditing = !!editAdId;
   
   const [formData, setFormData] = useState({
     title: '',
@@ -47,23 +53,64 @@ export default function CreateAd() {
     tags: ''
   });
 
-  // Load categories from database
+  // Load categories and existing ad data
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch categories
+        const { data: categoriesData, error: categoriesError } = await supabase
           .from('categories')
           .select('*')
           .eq('active', true)
           .order('sort_order', { ascending: true });
         
-        if (error) throw error;
-        setCategories(data || []);
+        if (categoriesError) throw categoriesError;
+        setCategories(categoriesData || []);
+
+        // If editing, fetch existing ad data
+        if (isEditing && editAdId && user) {
+          const { data: adData, error: adError } = await supabase
+            .from('ads')
+            .select('*')
+            .eq('id', editAdId)
+            .eq('user_id', user.id)
+            .single();
+
+          if (adError) {
+            toast({
+              title: "Fehler",
+              description: "Anzeige konnte nicht geladen werden",
+              variant: "destructive"
+            });
+            navigate('/dashboard?tab=ads');
+            return;
+          }
+
+          if (adData) {
+            setFormData({
+              title: adData.title || '',
+              description: adData.description || '',
+              price: adData.price?.toString() || '',
+              currency: adData.currency || 'BTC',
+              category_id: adData.category_id || '',
+              location: adData.location || '',
+              condition: adData.condition || 'neu',
+              accepted_coins: adData.accepted_coins || [],
+              tags: adData.tags?.join(', ') || ''
+            });
+            
+            // Load existing images
+            if (adData.images && adData.images.length > 0) {
+              setExistingImages(adData.images);
+            }
+          }
+        }
+        
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error fetching data:', error);
         toast({
           title: "Fehler",
-          description: "Kategorien konnten nicht geladen werden",
+          description: "Daten konnten nicht geladen werden",
           variant: "destructive"
         });
       } finally {
@@ -71,8 +118,8 @@ export default function CreateAd() {
       }
     };
 
-    fetchCategories();
-  }, [toast]);
+    fetchData();
+  }, [toast, isEditing, editAdId, user, navigate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -177,52 +224,98 @@ export default function CreateAd() {
     setLoading(true);
 
     try {
-      // Create ad with correct category_id
-      const { data: ad, error: adError } = await supabase
-        .from('ads')
-        .insert({
-          title: formData.title,
-          description: formData.description,
-          price: parseFloat(formData.price),
-          currency: formData.currency,
-          category_id: formData.category_id,
-          location: formData.location,
-          condition: formData.condition,
-          accepted_coins: formData.accepted_coins,
-          tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-          user_id: user.id,
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (adError) {
-        console.error('Ad creation error:', adError);
-        throw adError;
-      }
-
-      // Upload images if any
-      if (images.length > 0 && ad) {
-        const imageUrls = await uploadImages(ad.id);
-        
-        // Update ad with image URLs
-        await supabase
+      if (isEditing && editAdId) {
+        // Update existing ad
+        const { error: adError } = await supabase
           .from('ads')
-          .update({ images: imageUrls })
-          .eq('id', ad.id);
+          .update({
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price),
+            currency: formData.currency,
+            category_id: formData.category_id,
+            location: formData.location,
+            condition: formData.condition,
+            accepted_coins: formData.accepted_coins,
+            tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editAdId)
+          .eq('user_id', user.id);
+
+        if (adError) {
+          console.error('Ad update error:', adError);
+          throw adError;
+        }
+
+        // Upload new images if any
+        if (images.length > 0) {
+          const imageUrls = await uploadImages(editAdId);
+          
+          // Combine existing and new images
+          const allImages = [...existingImages, ...imageUrls];
+          
+          // Update ad with combined image URLs
+          await supabase
+            .from('ads')
+            .update({ images: allImages })
+            .eq('id', editAdId);
+        }
+
+        toast({
+          title: "Anzeige aktualisiert",
+          description: "Ihre Anzeige wurde erfolgreich aktualisiert"
+        });
+
+        navigate('/dashboard?tab=ads');
+      } else {
+        // Create new ad
+        const { data: ad, error: adError } = await supabase
+          .from('ads')
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price),
+            currency: formData.currency,
+            category_id: formData.category_id,
+            location: formData.location,
+            condition: formData.condition,
+            accepted_coins: formData.accepted_coins,
+            tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+            user_id: user.id,
+            status: 'active'
+          })
+          .select()
+          .single();
+
+        if (adError) {
+          console.error('Ad creation error:', adError);
+          throw adError;
+        }
+
+        // Upload images if any
+        if (images.length > 0 && ad) {
+          const imageUrls = await uploadImages(ad.id);
+          
+          // Update ad with image URLs
+          await supabase
+            .from('ads')
+            .update({ images: imageUrls })
+            .eq('id', ad.id);
+        }
+
+        toast({
+          title: "Krypto-Anzeige erstellt",
+          description: "Ihre Anzeige wurde erfolgreich veröffentlicht und ist jetzt sichtbar"
+        });
+
+        navigate('/browse');
       }
-
-      toast({
-        title: "Krypto-Anzeige erstellt",
-        description: "Ihre Anzeige wurde erfolgreich veröffentlicht und ist jetzt sichtbar"
-      });
-
-      navigate('/browse');
     } catch (error) {
-      console.error('Error creating ad:', error);
+      console.error('Error handling ad:', error);
       toast({
         title: "Fehler",
-        description: "Anzeige konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+        description: isEditing ? "Anzeige konnte nicht aktualisiert werden" : "Anzeige konnte nicht erstellt werden",
         variant: "destructive"
       });
     } finally {
@@ -256,10 +349,15 @@ export default function CreateAd() {
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Coins className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">Krypto-Anzeige erstellen</h1>
+              <h1 className="text-3xl font-bold">
+                {isEditing ? 'Anzeige bearbeiten' : 'Krypto-Anzeige erstellen'}
+              </h1>
             </div>
             <p className="text-muted-foreground">
-              Handeln Sie sicher mit Kryptowährungen - erstellen Sie Ihre Anzeige und erreichen Sie tausende von Händlern
+              {isEditing 
+                ? 'Bearbeiten Sie Ihre Anzeige und aktualisieren Sie die Details'
+                : 'Handeln Sie sicher mit Kryptowährungen - erstellen Sie Ihre Anzeige und erreichen Sie tausende von Händlern'
+              }
             </p>
           </div>
 
@@ -477,24 +575,53 @@ export default function CreateAd() {
                     </label>
                   </div>
 
+                  {/* Existing Images */}
+                  {existingImages.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Vorhandene Bilder:</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        {existingImages.map((imageUrl, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={imageUrl}
+                              alt={`Existing ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== index))}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/80"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New Images */}
                   {images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-4">
-                      {images.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={URL.createObjectURL(image)}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/80"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Neue Bilder:</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        {images.map((image, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={URL.createObjectURL(image)}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/80"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -519,12 +646,12 @@ export default function CreateAd() {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Wird erstellt...
+                    {isEditing ? 'Wird aktualisiert...' : 'Wird erstellt...'}
                   </>
                 ) : (
                   <>
                     <Coins className="w-4 h-4 mr-2" />
-                    Krypto-Anzeige veröffentlichen
+                    {isEditing ? 'Anzeige aktualisieren' : 'Krypto-Anzeige veröffentlichen'}
                   </>
                 )}
               </Button>

@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,17 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Shield, 
   Key, 
-  Smartphone, 
   Eye, 
   AlertTriangle, 
   CheckCircle,
-  Lock,
-  Unlock,
-  Download,
-  RefreshCw,
   Monitor,
   MapPin,
-  Clock
+  Clock,
+  Info
 } from "lucide-react";
 
 interface LoginSession {
@@ -39,9 +34,6 @@ export function SecurityDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [backupCodes, setBackupCodes] = useState<string[]>([]);
-  const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [sessions, setSessions] = useState<LoginSession[]>([]);
   const [passwordChange, setPasswordChange] = useState({
     currentPassword: '',
@@ -53,10 +45,9 @@ export function SecurityDashboard() {
   const [securitySettings, setSecuritySettings] = useState({
     emailNotifications: true,
     loginAlerts: true,
-    tradeConfirmation: true,
-    withdrawalConfirmation: true,
-    ipRestriction: false,
-    sessionTimeout: 30
+    messageNotifications: true,
+    paymentConfirmation: true,
+    adUpdateNotifications: true
   });
 
   useEffect(() => {
@@ -67,24 +58,19 @@ export function SecurityDashboard() {
     if (!user) return;
 
     try {
-      // Profil-Sicherheitsdaten laden
+      // Profil-Benachrichtigungseinstellungen laden
       const { data: profile } = await supabase
         .from('profiles')
-        .select('two_factor_enabled, backup_codes, notification_settings')
+        .select('notification_settings')
         .eq('user_id', user.id)
         .single();
 
-      if (profile) {
-        setTwoFactorEnabled(profile.two_factor_enabled || false);
-        setBackupCodes(profile.backup_codes || []);
-        
-        if (profile.notification_settings && typeof profile.notification_settings === 'object') {
-          const notificationSettings = profile.notification_settings as Record<string, any>;
-          setSecuritySettings(prev => ({
-            ...prev,
-            ...notificationSettings
-          }));
-        }
+      if (profile?.notification_settings && typeof profile.notification_settings === 'object') {
+        const notificationSettings = profile.notification_settings as Record<string, any>;
+        setSecuritySettings(prev => ({
+          ...prev,
+          ...notificationSettings
+        }));
       }
 
       // Mock Login-Sessions (in einem echten System würden diese aus einer Sessions-Tabelle kommen)
@@ -114,78 +100,6 @@ export function SecurityDashboard() {
     }
   };
 
-  const generateBackupCodes = () => {
-    const codes = Array.from({ length: 8 }, () => 
-      Math.random().toString(36).substring(2, 8).toUpperCase()
-    );
-    setBackupCodes(codes);
-    setShowBackupCodes(true);
-    
-    toast({
-      title: "Backup-Codes generiert",
-      description: "Speichern Sie diese Codes sicher ab!"
-    });
-  };
-
-  const enable2FA = async () => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          two_factor_enabled: true,
-          backup_codes: backupCodes.length > 0 ? backupCodes : undefined
-        })
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      setTwoFactorEnabled(true);
-      if (backupCodes.length === 0) {
-        generateBackupCodes();
-      }
-
-      toast({
-        title: "2FA aktiviert",
-        description: "Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert"
-      });
-    } catch (error) {
-      toast({
-        title: "Fehler",
-        description: "2FA konnte nicht aktiviert werden",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const disable2FA = async () => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          two_factor_enabled: false,
-          backup_codes: null
-        })
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      setTwoFactorEnabled(false);
-      setBackupCodes([]);
-      setShowBackupCodes(false);
-
-      toast({
-        title: "2FA deaktiviert",
-        description: "Zwei-Faktor-Authentifizierung wurde deaktiviert"
-      });
-    } catch (error) {
-      toast({
-        title: "Fehler",
-        description: "2FA konnte nicht deaktiviert werden",
-        variant: "destructive"
-      });
-    }
-  };
-
   const updateSecuritySettings = async (newSettings: any) => {
     try {
       const { error } = await supabase
@@ -198,7 +112,7 @@ export function SecurityDashboard() {
       setSecuritySettings(newSettings);
       toast({
         title: "Einstellungen gespeichert",
-        description: "Ihre Sicherheitseinstellungen wurden aktualisiert"
+        description: "Ihre Benachrichtigungseinstellungen wurden aktualisiert"
       });
     } catch (error) {
       toast({
@@ -214,6 +128,15 @@ export function SecurityDashboard() {
       toast({
         title: "Fehler",
         description: "Passwörter stimmen nicht überein",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordChange.newPassword.length < 6) {
+      toast({
+        title: "Fehler",
+        description: "Passwort muss mindestens 6 Zeichen lang sein",
         variant: "destructive"
       });
       return;
@@ -245,15 +168,23 @@ export function SecurityDashboard() {
     }
   };
 
-  const downloadBackupCodes = () => {
-    const content = backupCodes.join('\n');
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'backup-codes.txt';
-    a.click();
-    URL.revokeObjectURL(url);
+  const terminateSession = (sessionId: string) => {
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    toast({
+      title: "Sitzung beendet",
+      description: "Die Sitzung wurde erfolgreich beendet"
+    });
+  };
+
+  const formatLastActive = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Gerade aktiv';
+    if (diffInMinutes < 60) return `vor ${diffInMinutes} Min`;
+    if (diffInMinutes < 1440) return `vor ${Math.floor(diffInMinutes / 60)} Std`;
+    return `vor ${Math.floor(diffInMinutes / 1440)} Tag(en)`;
   };
 
   if (loading) {
@@ -261,7 +192,7 @@ export function SecurityDashboard() {
       <div className="space-y-6">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6" />
-          <h2 className="text-2xl font-semibold">Sicherheit</h2>
+          <h2 className="text-2xl font-semibold">Sicherheit & Datenschutz</h2>
         </div>
         <div className="grid gap-4">
           {[1, 2, 3].map(i => (
@@ -281,104 +212,50 @@ export function SecurityDashboard() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Shield className="h-6 w-6" />
-        <h2 className="text-2xl font-semibold">Sicherheit</h2>
+        <h2 className="text-2xl font-semibold">Sicherheit & Datenschutz</h2>
       </div>
 
-      {/* Zwei-Faktor-Authentifizierung */}
+      {/* Sicherheitsstatus */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" />
-            Zwei-Faktor-Authentifizierung
+            <CheckCircle className="h-5 w-5 text-success" />
+            Kontosicherheit
           </CardTitle>
           <CardDescription>
-            Zusätzliche Sicherheit für Ihr Konto
+            Übersicht über Ihre Kontosicherheit
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">2FA Status</div>
-              <div className="text-sm text-muted-foreground">
-                {twoFactorEnabled ? 'Aktiviert' : 'Deaktiviert'}
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <div className="font-medium">Verifiziert</div>
+                <div className="text-sm text-muted-foreground">Account verifiziert</div>
               </div>
             </div>
-            <Badge variant={twoFactorEnabled ? "default" : "secondary"}>
-              {twoFactorEnabled ? (
-                <CheckCircle className="h-3 w-3 mr-1" />
-              ) : (
-                <AlertTriangle className="h-3 w-3 mr-1" />
-              )}
-              {twoFactorEnabled ? 'Sicher' : 'Nicht sicher'}
-            </Badge>
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center">
+                <Key className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <div className="font-medium">Passwort</div>
+                <div className="text-sm text-muted-foreground">Sicher gesetzt</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="font-medium">Aktivität</div>
+                <div className="text-sm text-muted-foreground">{sessions.length} Sitzungen</div>
+              </div>
+            </div>
           </div>
-
-          {!twoFactorEnabled ? (
-            <div className="space-y-3">
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Aktivieren Sie 2FA für zusätzliche Kontosicherheit
-                </AlertDescription>
-              </Alert>
-              <Button onClick={enable2FA} className="w-full">
-                <Lock className="h-4 w-4 mr-2" />
-                2FA aktivieren
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Backup Codes */}
-              {backupCodes.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Backup-Codes</span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowBackupCodes(!showBackupCodes)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {showBackupCodes && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={downloadBackupCodes}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {showBackupCodes && (
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="grid grid-cols-2 gap-2 text-sm font-mono">
-                        {backupCodes.map((code, index) => (
-                          <div key={index} className="p-2 bg-background rounded">
-                            {code}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={generateBackupCodes}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Neue Codes
-                </Button>
-                <Button variant="destructive" onClick={disable2FA}>
-                  <Unlock className="h-4 w-4 mr-2" />
-                  2FA deaktivieren
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -401,6 +278,7 @@ export function SecurityDashboard() {
                 type="password"
                 value={passwordChange.currentPassword}
                 onChange={(e) => setPasswordChange(prev => ({ ...prev, currentPassword: e.target.value }))}
+                placeholder="Ihr aktuelles Passwort"
               />
             </div>
             <div>
@@ -409,6 +287,7 @@ export function SecurityDashboard() {
                 type="password"
                 value={passwordChange.newPassword}
                 onChange={(e) => setPasswordChange(prev => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="Mindestens 6 Zeichen"
               />
             </div>
             <div>
@@ -417,21 +296,26 @@ export function SecurityDashboard() {
                 type="password"
                 value={passwordChange.confirmPassword}
                 onChange={(e) => setPasswordChange(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="Neues Passwort wiederholen"
               />
             </div>
-            <Button onClick={changePassword} className="w-full">
+            <Button 
+              onClick={changePassword} 
+              className="w-full"
+              disabled={!passwordChange.currentPassword || !passwordChange.newPassword || !passwordChange.confirmPassword}
+            >
               Passwort ändern
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Sicherheitseinstellungen */}
+      {/* Benachrichtigungseinstellungen */}
       <Card>
         <CardHeader>
           <CardTitle>Benachrichtigungseinstellungen</CardTitle>
           <CardDescription>
-            Konfigurieren Sie Ihre Sicherheitsbenachrichtigungen
+            Konfigurieren Sie Ihre Benachrichtigungen
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -440,7 +324,7 @@ export function SecurityDashboard() {
               <div>
                 <div className="font-medium">E-Mail-Benachrichtigungen</div>
                 <div className="text-sm text-muted-foreground">
-                  Benachrichtigungen per E-Mail erhalten
+                  Allgemeine Benachrichtigungen per E-Mail erhalten
                 </div>
               </div>
               <Switch
@@ -468,30 +352,45 @@ export function SecurityDashboard() {
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium">Trade-Bestätigung</div>
+                <div className="font-medium">Nachrichten-Benachrichtigungen</div>
                 <div className="text-sm text-muted-foreground">
-                  Alle Trades per E-Mail bestätigen
+                  Bei neuen Nachrichten benachrichtigen
                 </div>
               </div>
               <Switch
-                checked={securitySettings.tradeConfirmation}
+                checked={securitySettings.messageNotifications}
                 onCheckedChange={(checked) => 
-                  updateSecuritySettings({ ...securitySettings, tradeConfirmation: checked })
+                  updateSecuritySettings({ ...securitySettings, messageNotifications: checked })
                 }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium">Abhebungs-Bestätigung</div>
+                <div className="font-medium">Zahlungs-Bestätigung</div>
                 <div className="text-sm text-muted-foreground">
-                  Alle Abhebungen per E-Mail bestätigen
+                  Alle Zahlungen per E-Mail bestätigen
                 </div>
               </div>
               <Switch
-                checked={securitySettings.withdrawalConfirmation}
+                checked={securitySettings.paymentConfirmation}
                 onCheckedChange={(checked) => 
-                  updateSecuritySettings({ ...securitySettings, withdrawalConfirmation: checked })
+                  updateSecuritySettings({ ...securitySettings, paymentConfirmation: checked })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Anzeigen-Updates</div>
+                <div className="text-sm text-muted-foreground">
+                  Bei Aktivitäten auf Ihren Anzeigen benachrichtigen
+                </div>
+              </div>
+              <Switch
+                checked={securitySettings.adUpdateNotifications}
+                onCheckedChange={(checked) => 
+                  updateSecuritySettings({ ...securitySettings, adUpdateNotifications: checked })
                 }
               />
             </div>
@@ -499,46 +398,76 @@ export function SecurityDashboard() {
         </CardContent>
       </Card>
 
-      {/* Aktive Sessions */}
+      {/* Aktive Sitzungen */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Monitor className="h-5 w-5" />
-            Aktive Sessions
+            Aktive Sitzungen
           </CardTitle>
           <CardDescription>
-            Verwalten Sie Ihre aktiven Anmeldungen
+            Verwalten Sie Ihre angemeldeten Geräte
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {sessions.map((session) => (
-            <div key={session.id} className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Monitor className="h-4 w-4" />
-                  <span className="font-medium">{session.user_agent}</span>
-                  {session.is_current && (
-                    <Badge variant="default" className="text-xs">Aktuell</Badge>
-                  )}
+        <CardContent>
+          <div className="space-y-4">
+            {sessions.map((session) => (
+              <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                    <Monitor className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      {session.user_agent}
+                      {session.is_current && (
+                        <Badge variant="default" className="text-xs">Aktuell</Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-4">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {session.location}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatLastActive(session.last_active)}
+                      </span>
+                      <span className="text-xs opacity-60">{session.ip_address}</span>
+                    </div>
+                  </div>
                 </div>
                 {!session.is_current && (
-                  <Button variant="destructive" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => terminateSession(session.id)}
+                  >
                     Beenden
                   </Button>
                 )}
               </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-3 w-3" />
-                  {session.location} • {session.ip_address}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-3 w-3" />
-                  Letzte Aktivität: {new Date(session.last_active).toLocaleString('de-DE')}
-                </div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Datenschutz-Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5" />
+            Datenschutz-Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Ihre Daten werden sicher verschlüsselt gespeichert. Zahlungen erfolgen nur für Boost-Features und Premium-Abonnements. 
+              Der Handel zwischen Nutzern findet privat statt - wir speichern keine Handelsdaten oder persönlichen Transaktionen.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     </div>
