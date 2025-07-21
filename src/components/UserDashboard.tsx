@@ -17,7 +17,6 @@ import { FavoritesManager } from "@/components/FavoritesManager";
 import { TradingHistory } from "@/components/TradingHistory";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CryptoDashboardSection } from "@/components/CryptoDashboardSection";
-import { WalletManagement } from "@/components/WalletManagement";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ReportsAnalytics } from "@/components/ReportsAnalytics";
 import { Footer } from "@/components/Footer";
@@ -36,11 +35,19 @@ import {
   Bell,
   User,
   Coins,
-  CreditCard,
-  Wallet,
-  FileText,
   BarChart
 } from "lucide-react";
+
+// Error Fallback Component für einzelne Tabs
+const TabErrorFallback = ({ tabName }: { tabName: string }) => (
+  <div className="p-8 text-center">
+    <div className="text-4xl mb-4">⚠️</div>
+    <h3 className="text-lg font-semibold mb-2">Fehler in {tabName}</h3>
+    <p className="text-muted-foreground">
+      Dieser Bereich wird gerade überarbeitet. Bitte versuchen Sie es später erneut.
+    </p>
+  </div>
+);
 
 export function UserDashboard() {
   const { user, userRole } = useAuth();
@@ -63,19 +70,85 @@ export function UserDashboard() {
     }
   }, [currentTab]);
 
+  // Reduzierte Tab-Konfiguration (WALLET ENTFERNT)
   const tabsConfig = [
-    { value: "overview", label: "Übersicht", icon: BarChart3, component: RealTimeUserDashboard },
-    { value: "crypto", label: "Krypto", icon: Coins, component: CryptoDashboardSection },
-    { value: "wallet", label: "Wallet", icon: Wallet, component: WalletManagement },
-    { value: "messages", label: "Nachrichten", icon: MessageSquare, component: EnhancedMessageSystem },
-    { value: "ads", label: "Anzeigen", icon: ShoppingBag, component: UserAds },
-    { value: "favorites", label: "Favoriten", icon: Heart, component: FavoritesManager },
-    { value: "trades", label: "Trades", icon: TrendingUp, component: TradingHistory },
-    { value: "analytics", label: "Analytics", icon: BarChart, component: ReportsAnalytics },
-    { value: "verification", label: "Verifikation", icon: Shield, component: UserVerificationCenter },
-    { value: "security", label: "Sicherheit", icon: Shield, component: SecurityDashboard },
-    { value: "notifications", label: "Benachrichtigungen", icon: Bell, component: NotificationCenter },
-    { value: "settings", label: "Einstellungen", icon: Settings, component: ProfileSettings }
+    { 
+      value: "overview", 
+      label: "Übersicht", 
+      icon: BarChart3, 
+      component: RealTimeUserDashboard,
+      stable: true 
+    },
+    { 
+      value: "crypto", 
+      label: "Krypto", 
+      icon: Coins, 
+      component: CryptoDashboardSection,
+      stable: true 
+    },
+    { 
+      value: "messages", 
+      label: "Nachrichten", 
+      icon: MessageSquare, 
+      component: EnhancedMessageSystem,
+      stable: true 
+    },
+    { 
+      value: "ads", 
+      label: "Anzeigen", 
+      icon: ShoppingBag, 
+      component: UserAds,
+      stable: false // Markiert als potentiell instabil
+    },
+    { 
+      value: "favorites", 
+      label: "Favoriten", 
+      icon: Heart, 
+      component: FavoritesManager,
+      stable: true 
+    },
+    { 
+      value: "trades", 
+      label: "Trades", 
+      icon: TrendingUp, 
+      component: TradingHistory,
+      stable: true 
+    },
+    { 
+      value: "analytics", 
+      label: "Analytics", 
+      icon: BarChart, 
+      component: ReportsAnalytics,
+      stable: true 
+    },
+    { 
+      value: "verification", 
+      label: "Verifikation", 
+      icon: Shield, 
+      component: UserVerificationCenter,
+      stable: true 
+    },
+    { 
+      value: "security", 
+      label: "Sicherheit", 
+      icon: Shield, 
+      component: SecurityDashboard,
+      stable: false // Markiert als potentiell instabil
+    },
+    { 
+      value: "notifications", 
+      label: "Benachrichtigungen", 
+      icon: Bell, 
+      component: NotificationCenter,
+      stable: false // Markiert als potentiell instabil
+    },
+    { 
+      value: "settings", 
+      label: "Einstellungen", 
+      icon: Settings, 
+      component: ProfileSettings,
+      stable: true 
+    }
   ];
 
   const showMobileLayout = device.isTouchDevice || device.isMobile || device.isTablet;
@@ -84,6 +157,7 @@ export function UserDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Einheitliche Navigation wie auf der Startseite */}
       <MobileOptimizedNavigation />
+      
       {/* Hauptinhalt Container */}
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Desktop Header */}
@@ -119,7 +193,7 @@ export function UserDashboard() {
           {/* Desktop Tab Navigation */}
           {!showMobileLayout && (
             <div className="mb-6">
-              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 h-12 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-12 bg-muted/50">
                 {tabsConfig.map((tab) => (
                   <TabsTrigger 
                     key={tab.value}
@@ -128,6 +202,9 @@ export function UserDashboard() {
                   >
                     <tab.icon className="h-4 w-4" />
                     <span className="hidden sm:inline">{tab.label}</span>
+                    {!tab.stable && (
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -149,7 +226,8 @@ export function UserDashboard() {
           >
             {tabsConfig.map((tab) => {
               const Component = tab.component;
-              console.log(`🔧 Rendering tab: ${tab.value}, Component:`, Component.name);
+              console.log(`🔧 Rendering tab: ${tab.value}, Component:`, Component.name, `Stable: ${tab.stable}`);
+              
               return (
                 <TabsContent 
                   key={tab.value}
@@ -160,20 +238,26 @@ export function UserDashboard() {
                     {/* Debug-Info für aktiven Tab */}
                     {process.env.NODE_ENV === 'development' && currentTab === tab.value && (
                       <div className="mb-4 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-                        🚀 Aktiver Tab: {tab.label} | Komponente: {Component.name}
+                        🚀 Aktiver Tab: {tab.label} | Komponente: {Component.name} | Status: {tab.stable ? 'Stabil' : 'Beta'}
                       </div>
                     )}
                     
-                    {/* Spezielle Behandlung für Krypto-Tab mit Error Boundary */}
-                    {tab.value === 'crypto' ? (
-                      <ErrorBoundary>
-                        <LazyLoadingWrapper>
-                          <Component />
-                        </LazyLoadingWrapper>
+                    {/* Enhanced Error Boundaries für instabile Komponenten */}
+                    {tab.stable ? (
+                      <ErrorBoundary fallback={<TabErrorFallback tabName={tab.label} />}>
+                        <Component />
                       </ErrorBoundary>
                     ) : (
-                      <ErrorBoundary>
-                        <Component />
+                      <ErrorBoundary fallback={<TabErrorFallback tabName={tab.label} />}>
+                        <Suspense fallback={
+                          <div className="flex items-center justify-center p-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          </div>
+                        }>
+                          <LazyLoadingWrapper>
+                            <Component />
+                          </LazyLoadingWrapper>
+                        </Suspense>
                       </ErrorBoundary>
                     )}
                   </div>

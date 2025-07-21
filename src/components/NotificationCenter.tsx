@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,105 +22,132 @@ interface Notification {
 export function NotificationCenter() {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Defensive State-Initialisierung
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchRealNotifications();
       setupRealtimeSubscription();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const fetchRealNotifications = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
       const realNotifications: Notification[] = [];
 
-      // Hole neue Nachrichten als Benachrichtigungen
-      const { data: messages } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          read_at,
-          conversation_id,
-          conversations!inner(recipient_id)
-        `)
-        .eq('conversations.recipient_id', user.id)
-        .is('read_at', null)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Defensive Abfrage - Hole neue Nachrichten als Benachrichtigungen
+      try {
+        const { data: messages, error: messagesError } = await supabase
+          .from('messages')
+          .select(`
+            id,
+            content,
+            created_at,
+            read_at,
+            conversation_id,
+            conversations!inner(recipient_id)
+          `)
+          .eq('conversations.recipient_id', user.id)
+          .is('read_at', null)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (messages) {
-        messages.forEach(message => {
-          realNotifications.push({
-            id: `msg_${message.id}`,
-            type: 'message',
-            title: 'Neue Nachricht',
-            content: `Sie haben eine neue Nachricht erhalten: "${message.content.slice(0, 50)}..."`,
-            read: false,
-            created_at: message.created_at,
-            metadata: { messageId: message.id, conversationId: message.conversation_id }
-          });
-        });
-      }
-
-      // Hole bestätigte Crypto-Payments als Benachrichtigungen
-      const { data: payments } = await supabase
-        .from('crypto_payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'confirmed')
-        .order('confirmed_at', { ascending: false })
-        .limit(5);
-
-      if (payments) {
-        payments.forEach(payment => {
-          const isBoost = payment.payment_type === 'boost';
-          const isPremium = payment.payment_type === 'premium';
-          
-          realNotifications.push({
-            id: `payment_${payment.id}`,
-            type: isBoost ? 'boost_completed' : 'premium_activated',
-            title: isBoost ? 'Boost aktiviert' : 'Premium aktiviert',
-            content: isBoost 
-              ? `Ihr Anzeigen-Boost wurde erfolgreich aktiviert (${payment.amount_eur}€)`
-              : `Ihr Premium-Account wurde aktiviert (${payment.amount_eur}€)`,
-            read: true, // Da diese schon länger her sind
-            created_at: payment.confirmed_at || payment.created_at,
-            metadata: { paymentId: payment.id, amount: payment.amount_eur }
-          });
-        });
-      }
-
-      // Hole Views für User's Ads als Benachrichtigungen (nur die letzten)
-      const { data: userAds } = await supabase
-        .from('ads')
-        .select('id, title, views, updated_at')
-        .eq('user_id', user.id)
-        .gt('views', 0)
-        .order('updated_at', { ascending: false })
-        .limit(3);
-
-      if (userAds) {
-        userAds.forEach(ad => {
-          if (ad.views > 0) {
+        if (messagesError) {
+          console.warn('Fehler beim Laden der Nachrichten:', messagesError);
+        } else if (messages) {
+          messages.forEach(message => {
             realNotifications.push({
-              id: `views_${ad.id}`,
-              type: 'ad_view',
-              title: 'Neue Aufrufe',
-              content: `Ihre Anzeige "${ad.title}" wurde ${ad.views} mal angesehen`,
-              read: true,
-              created_at: ad.updated_at,
-              metadata: { adId: ad.id, views: ad.views }
+              id: `msg_${message.id}`,
+              type: 'message',
+              title: 'Neue Nachricht',
+              content: `Sie haben eine neue Nachricht erhalten: "${(message.content || '').slice(0, 50)}..."`,
+              read: false,
+              created_at: message.created_at,
+              metadata: { messageId: message.id, conversationId: message.conversation_id }
             });
-          }
-        });
+          });
+        }
+      } catch (error) {
+        console.warn('Nachrichten konnten nicht geladen werden:', error);
+      }
+
+      // Defensive Abfrage - Hole bestätigte Crypto-Payments als Benachrichtigungen
+      try {
+        const { data: payments, error: paymentsError } = await supabase
+          .from('crypto_payments')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed')
+          .order('confirmed_at', { ascending: false })
+          .limit(5);
+
+        if (paymentsError) {
+          console.warn('Fehler beim Laden der Zahlungen:', paymentsError);
+        } else if (payments) {
+          payments.forEach(payment => {
+            const isBoost = payment.payment_type === 'boost';
+            const isPremium = payment.payment_type === 'premium';
+            
+            realNotifications.push({
+              id: `payment_${payment.id}`,
+              type: isBoost ? 'boost_completed' : 'premium_activated',
+              title: isBoost ? 'Boost aktiviert' : 'Premium aktiviert',
+              content: isBoost 
+                ? `Ihr Anzeigen-Boost wurde erfolgreich aktiviert (${payment.amount_eur || 0}€)`
+                : `Ihr Premium-Account wurde aktiviert (${payment.amount_eur || 0}€)`,
+              read: true, // Da diese schon länger her sind
+              created_at: payment.confirmed_at || payment.created_at,
+              metadata: { paymentId: payment.id, amount: payment.amount_eur }
+            });
+          });
+        }
+      } catch (error) {
+        console.warn('Zahlungen konnten nicht geladen werden:', error);
+      }
+
+      // Defensive Abfrage - Hole Views für User's Ads als Benachrichtigungen
+      try {
+        const { data: userAds, error: adsError } = await supabase
+          .from('ads')
+          .select('id, title, views, updated_at')
+          .eq('user_id', user.id)
+          .gt('views', 0)
+          .order('updated_at', { ascending: false })
+          .limit(3);
+
+        if (adsError) {
+          console.warn('Fehler beim Laden der Anzeigen:', adsError);
+        } else if (userAds) {
+          userAds.forEach(ad => {
+            if (ad.views && ad.views > 0) {
+              realNotifications.push({
+                id: `views_${ad.id}`,
+                type: 'ad_view',
+                title: 'Neue Aufrufe',
+                content: `Ihre Anzeige "${ad.title || 'Unbekannt'}" wurde ${ad.views} mal angesehen`,
+                read: true,
+                created_at: ad.updated_at,
+                metadata: { adId: ad.id, views: ad.views }
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.warn('Anzeigen konnten nicht geladen werden:', error);
       }
 
       // Sortiere alle Benachrichtigungen nach Datum
@@ -132,6 +160,7 @@ export function NotificationCenter() {
 
     } catch (error) {
       console.error('Fehler beim Laden der Benachrichtigungen:', error);
+      setError('Benachrichtigungen konnten nicht geladen werden');
     } finally {
       setLoading(false);
     }
@@ -140,46 +169,50 @@ export function NotificationCenter() {
   const setupRealtimeSubscription = () => {
     if (!user) return;
 
-    // Höre auf neue Nachrichten
-    const messageChannel = supabase
-      .channel('new_messages')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversations.recipient_id=eq.${user.id}`
-        },
-        () => {
-          fetchRealNotifications(); // Aktualisiere Benachrichtigungen
-        }
-      )
-      .subscribe();
-
-    // Höre auf bestätigte Zahlungen
-    const paymentChannel = supabase
-      .channel('confirmed_payments')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'crypto_payments',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.new.status === 'confirmed') {
-            fetchRealNotifications();
+    try {
+      // Höre auf neue Nachrichten
+      const messageChannel = supabase
+        .channel('new_messages')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversations.recipient_id=eq.${user.id}`
+          },
+          () => {
+            fetchRealNotifications(); // Aktualisiere Benachrichtigungen
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(messageChannel);
-      supabase.removeChannel(paymentChannel);
-    };
+      // Höre auf bestätigte Zahlungen
+      const paymentChannel = supabase
+        .channel('confirmed_payments')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'crypto_payments',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            if (payload.new.status === 'confirmed') {
+              fetchRealNotifications();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(messageChannel);
+        supabase.removeChannel(paymentChannel);
+      };
+    } catch (error) {
+      console.warn('Realtime-Subscription konnte nicht eingerichtet werden:', error);
+    }
   };
 
   const getIcon = (type: string) => {
@@ -222,18 +255,41 @@ export function NotificationCenter() {
   };
 
   const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 60) {
-      return `vor ${diffInMinutes} Min`;
-    } else if (diffInMinutes < 1440) {
-      return `vor ${Math.floor(diffInMinutes / 60)} Std`;
-    } else {
-      return `vor ${Math.floor(diffInMinutes / 1440)} Tag(en)`;
+    try {
+      const now = new Date();
+      const date = new Date(dateString);
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      
+      if (diffInMinutes < 60) {
+        return `vor ${diffInMinutes} Min`;
+      } else if (diffInMinutes < 1440) {
+        return `vor ${Math.floor(diffInMinutes / 60)} Std`;
+      } else {
+        return `vor ${Math.floor(diffInMinutes / 1440)} Tag(en)`;
+      }
+    } catch (error) {
+      return 'Unbekannt';
     }
   };
+
+  if (!user) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Benachrichtigungen
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Sie müssen angemeldet sein, um Benachrichtigungen zu sehen.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (
@@ -247,6 +303,33 @@ export function NotificationCenter() {
         <CardContent>
           <div className="text-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-muted-foreground mt-2">Lade Benachrichtigungen...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Benachrichtigungen
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <p className="text-destructive">{error}</p>
+            <Button 
+              variant="outline" 
+              onClick={fetchRealNotifications} 
+              className="mt-4"
+            >
+              Erneut versuchen
+            </Button>
           </div>
         </CardContent>
       </Card>

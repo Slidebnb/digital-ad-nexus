@@ -1,5 +1,5 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ import {
   Trash2,
   PlusCircle,
   Search,
-  Filter,
   Zap
 } from "lucide-react";
 
@@ -25,11 +24,11 @@ export function UserAds() {
   const { userAds, getUserStats } = useProfile();
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedAdId, setSelectedAdId] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
   const stats = getUserStats();
 
@@ -41,12 +40,22 @@ export function UserAds() {
   });
 
   const handleDeleteAd = async (adId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Fehler",
+        description: "Sie müssen angemeldet sein, um Anzeigen zu löschen.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
+      setIsDeleting(adId);
       const { error } = await supabase
         .from('ads')
         .delete()
         .eq('id', adId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -55,19 +64,23 @@ export function UserAds() {
         description: "Die Anzeige wurde erfolgreich gelöscht.",
       });
       
-      // Refresh ads list
+      // Refresh durch Seitenreload statt useNavigate
       window.location.reload();
     } catch (error) {
+      console.error('Delete ad error:', error);
       toast({
         title: "Fehler",
         description: "Anzeige konnte nicht gelöscht werden.",
         variant: "destructive"
       });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
   const handleEditAd = (adId: string) => {
-    navigate(`/create-ad?edit=${adId}`);
+    // Verwende window.location statt useNavigate für mehr Stabilität
+    window.location.href = `/create-ad?edit=${adId}`;
   };
 
   const handleBoostAd = (adId: string) => {
@@ -119,7 +132,11 @@ export function UserAds() {
       });
       return;
     }
-    navigate('/create-ad');
+    window.location.href = '/create-ad';
+  };
+
+  const handleVerificationRedirect = () => {
+    window.location.href = '/dashboard?tab=verification';
   };
 
   return (
@@ -202,7 +219,7 @@ export function UserAds() {
               <Button 
                 variant="gradient"
                 disabled={!stats.verified}
-                onClick={stats.verified ? handleCreateAd : () => navigate('/dashboard?tab=verification')}
+                onClick={stats.verified ? handleCreateAd : handleVerificationRedirect}
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 {stats.verified ? "Erste Anzeige erstellen" : "Account verifizieren"}
@@ -223,10 +240,13 @@ export function UserAds() {
                         src={ad.images[0]} 
                         alt={ad.title}
                         className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
                       />
-                    ) : (
-                      <div className="text-4xl">📷</div>
-                    )}
+                    ) : null}
+                    <div className="text-4xl">📷</div>
                   </div>
 
                   <div className="flex-1 space-y-3">
@@ -251,7 +271,7 @@ export function UserAds() {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-primary">
-                          €{Number(ad.price).toLocaleString()}
+                          €{Number(ad.price || 0).toLocaleString()}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {ad.currency || 'EUR'}
@@ -280,7 +300,7 @@ export function UserAds() {
                           {ad.contact_count || 0}
                         </span>
                         <span className="text-xs">
-                          {new Date(ad.created_at || '').toLocaleDateString('de-DE')}
+                          {ad.created_at ? new Date(ad.created_at).toLocaleDateString('de-DE') : 'Unbekannt'}
                         </span>
                       </div>
                       
@@ -305,8 +325,13 @@ export function UserAds() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleDeleteAd(ad.id)}
+                          disabled={isDeleting === ad.id}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {isDeleting === ad.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b border-current" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
