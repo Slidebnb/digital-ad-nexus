@@ -51,7 +51,7 @@ export function ResponsiveNavigation() {
     { label: "Startseite", href: "/", icon: Home },
     { label: "Durchsuchen", href: "/browse", icon: Search },
     { label: "Kategorien", href: "/categories", icon: Grid3X3 },
-    { label: "Krypto Hub", href: "/crypto-hub", icon: TrendingUp },
+    
     { label: "Favoriten", href: "/favorites", icon: Heart },
     ...(user ? [{ label: "Anzeige erstellen", href: "/create-ad", icon: PlusCircle }] : [])
   ];

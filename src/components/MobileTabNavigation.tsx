@@ -47,7 +47,7 @@ export function MobileTabNavigation({ value, onValueChange, isAdmin = false }: M
     { value: "ads-management", label: "Anzeigen", icon: ShoppingBag },
     { value: "verification", label: "Verifikation", icon: UserCheck },
     { value: "reports", label: "Reports", icon: AlertTriangle },
-    { value: "crypto", label: "Krypto", icon: Crown },
+    
     { value: "system", label: "System", icon: Settings },
     { value: "security", label: "Sicherheit", icon: Shield },
     { value: "settings", label: "Einstellungen", icon: Settings },

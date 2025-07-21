@@ -43,12 +43,6 @@ export function MainNavigationMenu({ trigger, align = "end" }: MainNavigationMen
       description: "Nach Kategorien stöbern"
     },
     {
-      label: "Krypto Hub",
-      href: "/crypto-hub",
-      icon: TrendingUp,
-      description: "Kryptowährungen & Trading"
-    },
-    {
       label: "Favoriten",
       href: "/favorites",
       icon: Heart,
