@@ -4,6 +4,15 @@
 
 **URL**: https://lovable.dev/projects/7af38eaf-41ef-418f-9648-b6851838fee5
 
+## Environment variables
+
+Copy `.env.example` to `.env` and provide your Supabase credentials:
+
+```env
+VITE_SUPABASE_URL=<your-supabase-url>
+VITE_SUPABASE_PUBLISHABLE_KEY=<your-supabase-publishable-key>
+```
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
