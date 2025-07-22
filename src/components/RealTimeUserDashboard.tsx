@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,168 +32,142 @@ export function RealTimeUserDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Memoize stat cards to prevent unnecessary re-renders
-  const statCards = useMemo(() => [
-    {
-      title: "Aktive Anzeigen",
-      value: stats.activeAds,
-      total: stats.totalAds,
-      icon: ShoppingBag,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      change: stats.totalAds > 0 ? Math.round((stats.activeAds / stats.totalAds) * 100) : 0
-    },
-    {
-      title: "Aufrufe Gesamt", 
-      value: stats.totalViews,
-      icon: Eye,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      change: stats.totalViews > 0 ? '+' + stats.totalViews : 0
-    },
-    {
-      title: "Nachrichten",
-      value: stats.totalMessages,
-      badge: stats.unreadMessages > 0 ? stats.unreadMessages : null,
-      icon: MessageCircle,
-      color: "text-purple-600", 
-      bgColor: "bg-purple-50",
-      change: stats.unreadMessages > 0 ? `${stats.unreadMessages} neu` : 'Alle gelesen'
-    },
-    {
-      title: "Favoriten",
-      value: stats.totalFavorites,
-      icon: Heart,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
-      change: stats.totalFavorites > 0 ? `${stats.totalFavorites} gesamt` : 'Keine'
-    }
-  ], [stats]);
-
-  // Show loading skeleton
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-5 w-32" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-24 mb-2" />
-                    <Skeleton className="h-8 w-16 mb-1" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                  <Skeleton className="h-12 w-12 rounded-lg" />
-                </div>
-              </CardContent>
+            <Card key={i} className="p-4">
+              <Skeleton className="h-16 w-full" />
             </Card>
           ))}
         </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-32 w-full" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Show error state
   if (error) {
-    logger.error('Dashboard error', 'RealTimeUserDashboard', { error });
-    
     return (
       <Card className="border-destructive">
         <CardContent className="p-6 text-center">
-          <div className="text-destructive mb-2">⚠️ Fehler beim Laden</div>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <div className="text-4xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold mb-2">Fehler beim Laden der Daten</h3>
+          <p className="text-muted-foreground">{error}</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with live indicator */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Live Dashboard</h2>
-        <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4 text-green-500 animate-pulse" />
-          <Badge variant="outline" className="text-xs">
-            Live • {lastUpdated.toLocaleTimeString('de-DE')}
-          </Badge>
-        </div>
+    <div className="space-y-4">
+      {/* Kompakte Header-Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Aktive Anzeigen</p>
+              <p className="text-xl font-bold">{stats.activeAds}</p>
+            </div>
+            <ShoppingBag className="h-5 w-5 text-blue-600" />
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Aufrufe</p>
+              <p className="text-xl font-bold">{stats.totalViews}</p>
+            </div>
+            <Eye className="h-5 w-5 text-green-600" />
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Nachrichten</p>
+              <p className="text-xl font-bold">{stats.totalMessages}</p>
+              {stats.unreadMessages > 0 && (
+                <Badge variant="destructive" className="text-xs mt-1">
+                  {stats.unreadMessages} neu
+                </Badge>
+              )}
+            </div>
+            <MessageCircle className="h-5 w-5 text-purple-600" />
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Favoriten</p>
+              <p className="text-xl font-bold">{stats.totalFavorites}</p>
+            </div>
+            <Heart className="h-5 w-5 text-red-600" />
+          </div>
+        </Card>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card, index) => (
-          <Card key={index} className="relative overflow-hidden hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-muted-foreground mb-1 truncate">
-                    {card.title}
-                  </p>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl font-bold">
-                      {card.value.toLocaleString('de-DE')}
-                    </span>
-                    {card.total && (
-                      <span className="text-sm text-muted-foreground">
-                        / {card.total.toLocaleString('de-DE')}
-                      </span>
-                    )}
-                    {card.badge && (
-                      <Badge variant="destructive" className="text-xs ml-1">
-                        {card.badge}
-                      </Badge>
-                    )}
-                  </div>
-                  {card.change && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {card.change}
-                    </p>
-                  )}
-                </div>
-                <div className={`p-3 rounded-lg ${card.bgColor} shrink-0`}>
-                  <card.icon className={`h-6 w-6 ${card.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Status Overview */}
+      {/* Kompakte Übersicht */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Status Übersicht
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Schnellübersicht</CardTitle>
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-green-500 animate-pulse" />
+              <span className="text-xs text-muted-foreground">
+                Live • {lastUpdated.toLocaleTimeString('de-DE')}
+              </span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-1">
-                {stats.totalViews.toLocaleString('de-DE')}
+        <CardContent className="space-y-4">
+          {/* Verifikationsstatus */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${stats.verified ? 'bg-green-500' : 'bg-yellow-500'}`} />
+              <div>
+                <p className="font-medium">
+                  {stats.verified ? 'Verifiziert' : 'Nicht verifiziert'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Level: {stats.verificationLevel || 'Keine'}
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">Gesamte Aufrufe</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600 mb-1">
-                {stats.totalTrades.toLocaleString('de-DE')}
+            {!stats.verified && (
+              <Badge variant="outline">Jetzt verifizieren</Badge>
+            )}
+          </div>
+
+          {/* Trades Übersicht */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Trades</span>
               </div>
-              <p className="text-sm text-muted-foreground">Abgeschlossene Trades</p>
+              <p className="text-2xl font-bold">{stats.totalTrades}</p>
+              <p className="text-xs text-muted-foreground">Abgeschlossen</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 mb-1">
-                {stats.verified ? 'Verifiziert' : 'Nicht verifiziert'}
+            
+            <div className="text-center p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Star className="h-4 w-4 text-yellow-600" />
+                <span className="text-sm font-medium">Erfolgsrate</span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Status ({stats.verificationLevel})
+              <p className="text-2xl font-bold">
+                {stats.totalTrades > 0 ? '100%' : '0%'}
               </p>
+              <p className="text-xs text-muted-foreground">Zufriedenheit</p>
             </div>
           </div>
         </CardContent>
