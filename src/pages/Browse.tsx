@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
-import { Footer } from "@/components/Footer";
+import { PageLayout } from "@/components/PageLayout";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Filter, X, Heart, Eye, MapPin, Euro, Calendar, Loader2, ShoppingBag, Zap, Crown } from "lucide-react";
@@ -286,9 +285,7 @@ export default function BrowseFixed() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <MobileOptimizedNavigation />
-      
+    <PageLayout>
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -690,9 +687,6 @@ export default function BrowseFixed() {
           </div>
         </div>
       </div>
-
-      <Footer />
-      <MobileBottomNavigation />
-    </div>
+    </PageLayout>
   );
 }

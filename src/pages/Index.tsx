@@ -1,5 +1,5 @@
 
-import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
+import { PageLayout } from "@/components/PageLayout";
 import { HeroSection } from "@/components/HeroSection";
 import { CategoriesSection } from "@/components/CategoriesSection";
 import { FeaturedAdsSection } from "@/components/FeaturedAdsSection";
@@ -21,9 +21,8 @@ export default function Index() {
   const { isAdmin } = useAuth();
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <PageLayout>
       <MobilePerformanceOptimizer />
-      <MobileOptimizedNavigation />
       
       {/* Admin Production Ready Banner */}
       {isAdmin && (
@@ -57,10 +56,9 @@ export default function Index() {
         <FeaturedAdsSection />
         <HowItWorksSection />
       </main>
-      <Footer />
       <CryptoPriceUpdater />
       <FloatingChatWidget />
       <MobileQuickActions />
-    </div>
+    </PageLayout>
   );
 }
