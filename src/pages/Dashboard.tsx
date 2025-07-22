@@ -37,7 +37,9 @@ export default function Dashboard() {
   
   return (
     <PageLayout>
-      {isAdmin ? <AdminDashboard /> : <UserDashboard />}
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        {isAdmin ? <AdminDashboard /> : <UserDashboard />}
+      </div>
     </PageLayout>
   );
 }

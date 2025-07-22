@@ -143,12 +143,10 @@ export function UserDashboard() {
   const showMobileLayout = device.isTouchDevice || device.isMobile || device.isTablet;
 
   return (
-    <div className="bg-gradient-to-br from-background via-background to-primary/5">      
-      {/* Hauptinhalt Container */}
-      <div className="container mx-auto px-4 py-6 md:py-8">
-        {/* Desktop Header */}
-        {!showMobileLayout && (
-          <div className="mb-8">
+    <div className="space-y-6">
+      {/* Desktop Header */}
+      {!showMobileLayout && (
+        <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
             <div className="flex items-center gap-4 mb-4">
               <Badge variant="outline" className="flex items-center gap-2">
@@ -161,11 +159,11 @@ export function UserDashboard() {
               <Badge variant="outline" className="text-xs">
                 📊 {tabsConfig.length} Funktionen verfügbar
               </Badge>
-            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full">
           {/* Mobile Tab Navigation */}
           {showMobileLayout && (
             <MobileTabNavigation 
@@ -237,8 +235,7 @@ export function UserDashboard() {
               );
             })}
           </div>
-        </Tabs>
-      </div>
+      </Tabs>
 
       {/* Mobile Bottom Navigation - EINHEITLICH auf allen Seiten */}
       {showMobileLayout && <MobileBottomNavigation />}
