@@ -2,7 +2,9 @@
 import { useRef, useEffect, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
+import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 import { RealTimeUserDashboard } from "@/components/RealTimeUserDashboard";
 import { EnhancedMessageSystem } from "@/components/EnhancedMessageSystem";
 import { UserAds } from "@/components/UserAds";
@@ -45,6 +47,7 @@ const TabErrorFallback = ({ tabName }: { tabName: string }) => (
 
 export function UserDashboard() {
   const { user, userRole } = useAuth();
+  const device = useDeviceDetection();
   const { currentTab, setCurrentTab } = useDashboardNavigation('overview');
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -136,51 +139,60 @@ export function UserDashboard() {
     }
   ];
 
+  const showMobileLayout = device.isTouchDevice || device.isMobile || device.isTablet;
+
   return (
     <div className="bg-gradient-to-br from-background via-background to-primary/5">      
       {/* Hauptinhalt Container */}
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Desktop Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <div className="flex items-center gap-4 mb-4">
-            <Badge variant="outline" className="flex items-center gap-2">
-              <User className="h-3 w-3" />
-              {userRole || 'user'}
-            </Badge>
-            <Badge variant="secondary" className="text-xs">
-              Live Updates Aktiv
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              📊 {tabsConfig.length} Funktionen verfügbar
-            </Badge>
+        {!showMobileLayout && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+            <div className="flex items-center gap-4 mb-4">
+              <Badge variant="outline" className="flex items-center gap-2">
+                <User className="h-3 w-3" />
+                {userRole || 'user'}
+              </Badge>
+              <Badge variant="secondary" className="text-xs">
+                Live Updates Aktiv
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                📊 {tabsConfig.length} Funktionen verfügbar
+              </Badge>
+            </div>
           </div>
-        </div>
+        )}
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full">
           {/* Desktop Tab Navigation */}
-          <div className="mb-6">
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-12 bg-muted/50">
-              {tabsConfig.map((tab) => (
-                <TabsTrigger 
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                >
-                  <tab.icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  {!tab.stable && (
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          {!showMobileLayout && (
+            <div className="mb-6">
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-12 bg-muted/50">
+                {tabsConfig.map((tab) => (
+                  <TabsTrigger 
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
+                    <tab.icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    {!tab.stable && (
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          )}
 
           {/* Content Area */}
           <div 
             ref={containerRef}
-            className="flex-1 overflow-y-auto"
+            className={cn(
+              "flex-1 overflow-y-auto",
+              showMobileLayout && "pb-20" // Extra padding for mobile bottom navigation
+            )}
           >
             {tabsConfig.map((tab) => {
               const Component = tab.component;
@@ -217,6 +229,9 @@ export function UserDashboard() {
           </div>
         </Tabs>
       </div>
+
+      {/* Mobile Bottom Navigation - EINHEITLICH auf allen Seiten */}
+      {showMobileLayout && <MobileBottomNavigation />}
     </div>
   );
 }
