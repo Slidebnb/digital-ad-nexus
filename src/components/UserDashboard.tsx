@@ -18,6 +18,7 @@ import { PremiumDashboardSection } from "@/components/PremiumDashboardSection";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ReportsAnalytics } from "@/components/ReportsAnalytics";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LazyLoadingWrapper } from "@/components/LazyLoadingWrapper";
 import { cn } from "@/lib/utils";
@@ -176,21 +177,25 @@ export function UserDashboard() {
           {/* Desktop Tab Navigation */}
           {!showMobileLayout && (
             <div className="mb-6">
-              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-12 bg-muted/50">
-                {tabsConfig.map((tab) => (
-                  <TabsTrigger 
-                    key={tab.value}
-                    value={tab.value}
-                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                  >
-                    <tab.icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    {!tab.stable && (
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="w-full overflow-x-auto scrollbar-hide">
+                <div className="flex space-x-1 min-w-max p-1 bg-muted/50 rounded-lg">
+                  {tabsConfig.map((tab) => (
+                    <Button
+                      key={tab.value}
+                      variant={currentTab === tab.value ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTab(tab.value)}
+                      className="flex items-center gap-2 whitespace-nowrap px-3"
+                    >
+                      <tab.icon className="h-4 w-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      {!tab.stable && (
+                        <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

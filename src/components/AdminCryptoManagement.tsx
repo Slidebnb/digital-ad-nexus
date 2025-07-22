@@ -45,6 +45,7 @@ interface PriceUpdate {
 export function AdminCryptoManagement() {
   const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("prices");
   const [stats, setStats] = useState<CryptoStats | null>(null);
   const [prices, setPrices] = useState<PriceUpdate[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -247,13 +248,43 @@ export function AdminCryptoManagement() {
         </div>
       )}
 
-      <Tabs defaultValue="prices" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="prices">Live Preise</TabsTrigger>
-          <TabsTrigger value="payments">Zahlungen</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Einstellungen</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="w-full overflow-x-auto scrollbar-hide mb-6">
+          <div className="flex space-x-1 min-w-max p-1">
+            <Button
+              variant={activeTab === "prices" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("prices")}
+              className="flex items-center gap-2 whitespace-nowrap px-3"
+            >
+              Live Preise
+            </Button>
+            <Button
+              variant={activeTab === "payments" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("payments")}
+              className="flex items-center gap-2 whitespace-nowrap px-3"
+            >
+              Zahlungen
+            </Button>
+            <Button
+              variant={activeTab === "analytics" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("analytics")}
+              className="flex items-center gap-2 whitespace-nowrap px-3"
+            >
+              Analytics
+            </Button>
+            <Button
+              variant={activeTab === "settings" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("settings")}
+              className="flex items-center gap-2 whitespace-nowrap px-3"
+            >
+              Einstellungen
+            </Button>
+          </div>
+        </div>
 
         <TabsContent value="prices" className="space-y-4">
           <Card>
