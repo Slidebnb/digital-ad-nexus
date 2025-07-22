@@ -154,10 +154,7 @@ export function UserDashboard() {
   const showMobileLayout = device.isTouchDevice || device.isMobile || device.isTablet;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Einheitliche Navigation wie auf der Startseite */}
-      <MobileOptimizedNavigation />
-      
+    <div className="bg-gradient-to-br from-background via-background to-primary/5">      
       {/* Hauptinhalt Container */}
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Desktop Header */}
@@ -270,9 +267,6 @@ export function UserDashboard() {
 
       {/* Mobile Bottom Navigation - einheitlich auf allen Seiten */}
       {showMobileLayout && <MobileBottomNavigation />}
-      
-      {/* Footer wie auf der Startseite */}
-      <Footer />
     </div>
   );
 }
