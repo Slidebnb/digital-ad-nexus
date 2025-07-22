@@ -244,68 +244,6 @@ export function CookieConsentManager() {
   );
 
   return (
-    <>
-      <CookieBanner />
-      
-      {/* Cookie Settings Card für Dashboard */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cookie className="h-5 w-5" />
-            Cookie-Verwaltung
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Verwalten Sie Ihre Cookie-Einstellungen und Datenschutzpräferenzen.
-            </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories.map((category) => (
-                <div key={category.id} className="text-center p-3 border rounded-lg">
-                  <div className={`text-lg font-bold ${category.enabled ? 'text-success' : 'text-muted-foreground'}`}>
-                    {category.enabled ? 'Aktiv' : 'Inaktiv'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{category.name}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex-1">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Cookie-Einstellungen verwalten
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Cookie className="h-5 w-5" />
-                      Cookie-Einstellungen
-                    </DialogTitle>
-                  </DialogHeader>
-                  <CookieSettingsContent />
-                </DialogContent>
-              </Dialog>
-              
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  localStorage.removeItem('cookie_consent');
-                  localStorage.removeItem('cookie_consent_date');
-                  setShowBanner(true);
-                }}
-                className="flex-1"
-              >
-                Einverständnis zurücksetzen
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </>
+    <CookieBanner />
   );
 }
