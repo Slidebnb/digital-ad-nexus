@@ -2,12 +2,7 @@
 import { useRef, useEffect, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
-import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
-import { MobileOptimizedNavigation } from "@/components/MobileOptimizedNavigation";
-import { MobileTabNavigation } from "@/components/MobileTabNavigation";
-import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
-import { DashboardBreadcrumb } from "@/components/DashboardBreadcrumb";
 import { RealTimeUserDashboard } from "@/components/RealTimeUserDashboard";
 import { EnhancedMessageSystem } from "@/components/EnhancedMessageSystem";
 import { UserAds } from "@/components/UserAds";
@@ -19,7 +14,6 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { PremiumDashboardSection } from "@/components/PremiumDashboardSection";
 import { SecurityDashboard } from "@/components/SecurityDashboard";
 import { ReportsAnalytics } from "@/components/ReportsAnalytics";
-import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LazyLoadingWrapper } from "@/components/LazyLoadingWrapper";
@@ -51,17 +45,8 @@ const TabErrorFallback = ({ tabName }: { tabName: string }) => (
 
 export function UserDashboard() {
   const { user, userRole } = useAuth();
-  const device = useDeviceDetection();
   const { currentTab, setCurrentTab } = useDashboardNavigation('overview');
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Debug-Informationen
-  console.log('🎯 UserDashboard rendered', { 
-    user: user?.id, 
-    userRole, 
-    currentTab,
-    device: { isMobile: device.isMobile, isTablet: device.isTablet, isTouchDevice: device.isTouchDevice }
-  });
 
   // Auto-scroll to top when tab changes
   useEffect(() => {
@@ -151,94 +136,62 @@ export function UserDashboard() {
     }
   ];
 
-  const showMobileLayout = device.isTouchDevice || device.isMobile || device.isTablet;
-
   return (
     <div className="bg-gradient-to-br from-background via-background to-primary/5">      
       {/* Hauptinhalt Container */}
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Desktop Header */}
-        {!showMobileLayout && (
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-            <div className="flex items-center gap-4 mb-4">
-              <Badge variant="outline" className="flex items-center gap-2">
-                <User className="h-3 w-3" />
-                {userRole || 'user'}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                Live Updates Aktiv
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                📊 {tabsConfig.length} Funktionen verfügbar
-              </Badge>
-            </div>
-            <DashboardBreadcrumb currentTab={currentTab} />
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+          <div className="flex items-center gap-4 mb-4">
+            <Badge variant="outline" className="flex items-center gap-2">
+              <User className="h-3 w-3" />
+              {userRole || 'user'}
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              Live Updates Aktiv
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              📊 {tabsConfig.length} Funktionen verfügbar
+            </Badge>
           </div>
-        )}
+        </div>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full">
-          {/* Mobile Tab Navigation */}
-          {showMobileLayout && (
-            <MobileTabNavigation 
-              value={currentTab} 
-              onValueChange={setCurrentTab}
-              isAdmin={false}
-            />
-          )}
-
           {/* Desktop Tab Navigation */}
-          {!showMobileLayout && (
-            <div className="mb-6">
-              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-12 bg-muted/50">
-                {tabsConfig.map((tab) => (
-                  <TabsTrigger 
-                    key={tab.value}
-                    value={tab.value} 
-                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                  >
-                    <tab.icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    {!tab.stable && (
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          )}
+          <div className="mb-6">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-12 bg-muted/50">
+              {tabsConfig.map((tab) => (
+                <TabsTrigger 
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  {!tab.stable && (
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="In Entwicklung" />
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* Content Area */}
           <div 
             ref={containerRef}
-            className={cn(
-              "flex-1 overflow-y-auto",
-              showMobileLayout && [
-                "pb-20", // Extra padding for mobile bottom navigation
-                device.isIPad && "px-2",
-                device.isTablet && "px-2", 
-                device.isMobile && "px-2"
-              ]
-            )}
+            className="flex-1 overflow-y-auto"
           >
             {tabsConfig.map((tab) => {
               const Component = tab.component;
-              console.log(`🔧 Rendering tab: ${tab.value}, Component:`, Component.name, `Stable: ${tab.stable}`);
               
               return (
                 <TabsContent 
                   key={tab.value}
-                  value={tab.value} 
+                  value={tab.value}
                   className="space-y-6 mt-0 focus-visible:outline-none"
                 >
                   <div className="animate-fade-in">
-                    {/* Debug-Info für aktiven Tab */}
-                    {process.env.NODE_ENV === 'development' && currentTab === tab.value && (
-                      <div className="mb-4 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-                        🚀 Aktiver Tab: {tab.label} | Komponente: {Component.name} | Status: {tab.stable ? 'Stabil' : 'Beta'}
-                      </div>
-                    )}
-                    
                     {/* Enhanced Error Boundaries für instabile Komponenten */}
                     {tab.stable ? (
                       <ErrorBoundary fallback={<TabErrorFallback tabName={tab.label} />}>
@@ -264,9 +217,6 @@ export function UserDashboard() {
           </div>
         </Tabs>
       </div>
-
-      {/* Mobile Bottom Navigation - einheitlich auf allen Seiten */}
-      {showMobileLayout && <MobileBottomNavigation />}
     </div>
   );
 }
