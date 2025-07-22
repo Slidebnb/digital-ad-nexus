@@ -123,8 +123,7 @@ export const useFavorites = () => {
         .from('ads')
         .select(`
           *,
-          categories (name),
-          profiles!ads_user_id_fkey (full_name, rating, verified)
+          categories (name)
         `)
         .in('id', favorites)
         .eq('status', 'active');

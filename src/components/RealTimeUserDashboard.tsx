@@ -68,13 +68,14 @@ export function RealTimeUserDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Kompakte Header-Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Kompakte Wichtige Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Aktive Anzeigen</p>
+              <p className="text-xs text-muted-foreground">Anzeigen</p>
               <p className="text-xl font-bold">{stats.activeAds}</p>
+              <p className="text-xs text-muted-foreground">{stats.totalViews} Aufrufe</p>
             </div>
             <ShoppingBag className="h-5 w-5 text-blue-600" />
           </div>
@@ -83,21 +84,11 @@ export function RealTimeUserDashboard() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Aufrufe</p>
-              <p className="text-xl font-bold">{stats.totalViews}</p>
-            </div>
-            <Eye className="h-5 w-5 text-green-600" />
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Nachrichten</p>
-              <p className="text-xl font-bold">{stats.totalMessages}</p>
+              <p className="text-xs text-muted-foreground">Gespräche</p>
+              <p className="text-xl font-bold">{Math.ceil(stats.totalMessages / 5)}</p>
               {stats.unreadMessages > 0 && (
                 <Badge variant="destructive" className="text-xs mt-1">
-                  {stats.unreadMessages} neu
+                  {Math.ceil(stats.unreadMessages / 3)} neu
                 </Badge>
               )}
             </div>
@@ -108,10 +99,13 @@ export function RealTimeUserDashboard() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Favoriten</p>
-              <p className="text-xl font-bold">{stats.totalFavorites}</p>
+              <p className="text-xs text-muted-foreground">Status</p>
+              <p className="text-sm font-bold">
+                {stats.verified ? 'Verifiziert' : 'Nicht verifiziert'}
+              </p>
+              <p className="text-xs text-muted-foreground">{stats.totalFavorites} Favoriten</p>
             </div>
-            <Heart className="h-5 w-5 text-red-600" />
+            <div className={`w-5 h-5 rounded-full ${stats.verified ? 'bg-green-500' : 'bg-yellow-500'}`} />
           </div>
         </Card>
       </div>

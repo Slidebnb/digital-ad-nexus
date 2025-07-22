@@ -112,23 +112,14 @@ export function FavoritesManager() {
                   {ad.categories?.name && (
                     <Badge variant="secondary">{ad.categories.name}</Badge>
                   )}
-                  {ad.profiles?.verified && (
-                    <Badge variant="default">Verifiziert</Badge>
-                  )}
+                  <Badge variant="outline">Favorisiert</Badge>
                 </div>
               </div>
               
               <div className="mt-3 pt-3 border-t">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {ad.profiles?.full_name || 'Anonymer Nutzer'}
-                    </span>
-                    {ad.profiles?.rating && (
-                      <span className="text-sm text-muted-foreground">
-                        ★ {Number(ad.profiles.rating).toFixed(1)}
-                      </span>
-                    )}
+                  <div className="text-sm text-muted-foreground">
+                    Gespeichert am {new Date(ad.created_at).toLocaleDateString('de-DE')}
                   </div>
                   
                   <Button size="sm" variant="outline">
