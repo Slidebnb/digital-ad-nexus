@@ -57,8 +57,8 @@ export function MobileTabNavigation({ value, onValueChange, isAdmin = false }: M
 
   return (
     <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex p-1 space-x-1">
+      <div className="w-full overflow-x-auto scrollbar-hide">
+        <div className="flex p-2 space-x-2 min-w-max">
           {tabs.map((tab) => (
             <Button
               key={tab.value}
@@ -66,16 +66,16 @@ export function MobileTabNavigation({ value, onValueChange, isAdmin = false }: M
               size="sm"
               onClick={() => onValueChange(tab.value)}
               className={cn(
-                "flex-shrink-0 flex items-center gap-2 min-w-fit px-3",
-                value === tab.value && "bg-primary text-primary-foreground"
+                "flex-shrink-0 flex items-center gap-1.5 min-w-fit px-2.5 py-2 text-xs whitespace-nowrap",
+                value === tab.value && "bg-primary text-primary-foreground shadow-sm"
               )}
             >
-              <tab.icon className="h-4 w-4" />
-              <span className="text-xs">{tab.label}</span>
+              <tab.icon className="h-3.5 w-3.5" />
+              <span>{tab.label}</span>
             </Button>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
