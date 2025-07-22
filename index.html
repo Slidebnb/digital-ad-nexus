@@ -39,6 +39,18 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
 
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_MEASUREMENT_ID', {
+        anonymize_ip: true,
+        cookie_flags: 'SameSite=Strict;Secure'
+      });
+    </script>
+
     <meta property="og:title" content="KRYPTOANZEIGEN.DE - Sichere Krypto-Kleinanzeigen" />
     <meta property="og:description" content="Die dezentrale Plattform für den sicheren Handel mit Kryptowährungen. Kaufe, verkaufe und tausche direkt mit anderen Nutzern." />
     <meta property="og:type" content="website" />

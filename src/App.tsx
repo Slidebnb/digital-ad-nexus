@@ -7,6 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SimpleErrorBoundary } from "@/components/SimpleErrorBoundary";
+import { EnhancedNotificationSystem } from "@/components/EnhancedNotificationSystem";
+import { CookieConsentManager } from "@/components/CookieConsentManager";
+import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
+import { useRealtimePushNotifications } from "@/hooks/useRealtimePushNotifications";
+import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 
 import Index from "./pages/Index";
 import Login from "./pages/LoginSimple";
@@ -30,13 +35,16 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <SimpleErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
+const AppContent = () => {
+  useGoogleAnalytics();
+  useRealtimePushNotifications();
+  
+  return (
+    <>
+      <EnhancedNotificationSystem />
+      <CookieConsentManager />
+      <NotificationPermissionPrompt />
+      <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
@@ -48,6 +56,17 @@ const App = () => (
               <Route path="/ad/:id" element={<AdDetail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+    </>
+  );
+};
+
+const App = () => (
+  <SimpleErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppContent />
           </BrowserRouter>
         </AuthProvider>
         <Toaster />

@@ -18,6 +18,7 @@ import { LiveUserCounter } from "@/components/LiveUserCounter";
 import { PremiumButton } from "@/components/PremiumButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { analytics } from "@/hooks/useGoogleAnalytics";
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -95,7 +96,11 @@ export function Navigation() {
                   </Button>
                 </Link>
                 <Link to="/create-ad">
-                  <Button variant="gradient" size="sm">
+                  <Button 
+                    variant="gradient" 
+                    size="sm"
+                    onClick={() => analytics.createAd()}
+                  >
                     <PlusCircle className="h-4 w-4" />
                     Anzeige erstellen
                   </Button>
@@ -156,8 +161,12 @@ export function Navigation() {
                 Durchsuchen
               </Button>
             </Link>
-            <Link to="/categories" className="block">
-              <Button variant="ghost" className="w-full justify-start" onClick={toggleMenu}>
+                <Link to="/categories" className="block">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start" 
+                onClick={() => { analytics.browseCategory('all'); toggleMenu(); }}
+              >
                 Kategorien
               </Button>
             </Link>

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SendMessageModal } from "@/components/SendMessageModal";
 import { ReportUserModal } from "@/components/ReportUserModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { useGoogleAnalytics, analytics } from "@/hooks/useGoogleAnalytics";
 
 interface Ad {
   id: string;
@@ -43,6 +44,7 @@ export default function AdDetail() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  useGoogleAnalytics();
 
   useEffect(() => {
     const fetchAdDetails = async () => {
@@ -71,6 +73,9 @@ export default function AdDetail() {
 
         // Increment view count
         await supabase.rpc('increment_ad_views', { ad_id: id });
+        
+        // Track ad view
+        analytics.viewAd(id);
 
       } catch (error) {
         console.error('Error fetching ad details:', error);
@@ -119,8 +124,41 @@ export default function AdDetail() {
     });
   };
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": ad?.title,
+    "description": ad?.description,
+    "image": ad?.images?.[0],
+    "brand": {
+      "@type": "Brand",
+      "name": "KryptoAnzeigen.de"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": ad?.price,
+      "priceCurrency": ad?.currency || "EUR",
+      "availability": "https://schema.org/InStock",
+      "seller": {
+        "@type": "Person",
+        "name": profile?.full_name
+      }
+    },
+    "category": ad?.category,
+    "condition": ad?.condition,
+    "url": `https://kryptoanzeigen.de/ad/${ad?.id}`
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      {/* JSON-LD Structured Data */}
+      {ad && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       <Navigation />
       
       <div className="container mx-auto px-4 py-6 md:py-8">
