@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
+import { MobileTabNavigation } from "@/components/MobileTabNavigation";
 import { MobileBottomNavigation } from "@/components/MobileBottomNavigation";
 import { RealTimeUserDashboard } from "@/components/RealTimeUserDashboard";
 import { EnhancedMessageSystem } from "@/components/EnhancedMessageSystem";
@@ -165,6 +166,15 @@ export function UserDashboard() {
         )}
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full">
+          {/* Mobile Tab Navigation */}
+          {showMobileLayout && (
+            <MobileTabNavigation 
+              value={currentTab} 
+              onValueChange={setCurrentTab}
+              isAdmin={false}
+            />
+          )}
+
           {/* Desktop Tab Navigation */}
           {!showMobileLayout && (
             <div className="mb-6">
