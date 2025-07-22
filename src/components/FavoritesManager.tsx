@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/hooks/useAuth";
 
 export function FavoritesManager() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { favorites, loading, getFavoriteAds } = useFavorites();
   const [favoriteAds, setFavoriteAds] = useState<any[]>([]);
@@ -122,7 +124,11 @@ export function FavoritesManager() {
                     Gespeichert am {new Date(ad.created_at).toLocaleDateString('de-DE')}
                   </div>
                   
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => navigate(`/ad/${ad.id}`)}
+                  >
                     Anzeigen
                   </Button>
                 </div>
